@@ -1,10 +1,10 @@
 package main
 
 func main() {
-	app, err := NewRestAPI()
+	api, err := NewRestAPI()
 	if err != nil {
 		panic(err)
 	}
 
-	panic(app.Run(":14000"))
+	panic(api.Run(":14000"))
 }
