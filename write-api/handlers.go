@@ -19,7 +19,7 @@ type UpdateLikesForm struct {
 	PostID, Likes int
 }
 
-type AddCommentForm struct {
+type CreateCommentForm struct {
 	PostID, ParentID int
 	User, Body       string
 }
@@ -53,12 +53,12 @@ func CreatePost(db *gorm.DB, ctx *gin.Context) {
 		UpdatedAt: created,
 	}
 
-	if err := db.Create(&post).Error; err != nil {
+	if err := db.Save(&post).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	ctx.JSON(http.StatusOK, gin.H{"PostID": post.PostID})
 }
 
 func DeletePost(db *gorm.DB, ctx *gin.Context) {
@@ -68,7 +68,9 @@ func DeletePost(db *gorm.DB, ctx *gin.Context) {
 		return
 	}
 
-	if err := deletePostFromDB(db, form.PostID); err != nil {
+	post := Post{PostID: form.PostID}
+
+	if err := db.Delete(&post).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 		return
 	}
@@ -93,8 +95,8 @@ func UpdatePostLikes(db *gorm.DB, ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{})
 }
 
-func AddComment(db *gorm.DB, ctx *gin.Context) {
-	form := AddCommentForm{}
+func CreateComment(db *gorm.DB, ctx *gin.Context) {
+	form := CreateCommentForm{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
 		return

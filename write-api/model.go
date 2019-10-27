@@ -22,4 +22,5 @@ type Post struct {
 	Likes     int
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	Comments []Comment `gorm:"FOREIGNKEY:PostID`
 }

@@ -32,20 +32,20 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 }
 
 func (a *RestAPI) setRoutes() {
-	a.engine.POST("/create/post", func(ctx *gin.Context) {
+	a.engine.POST("/post/create", func(ctx *gin.Context) {
 		CreatePost(a.db, ctx)
 	})
 
-	a.engine.POST("/delete/post", func(ctx *gin.Context) {
+	a.engine.POST("/post/delete", func(ctx *gin.Context) {
 		DeletePost(a.db, ctx)
 	})
 
-	a.engine.POST("/update/post", func(ctx *gin.Context) {
+	a.engine.POST("/post/likes", func(ctx *gin.Context) {
 		UpdatePostLikes(a.db, ctx)
 	})
 
-	a.engine.POST("/comment", func(ctx *gin.Context) {
-		AddComment(a.db, ctx)
+	a.engine.POST("/comment/create", func(ctx *gin.Context) {
+		CreateComment(a.db, ctx)
 	})
 
 	a.engine.POST("/comment/clear", func(ctx *gin.Context) {
