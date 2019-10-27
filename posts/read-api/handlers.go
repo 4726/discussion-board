@@ -5,6 +5,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"net/http"
 	"strconv"
+	"github.com/4726/discussion-board/posts/models"
 )
 
 type ErrorResponse struct {
@@ -20,7 +21,7 @@ func GetFullPost(db *gorm.DB, ctx *gin.Context) {
 		return
 	}
 
-	var post Post
+	var post models.Post
 	if err := db.First(&post, postID).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			ctx.JSON(http.StatusNotFound, gin.H{})
@@ -79,8 +80,8 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 }
 
 //what happens to non selected fields? set to zero value?
-func getPosts(db *gorm.DB, from, total int, sortType string) ([]Post, error) {
-	posts := []Post{}
+func getPosts(db *gorm.DB, from, total int, sortType string) ([]models.Post, error) {
+	posts := []models.Post{}
 	selectFields := []string{"Post_ID", "Likes", "User", "Title", "Created_At", "Updated_At"}
 	if err := db.Select(selectFields).
 		Order(sortType).
@@ -93,8 +94,8 @@ func getPosts(db *gorm.DB, from, total int, sortType string) ([]Post, error) {
 	return posts, nil
 }
 
-func getPostsUser(db *gorm.DB, from, total int, user, sortType string) ([]Post, error) {
-	posts := []Post{}
+func getPostsUser(db *gorm.DB, from, total int, user, sortType string) ([]models.Post, error) {
+	posts := []models.Post{}
 	selectFields := []string{"Post_ID", "Likes", "User", "Title", "Created_At", "Updated_At"}
 	if err := db.Select(selectFields).
 		Where("user = ?", user).

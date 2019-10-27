@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"github.com/4726/discussion-board/posts/models"
 )
 
 type RestAPI struct {
@@ -25,35 +26,19 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.AutoMigrate(&Comment{}, &Post{})
+	db.AutoMigrate(&models.Comment{}, &models.Post{})
 	api.db = db
 
 	return api, err
 }
 
 func (a *RestAPI) setRoutes() {
-	a.engine.POST("/post/create", func(ctx *gin.Context) {
-		CreatePost(a.db, ctx)
+	a.engine.GET("/post/:postid", func(ctx *gin.Context) {
+		GetFullPost(a.db, ctx)
 	})
 
-	a.engine.POST("/post/delete", func(ctx *gin.Context) {
-		DeletePost(a.db, ctx)
-	})
-
-	a.engine.POST("/post/likes", func(ctx *gin.Context) {
-		UpdatePostLikes(a.db, ctx)
-	})
-
-	a.engine.POST("/comment/create", func(ctx *gin.Context) {
-		CreateComment(a.db, ctx)
-	})
-
-	a.engine.POST("/comment/clear", func(ctx *gin.Context) {
-		ClearComment(a.db, ctx)
-	})
-
-	a.engine.POST("/comment/likes", func(ctx *gin.Context) {
-		UpdateCommentLikes(a.db, ctx)
+	a.engine.GET("/posts", func(ctx *gin.Context) {
+		GetPosts(a.db, ctx)
 	})
 }
 

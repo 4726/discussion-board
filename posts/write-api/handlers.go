@@ -5,6 +5,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"net/http"
 	"time"
+	"github.com/4726/discussion-board/posts/models"
 )
 
 type CreateForm struct {
@@ -44,7 +45,7 @@ func CreatePost(db *gorm.DB, ctx *gin.Context) {
 	}
 
 	created := time.Now()
-	post := Post{
+	post := models.Post{
 		User:      form.User,
 		Title:     form.Title,
 		Body:      form.Body,
@@ -68,7 +69,7 @@ func DeletePost(db *gorm.DB, ctx *gin.Context) {
 		return
 	}
 
-	post := Post{PostID: form.PostID}
+	post := models.Post{PostID: form.PostID}
 
 	if err := db.Delete(&post).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
@@ -85,7 +86,7 @@ func UpdatePostLikes(db *gorm.DB, ctx *gin.Context) {
 		return
 	}
 
-	post := Post{PostID: form.PostID}
+	post := models.Post{PostID: form.PostID}
 
 	if err := db.Model(&post).Update("Likes", form.Likes).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
@@ -103,7 +104,7 @@ func CreateComment(db *gorm.DB, ctx *gin.Context) {
 	}
 
 	created := time.Now()
-	comment := Comment{
+	comment := models.Comment{
 		PostID:    form.PostID,
 		ParentID:  form.ParentID,
 		User:      form.User,
@@ -127,7 +128,7 @@ func ClearComment(db *gorm.DB, ctx *gin.Context) {
 		return
 	}
 
-	comment := Comment{CommentID: form.CommentID}
+	comment := models.Comment{CommentID: form.CommentID}
 
 	if err := db.Model(&comment).Update("Body", "").Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
@@ -144,7 +145,7 @@ func UpdateCommentLikes(db *gorm.DB, ctx *gin.Context) {
 		return
 	}
 
-	comment := Comment{CommentID: form.CommentID}
+	comment := models.Comment{CommentID: form.CommentID}
 
 	if err := db.Model(&comment).Update("Likes", form.Likes).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
@@ -155,7 +156,7 @@ func UpdateCommentLikes(db *gorm.DB, ctx *gin.Context) {
 }
 
 func deletePostFromDB(db *gorm.DB, postID int) error {
-	post := Post{PostID: postID}
+	post := models.Post{PostID: postID}
 	tx := db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -181,8 +182,8 @@ func deletePostFromDB(db *gorm.DB, postID int) error {
 	return nil
 }
 
-func addCommentToDB(db *gorm.DB, comment *Comment) error {
-	post := Post{PostID: comment.PostID}
+func addCommentToDB(db *gorm.DB, comment *models.Comment) error {
+	post := models.Post{PostID: comment.PostID}
 
 	tx := db.Begin()
 	defer func() {
