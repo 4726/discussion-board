@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/4726/discussion-board/posts/models"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
-	"github.com/4726/discussion-board/posts/models"
 )
 
 type RestAPI struct {

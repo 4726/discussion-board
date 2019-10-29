@@ -1,11 +1,11 @@
 package main
 
 import (
+	"github.com/4726/discussion-board/posts/models"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"net/http"
 	"strconv"
-	"github.com/4726/discussion-board/posts/models"
 )
 
 type ErrorResponse struct {
