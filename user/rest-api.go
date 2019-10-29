@@ -48,6 +48,10 @@ func (a *RestAPI) setRoutes() {
 	a.engine.POST("/profile/update", func(ctx *gin.Context) {
 		UpdateProfile(a.db, ctx)
 	})
+
+	a.engine.POST("/password", func(ctx *gin.Context) {
+		ChangePassword(a.db, ctx)
+	})
 }
 
 func (a *RestAPI) Run(addr string) error {
