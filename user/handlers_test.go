@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func assertJSON(t testing.TB, obj interface{}) string {
@@ -15,7 +16,7 @@ func assertJSON(t testing.TB, obj interface{}) string {
 	return string(b)
 }
 
-func createAccountTest(t testing.TB, username, password string) {
+func createAccountTest(t testing.TB, username, password string) ([]Auth, []Profile) {
 	cfg, err := ConfigFromJSON("config_test.json")
 	assert.NoError(t, err)
 	api, err := NewRestAPI(cfg)
@@ -31,6 +32,31 @@ func createAccountTest(t testing.TB, username, password string) {
 	expected := map[string]interface{}{"userid": 1}
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	auths, profiles := queryDBTest(t, api)
+	assert.Len(t, auths, 1)
+	assert.Len(t, profiles, 1)
+	auth := auths[0]
+	profile := profiles[0]
+	assert.Equal(t, 1, auth.UserID)
+	assert.Equal(t, "username", auth.Username)
+	assert.NotEqual(t, "password", auth.Password)
+	assert.Equal(t, auth.CreatedAt, auth.UpdatedAt)
+	assert.WithinDuration(t, time.Now(), auth.CreatedAt, time.Minute)
+	assert.Equal(t, initialBio, profile.Bio)
+	assert.Equal(t, initialAvatarID, profile.AvatarID)
+	assert.Equal(t, profile.UserID, auth.UserID)
+	assert.Equal(t, profile.Username, auth.Username)
+
+	return auths, profiles
+}
+
+func queryDBTest(t testing.TB, api *RestAPI) ([]Auth, []Profile) {
+	auths := []Auth{}
+	profiles := []Profile{}
+	assert.NoError(t, api.db.Find(&auths).Error)
+	assert.NoError(t, api.db.Find(&profiles).Error)
+	return auths, profiles
 }
 
 func TestGetProfileInvalidParam(t *testing.T) {
@@ -49,6 +75,10 @@ func TestGetProfileInvalidParam(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	auths, profiles := queryDBTest(t, api)
+	assert.Len(t, auths, 0)
+	assert.Len(t, profiles, 0)
 }
 
 func TestGetProfileDoesNotExist(t *testing.T) {
@@ -65,6 +95,10 @@ func TestGetProfileDoesNotExist(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, "{}", w.Body.String())
+
+	auths, profiles := queryDBTest(t, api)
+	assert.Len(t, auths, 0)
+	assert.Len(t, profiles, 0)
 }
 
 func TestGetProfile(t *testing.T) {
@@ -75,7 +109,7 @@ func TestGetProfile(t *testing.T) {
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
 
-	createAccountTest(t, "username", "password")
+	auths, profiles := createAccountTest(t, "username", "password")
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/profile/1", nil)
@@ -90,6 +124,10 @@ func TestGetProfile(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	authsAfter, profilesAfter := queryDBTest(t, api)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestValidLoginWrongBodyFormat(t *testing.T) {
@@ -110,6 +148,10 @@ func TestValidLoginWrongBodyFormat(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	auths, profiles := queryDBTest(t, api)
+	assert.Len(t, auths, 0)
+	assert.Len(t, profiles, 0)
 }
 
 func TestValidLoginUsernameDoesNotExist(t *testing.T) {
@@ -131,6 +173,10 @@ func TestValidLoginUsernameDoesNotExist(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	auths, profiles := queryDBTest(t, api)
+	assert.Len(t, auths, 0)
+	assert.Len(t, profiles, 0)
 }
 
 func TestValidLoginWrongPassword(t *testing.T) {
@@ -141,7 +187,7 @@ func TestValidLoginWrongPassword(t *testing.T) {
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
 
-	createAccountTest(t, "username", "password")
+	auths, profiles := createAccountTest(t, "username", "password")
 
 	form := LoginForm{"username", "passwor"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -154,6 +200,10 @@ func TestValidLoginWrongPassword(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	authsAfter, profilesAfter := queryDBTest(t, api)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestValidLogin(t *testing.T) {
@@ -164,7 +214,7 @@ func TestValidLogin(t *testing.T) {
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
 
-	createAccountTest(t, "username", "password")
+	auths, profiles := createAccountTest(t, "username", "password")
 
 	form := LoginForm{"username", "password"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -177,6 +227,10 @@ func TestValidLogin(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	authsAfter, profilesAfter := queryDBTest(t, api)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestCreateAccountWrongBodyFormat(t *testing.T) {
@@ -218,6 +272,10 @@ func TestCreateAccountInvalidUsername(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	auths, profiles := queryDBTest(t, api)
+	assert.Len(t, auths, 0)
+	assert.Len(t, profiles, 0)
 }
 
 func TestCreateAccountInvalidPassword(t *testing.T) {
@@ -239,6 +297,10 @@ func TestCreateAccountInvalidPassword(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	auths, profiles := queryDBTest(t, api)
+	assert.Len(t, auths, 0)
+	assert.Len(t, profiles, 0)
 }
 
 func TestCreateAccount(t *testing.T) {
@@ -292,6 +354,10 @@ func TestUpdateProfileWrongBodyFormat(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	auths, profiles := queryDBTest(t, api)
+	assert.Len(t, auths, 0)
+	assert.Len(t, profiles, 0)
 }
 
 func TestUpdateProfileNone(t *testing.T) {
@@ -302,7 +368,7 @@ func TestUpdateProfileNone(t *testing.T) {
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
 
-	createAccountTest(t, "username", "password")
+	auths, profiles := createAccountTest(t, "username", "password")
 
 	form := UpdateProfileForm{1, "", ""}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -313,6 +379,10 @@ func TestUpdateProfileNone(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "{}", w.Body.String())
+
+	authsAfter, profilesAfter := queryDBTest(t, api)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestUpdateProfileBio(t *testing.T) {
@@ -323,9 +393,9 @@ func TestUpdateProfileBio(t *testing.T) {
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
 
-	createAccountTest(t, "username", "password")
+	auths, profiles := createAccountTest(t, "username", "password")
 
-	form := UpdateProfileForm{1, "hello world", ""}
+	form := UpdateProfileForm{1, "hello world 啊", ""}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -334,6 +404,16 @@ func TestUpdateProfileBio(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "{}", w.Body.String())
+
+	authsAfter, profilesAfter := queryDBTest(t, api)
+	profileAfter := profilesAfter[0]
+	profile := profiles[0]
+	assert.Len(t, profilesAfter, len(profiles))
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profile.UserID, profileAfter.UserID)
+	assert.Equal(t, profile.Username, profileAfter.Username)
+	assert.Equal(t, profileAfter.Bio, "hello world 啊")
+	assert.Equal(t, profile.AvatarID, profileAfter.AvatarID)
 }
 
 func TestUpdateProfileAvatarID(t *testing.T) {
@@ -344,7 +424,7 @@ func TestUpdateProfileAvatarID(t *testing.T) {
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
 
-	createAccountTest(t, "username", "password")
+	auths, profiles := createAccountTest(t, "username", "password")
 
 	form := UpdateProfileForm{1, "", "a"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -355,6 +435,16 @@ func TestUpdateProfileAvatarID(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "{}", w.Body.String())
+
+	authsAfter, profilesAfter := queryDBTest(t, api)
+	profileAfter := profilesAfter[0]
+	profile := profiles[0]
+	assert.Len(t, profilesAfter, len(profiles))
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profile.UserID, profileAfter.UserID)
+	assert.Equal(t, profile.Username, profileAfter.Username)
+	assert.Equal(t, profile.Bio, profileAfter.Bio)
+	assert.Equal(t, profileAfter.AvatarID, "a")
 }
 
 func TestUpdateProfile(t *testing.T) {
@@ -365,7 +455,7 @@ func TestUpdateProfile(t *testing.T) {
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
 
-	createAccountTest(t, "username", "password")
+	auths, profiles := createAccountTest(t, "username", "password")
 
 	form := UpdateProfileForm{1, "hello world", "a"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -376,6 +466,16 @@ func TestUpdateProfile(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "{}", w.Body.String())
+
+	authsAfter, profilesAfter := queryDBTest(t, api)
+	profileAfter := profilesAfter[0]
+	profile := profiles[0]
+	assert.Len(t, profilesAfter, len(profiles))
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profile.UserID, profileAfter.UserID)
+	assert.Equal(t, profile.Username, profileAfter.Username)
+	assert.Equal(t, profileAfter.AvatarID, "a")
+	assert.Equal(t, profileAfter.Bio, "hello world")
 }
 
 func TestChangePasswordWrongBodyFormat(t *testing.T) {
@@ -385,8 +485,6 @@ func TestChangePasswordWrongBodyFormat(t *testing.T) {
 	assert.NoError(t, err)
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
-
-	//create account
 
 	buffer := bytes.NewBuffer([]byte("1"))
 
@@ -398,6 +496,10 @@ func TestChangePasswordWrongBodyFormat(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	auths, profiles := queryDBTest(t, api)
+	assert.Len(t, auths, 0)
+	assert.Len(t, profiles, 0)
 }
 
 func TestChangePasswordUserDoesNotExist(t *testing.T) {
@@ -417,6 +519,10 @@ func TestChangePasswordUserDoesNotExist(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, "{}", w.Body.String())
+
+	auths, profiles := queryDBTest(t, api)
+	assert.Len(t, auths, 0)
+	assert.Len(t, profiles, 0)
 }
 
 func TestChangePasswordInvalidOld(t *testing.T) {
@@ -427,7 +533,7 @@ func TestChangePasswordInvalidOld(t *testing.T) {
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
 
-	createAccountTest(t, "username", "password")
+	auths, profiles := createAccountTest(t, "username", "password")
 
 	form := ChangePasswordForm{1, "passwor", "newpassword"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -440,6 +546,10 @@ func TestChangePasswordInvalidOld(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	authsAfter, profilesAfter := queryDBTest(t, api)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestChangePasswordInvalidNew(t *testing.T) {
@@ -450,7 +560,7 @@ func TestChangePasswordInvalidNew(t *testing.T) {
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
 
-	createAccountTest(t, "username", "password")
+	auths, profiles := createAccountTest(t, "username", "password")
 
 	form := ChangePasswordForm{1, "password", "newpa"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -463,6 +573,10 @@ func TestChangePasswordInvalidNew(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	authsAfter, profilesAfter := queryDBTest(t, api)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestChangePassword(t *testing.T) {
@@ -473,10 +587,12 @@ func TestChangePassword(t *testing.T) {
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
 
-	createAccountTest(t, "username", "password")
+	auths, profiles := createAccountTest(t, "username", "password")
 
 	form := ChangePasswordForm{1, "password", "newpassword"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	time.Sleep(time.Second) //to test if updated_at field changes
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/password", buffer)
@@ -484,4 +600,16 @@ func TestChangePassword(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "{}", w.Body.String())
+
+	authsAfter, profilesAfter := queryDBTest(t, api)
+	auth := auths[0]
+	authAfter := authsAfter[0]
+	assert.Len(t, authsAfter, len(auths))
+	assert.NotEqual(t, auth.Password, authAfter.Password)
+	assert.NotEqual(t, auth.UpdatedAt, authAfter.UpdatedAt)
+	assert.WithinDuration(t, time.Now(), authAfter.UpdatedAt, time.Minute)
+	assert.Equal(t, auth.UserID, authAfter.UserID)
+	assert.Equal(t, auth.Username, authAfter.Username)
+	assert.Equal(t, auth.CreatedAt, authAfter.CreatedAt)
+	assert.Equal(t, profiles, profilesAfter)
 }

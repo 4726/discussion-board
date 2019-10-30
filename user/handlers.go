@@ -246,7 +246,12 @@ func ChangePassword(db *gorm.DB, ctx *gin.Context) {
 		return
 	}
 
-	if err := tx.Model(&auth).Update("password", string(hash)).Error; err != nil {
+	updates := map[string]interface{}{
+		"password":   string(hash),
+		"updated_at": time.Now(),
+	}
+
+	if err := tx.Model(&auth).Updates(updates).Error; err != nil {
 		tx.Rollback()
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return

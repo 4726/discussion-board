@@ -16,6 +16,7 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api := &RestAPI{}
 
 	engine := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
 	api.engine = engine
 	api.setRoutes()
 
