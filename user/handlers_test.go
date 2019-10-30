@@ -15,6 +15,24 @@ func assertJSON(t testing.TB, obj interface{}) string {
 	return string(b)
 }
 
+func createAccountTest(t testing.TB, username, password string) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	assert.NoError(t, err)
+	api, err := NewRestAPI(cfg)
+	assert.NoError(t, err)
+
+	form := CreateAccountForm{username, password}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/account", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	expected := map[string]interface{}{"userid": 1}
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+}
+
 func TestGetProfileInvalidParam(t *testing.T) {
 	cfg, err := ConfigFromJSON("config_test.json")
 	assert.NoError(t, err)
@@ -49,30 +67,30 @@ func TestGetProfileDoesNotExist(t *testing.T) {
 	assert.Equal(t, "{}", w.Body.String())
 }
 
-// func TestGetProfile(t *testing.T) {
-// 	cfg, err := ConfigFromJSON("config_test.json")
-// 	assert.NoError(t, err)
-// 	api, err := NewRestAPI(cfg)
-// 	assert.NoError(t, err)
-// api.db.Exec("TRUNCATE auths;")
-// api.db.Exec("TRUNCATE profiles;")
+func TestGetProfile(t *testing.T) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	assert.NoError(t, err)
+	api, err := NewRestAPI(cfg)
+	assert.NoError(t, err)
+	api.db.Exec("TRUNCATE auths;")
+	api.db.Exec("TRUNCATE profiles;")
 
-// 	//create account
+	createAccountTest(t, "username", "password")
 
-// 	w := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("GET", "/profile/a", nil)
-// 	api.engine.ServeHTTP(w, req)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/profile/1", nil)
+	api.engine.ServeHTTP(w, req)
 
-// 	expected := Profile {
-// 		UserID: 1,
-// 		Username: username,
-// 		Bio: "",
-// 		AvatarID: "",
-// 	}
+	expected := Profile{
+		UserID:   1,
+		Username: "username",
+		Bio:      "",
+		AvatarID: "",
+	}
 
-// 	assert.Equal(t, http.StatusOK, w.Code)
-// 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-// }
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+}
 
 func TestValidLoginWrongBodyFormat(t *testing.T) {
 	cfg, err := ConfigFromJSON("config_test.json")
@@ -115,56 +133,51 @@ func TestValidLoginUsernameDoesNotExist(t *testing.T) {
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
 }
 
-// func TestValidLoginWrongPassword(t *testing.T) {
-// 	e.POST("/login").WithJSON(form)
-// 		Expect().
-// 		Status(http.StatusBadRequest).
-// 		JSON().Object().Equal(expected)
+func TestValidLoginWrongPassword(t *testing.T) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	assert.NoError(t, err)
+	api, err := NewRestAPI(cfg)
+	assert.NoError(t, err)
+	api.db.Exec("TRUNCATE auths;")
+	api.db.Exec("TRUNCATE profiles;")
 
-// 		cfg, err := ConfigFromJSON("config_test.json")
-// 		assert.NoError(t, err)
-// 		api, err := NewRestAPI(cfg)
-// 		assert.NoError(t, err)
-// 		api.db.Exec("TRUNCATE auths;")
-// 		api.db.Exec("TRUNCATE profiles;")
+	createAccountTest(t, "username", "password")
 
-// 		//create account username password
+	form := LoginForm{"username", "passwor"}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
-// 		form := LoginForm{"username", "passwor"}
-// 		buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/login", buffer)
+	api.engine.ServeHTTP(w, req)
 
-// 		w := httptest.NewRecorder()
-// 		req, _ := http.NewRequest("POST", "/login", buffer)
-// 		api.engine.ServeHTTP(w, req)
+	expected := ErrorResponse{"invalid login"}
 
-// 		expected := ErrorResponse{"invalid login"}
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+}
 
-// 		assert.Equal(t, http.StatusUnauthorized, w.Code)
-// 		assert.Equal(t, assertJSON(t, expected), w.Body.String())
-// }
+func TestValidLogin(t *testing.T) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	assert.NoError(t, err)
+	api, err := NewRestAPI(cfg)
+	assert.NoError(t, err)
+	api.db.Exec("TRUNCATE auths;")
+	api.db.Exec("TRUNCATE profiles;")
 
-// func TestValidLogin(t *testing.T) {
-// 	cfg, err := ConfigFromJSON("config_test.json")
-// 	assert.NoError(t, err)
-// 	api, err := NewRestAPI(cfg)
-// 	assert.NoError(t, err)
-// 	api.db.Exec("TRUNCATE auths;")
-// 	api.db.Exec("TRUNCATE profiles;")
+	createAccountTest(t, "username", "password")
 
-// 	//create account username password
+	form := LoginForm{"username", "password"}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
-// 	form := LoginForm{"username", "password"}
-// 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/login", buffer)
+	api.engine.ServeHTTP(w, req)
 
-// 	w := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/login", buffer)
-// 	api.engine.ServeHTTP(w, req)
+	expected := map[string]interface{}{"userid": 1}
 
-// 	expected := map[string]interface{}{"userid": 1}
-
-// 	assert.Equal(t, http.StatusOK, w.Code)
-// 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-// }
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+}
 
 func TestCreateAccountWrongBodyFormat(t *testing.T) {
 	cfg, err := ConfigFromJSON("config_test.json")
@@ -281,89 +294,89 @@ func TestUpdateProfileWrongBodyFormat(t *testing.T) {
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
 }
 
-// func TestUpdateProfileNone(t *testing.T) {
-// 	cfg, err := ConfigFromJSON("config_test.json")
-// 	assert.NoError(t, err)
-// 	api, err := NewRestAPI(cfg)
-// 	assert.NoError(t, err)
-// 	api.db.Exec("TRUNCATE auths;")
-// 	api.db.Exec("TRUNCATE profiles;")
+func TestUpdateProfileNone(t *testing.T) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	assert.NoError(t, err)
+	api, err := NewRestAPI(cfg)
+	assert.NoError(t, err)
+	api.db.Exec("TRUNCATE auths;")
+	api.db.Exec("TRUNCATE profiles;")
 
-// 	//create account
+	createAccountTest(t, "username", "password")
 
-// 	form := UpdateProfileForm{1, "", ""}
-// 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	form := UpdateProfileForm{1, "", ""}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
-// 	w := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/profile/update", buffer)
-// 	api.engine.ServeHTTP(w, req)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/profile/update", buffer)
+	api.engine.ServeHTTP(w, req)
 
-// 	assert.Equal(t, http.StatusOK, w.Code)
-// 	assert.Equal(t, "{}", w.Body.String())
-// }
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+}
 
-// func TestUpdateProfileBio(t *testing.T) {
-// 	cfg, err := ConfigFromJSON("config_test.json")
-// 	assert.NoError(t, err)
-// 	api, err := NewRestAPI(cfg)
-// 	assert.NoError(t, err)
-// 	api.db.Exec("TRUNCATE auths;")
-// 	api.db.Exec("TRUNCATE profiles;")
+func TestUpdateProfileBio(t *testing.T) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	assert.NoError(t, err)
+	api, err := NewRestAPI(cfg)
+	assert.NoError(t, err)
+	api.db.Exec("TRUNCATE auths;")
+	api.db.Exec("TRUNCATE profiles;")
 
-// 	//create account
+	createAccountTest(t, "username", "password")
 
-// 	form := UpdateProfileForm{1, "hello world", ""}
-// 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	form := UpdateProfileForm{1, "hello world", ""}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
-// 	w := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/profile/update", buffer)
-// 	api.engine.ServeHTTP(w, req)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/profile/update", buffer)
+	api.engine.ServeHTTP(w, req)
 
-// 	assert.Equal(t, http.StatusOK, w.Code)
-// 	assert.Equal(t, "{}", w.Body.String())
-// }
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+}
 
-// func TestUpdateProfileAvatarID(t *testing.T) {
-// 	cfg, err := ConfigFromJSON("config_test.json")
-// 	assert.NoError(t, err)
-// 	api, err := NewRestAPI(cfg)
-// 	assert.NoError(t, err)
-// 	api.db.Exec("TRUNCATE auths;")
-// 	api.db.Exec("TRUNCATE profiles;")
+func TestUpdateProfileAvatarID(t *testing.T) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	assert.NoError(t, err)
+	api, err := NewRestAPI(cfg)
+	assert.NoError(t, err)
+	api.db.Exec("TRUNCATE auths;")
+	api.db.Exec("TRUNCATE profiles;")
 
-// 	//create account
+	createAccountTest(t, "username", "password")
 
-// 	form := UpdateProfileForm{1, "", "a"}
-// 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	form := UpdateProfileForm{1, "", "a"}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
-// 	w := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/profile/update", buffer)
-// 	api.engine.ServeHTTP(w, req)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/profile/update", buffer)
+	api.engine.ServeHTTP(w, req)
 
-// 	assert.Equal(t, http.StatusOK, w.Code)
-// 	assert.Equal(t, "{}", w.Body.String())
-// }
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+}
 
-// func TestUpdateProfile(t *testing.T) {
-// 	cfg, err := ConfigFromJSON("config_test.json")
-// 	assert.NoError(t, err)
-// 	api, err := NewRestAPI(cfg)
-// 	assert.NoError(t, err)
-// 	api.db.Exec("TRUNCATE auths;")
-// 	api.db.Exec("TRUNCATE profiles;")
+func TestUpdateProfile(t *testing.T) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	assert.NoError(t, err)
+	api, err := NewRestAPI(cfg)
+	assert.NoError(t, err)
+	api.db.Exec("TRUNCATE auths;")
+	api.db.Exec("TRUNCATE profiles;")
 
-// 	//create account
+	createAccountTest(t, "username", "password")
 
-// 	form := UpdateProfileForm{1, "hello world", "a"}
-// 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	form := UpdateProfileForm{1, "hello world", "a"}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
-// 	w := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/profile/update", buffer)
-// 	api.engine.ServeHTTP(w, req)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/profile/update", buffer)
+	api.engine.ServeHTTP(w, req)
 
-// 	assert.Equal(t, http.StatusOK, w.Code)
-// 	assert.Equal(t, "{}", w.Body.String())
-// }
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+}
 
 func TestChangePasswordWrongBodyFormat(t *testing.T) {
 	cfg, err := ConfigFromJSON("config_test.json")
@@ -406,69 +419,69 @@ func TestChangePasswordUserDoesNotExist(t *testing.T) {
 	assert.Equal(t, "{}", w.Body.String())
 }
 
-// func TestChangePasswordInvalidOld(t *testing.T) {
-// 	cfg, err := ConfigFromJSON("config_test.json")
-// 	assert.NoError(t, err)
-// 	api, err := NewRestAPI(cfg)
-// 	assert.NoError(t, err)
-// 	api.db.Exec("TRUNCATE auths;")
-// 	api.db.Exec("TRUNCATE profiles;")
+func TestChangePasswordInvalidOld(t *testing.T) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	assert.NoError(t, err)
+	api, err := NewRestAPI(cfg)
+	assert.NoError(t, err)
+	api.db.Exec("TRUNCATE auths;")
+	api.db.Exec("TRUNCATE profiles;")
 
-// 	//add username password
+	createAccountTest(t, "username", "password")
 
-// 	form := ChangePasswordForm{1, "passwor", "newpassword"}
-// 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	form := ChangePasswordForm{1, "passwor", "newpassword"}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
-// 	w := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/password", buffer)
-// 	api.engine.ServeHTTP(w, req)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/password", buffer)
+	api.engine.ServeHTTP(w, req)
 
-// 	expected := ErrorResponse{"invalid old password"}
+	expected := ErrorResponse{"invalid old password"}
 
-// 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-// 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-// }
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+}
 
-// func TestChangePasswordInvalidNew(t *testing.T) {
-// 	cfg, err := ConfigFromJSON("config_test.json")
-// 	assert.NoError(t, err)
-// 	api, err := NewRestAPI(cfg)
-// 	assert.NoError(t, err)
-// 	api.db.Exec("TRUNCATE auths;")
-// 	api.db.Exec("TRUNCATE profiles;")
+func TestChangePasswordInvalidNew(t *testing.T) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	assert.NoError(t, err)
+	api, err := NewRestAPI(cfg)
+	assert.NoError(t, err)
+	api.db.Exec("TRUNCATE auths;")
+	api.db.Exec("TRUNCATE profiles;")
 
-// 	//add username password
+	createAccountTest(t, "username", "password")
 
-// 	form := ChangePasswordForm{1, "password", "newpa"}
-// 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	form := ChangePasswordForm{1, "password", "newpa"}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
-// 	w := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/password", buffer)
-// 	api.engine.ServeHTTP(w, req)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/password", buffer)
+	api.engine.ServeHTTP(w, req)
 
-// 	expected := ErrorResponse{"invalid new password"}
+	expected := ErrorResponse{"invalid new password"}
 
-// 	assert.Equal(t, http.StatusBadRequest, w.Code)
-// 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-// }
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+}
 
-// func TestChangePassword(t *testing.T) {
-// 	cfg, err := ConfigFromJSON("config_test.json")
-// 	assert.NoError(t, err)
-// 	api, err := NewRestAPI(cfg)
-// 	assert.NoError(t, err)
-// 	api.db.Exec("TRUNCATE auths;")
-// 	api.db.Exec("TRUNCATE profiles;")
+func TestChangePassword(t *testing.T) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	assert.NoError(t, err)
+	api, err := NewRestAPI(cfg)
+	assert.NoError(t, err)
+	api.db.Exec("TRUNCATE auths;")
+	api.db.Exec("TRUNCATE profiles;")
 
-// 	//add username password
+	createAccountTest(t, "username", "password")
 
-// 	form := ChangePasswordForm{1, "password", "newpassword"}
-// 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	form := ChangePasswordForm{1, "password", "newpassword"}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
-// 	w := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/password", buffer)
-// 	api.engine.ServeHTTP(w, req)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/password", buffer)
+	api.engine.ServeHTTP(w, req)
 
-// 	assert.Equal(t, http.StatusOK, w.Code)
-// 	assert.Equal(t, "{}", w.Body.String())
-// }
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+}

@@ -36,6 +36,10 @@ var (
 	InvalidJSONBodyResponse = ErrorResponse{"invalid body"}
 )
 
+const (
+	initialBio, initialAvatarID = "", ""
+)
+
 func GetProfile(db *gorm.DB, ctx *gin.Context) {
 	useridS := ctx.Param("userid")
 
@@ -118,6 +122,17 @@ func CreateAccount(db *gorm.DB, ctx *gin.Context) {
 		return
 	}
 
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
+		return
+	}
+
 	created := time.Now()
 	auth := Auth{
 		Username:  form.Username,
@@ -125,7 +140,26 @@ func CreateAccount(db *gorm.DB, ctx *gin.Context) {
 		CreatedAt: created,
 		UpdatedAt: created,
 	}
-	if err := db.Save(&auth).Error; err != nil {
+	if err := tx.Save(&auth).Error; err != nil {
+		tx.Rollback()
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
+		return
+	}
+
+	profile := Profile{
+		UserID:   auth.UserID,
+		Username: auth.Username,
+		Bio:      initialBio,
+		AvatarID: initialAvatarID,
+	}
+	if err := tx.Create(&profile).Error; err != nil {
+		tx.Rollback()
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
