@@ -16,7 +16,7 @@ func assertJSON(t testing.TB, obj interface{}) string {
 	return string(b)
 }
 
-func createAccountTest(t testing.TB, username, password string) ([]Auth, []Profile) {
+func createAccountForTesting(t testing.TB, username, password string) ([]Auth, []Profile) {
 	cfg, err := ConfigFromJSON("config_test.json")
 	assert.NoError(t, err)
 	api, err := NewRestAPI(cfg)
@@ -59,13 +59,19 @@ func queryDBTest(t testing.TB, api *RestAPI) ([]Auth, []Profile) {
 	return auths, profiles
 }
 
-func TestGetProfileInvalidParam(t *testing.T) {
+func getCleanAPIForTesting(t testing.TB) *RestAPI {
 	cfg, err := ConfigFromJSON("config_test.json")
 	assert.NoError(t, err)
 	api, err := NewRestAPI(cfg)
 	assert.NoError(t, err)
 	api.db.Exec("TRUNCATE auths;")
 	api.db.Exec("TRUNCATE profiles;")
+
+	return api
+}
+
+func TestGetProfileInvalidParam(t *testing.T) {
+	api := getCleanAPIForTesting(t)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/profile/a", nil)
@@ -82,12 +88,7 @@ func TestGetProfileInvalidParam(t *testing.T) {
 }
 
 func TestGetProfileDoesNotExist(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/profile/1", nil)
@@ -102,14 +103,9 @@ func TestGetProfileDoesNotExist(t *testing.T) {
 }
 
 func TestGetProfile(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
-	auths, profiles := createAccountTest(t, "username", "password")
+	auths, profiles := createAccountForTesting(t, "username", "password")
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/profile/1", nil)
@@ -131,12 +127,7 @@ func TestGetProfile(t *testing.T) {
 }
 
 func TestValidLoginWrongBodyFormat(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
 	buffer := bytes.NewBuffer([]byte("1"))
 
@@ -155,12 +146,7 @@ func TestValidLoginWrongBodyFormat(t *testing.T) {
 }
 
 func TestValidLoginUsernameDoesNotExist(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
 	form := LoginForm{"username", "password"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -180,14 +166,9 @@ func TestValidLoginUsernameDoesNotExist(t *testing.T) {
 }
 
 func TestValidLoginWrongPassword(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
-	auths, profiles := createAccountTest(t, "username", "password")
+	auths, profiles := createAccountForTesting(t, "username", "password")
 
 	form := LoginForm{"username", "passwor"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -207,14 +188,9 @@ func TestValidLoginWrongPassword(t *testing.T) {
 }
 
 func TestValidLogin(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
-	auths, profiles := createAccountTest(t, "username", "password")
+	auths, profiles := createAccountForTesting(t, "username", "password")
 
 	form := LoginForm{"username", "password"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -234,12 +210,7 @@ func TestValidLogin(t *testing.T) {
 }
 
 func TestCreateAccountWrongBodyFormat(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
 	buffer := bytes.NewBuffer([]byte("1"))
 
@@ -254,12 +225,7 @@ func TestCreateAccountWrongBodyFormat(t *testing.T) {
 }
 
 func TestCreateAccountInvalidUsername(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
 	form := CreateAccountForm{"us", "password"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -279,12 +245,7 @@ func TestCreateAccountInvalidUsername(t *testing.T) {
 }
 
 func TestCreateAccountInvalidPassword(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
 	form := CreateAccountForm{"username", "passw"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -304,12 +265,7 @@ func TestCreateAccountInvalidPassword(t *testing.T) {
 }
 
 func TestCreateAccount(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
 	form := CreateAccountForm{"username", "password"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -337,12 +293,7 @@ func TestCreateAccount(t *testing.T) {
 }
 
 func TestUpdateProfileWrongBodyFormat(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
 	buffer := bytes.NewBuffer([]byte("1"))
 
@@ -361,14 +312,9 @@ func TestUpdateProfileWrongBodyFormat(t *testing.T) {
 }
 
 func TestUpdateProfileNone(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
-	auths, profiles := createAccountTest(t, "username", "password")
+	auths, profiles := createAccountForTesting(t, "username", "password")
 
 	form := UpdateProfileForm{1, "", ""}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -386,14 +332,9 @@ func TestUpdateProfileNone(t *testing.T) {
 }
 
 func TestUpdateProfileBio(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
-	auths, profiles := createAccountTest(t, "username", "password")
+	auths, profiles := createAccountForTesting(t, "username", "password")
 
 	form := UpdateProfileForm{1, "hello world 啊", ""}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -417,14 +358,9 @@ func TestUpdateProfileBio(t *testing.T) {
 }
 
 func TestUpdateProfileAvatarID(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
-	auths, profiles := createAccountTest(t, "username", "password")
+	auths, profiles := createAccountForTesting(t, "username", "password")
 
 	form := UpdateProfileForm{1, "", "a"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -448,14 +384,9 @@ func TestUpdateProfileAvatarID(t *testing.T) {
 }
 
 func TestUpdateProfile(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
-	auths, profiles := createAccountTest(t, "username", "password")
+	auths, profiles := createAccountForTesting(t, "username", "password")
 
 	form := UpdateProfileForm{1, "hello world", "a"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -479,12 +410,7 @@ func TestUpdateProfile(t *testing.T) {
 }
 
 func TestChangePasswordWrongBodyFormat(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
 	buffer := bytes.NewBuffer([]byte("1"))
 
@@ -503,12 +429,7 @@ func TestChangePasswordWrongBodyFormat(t *testing.T) {
 }
 
 func TestChangePasswordUserDoesNotExist(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
 	form := ChangePasswordForm{1, "password", "newpassword"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -526,14 +447,9 @@ func TestChangePasswordUserDoesNotExist(t *testing.T) {
 }
 
 func TestChangePasswordInvalidOld(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
-	auths, profiles := createAccountTest(t, "username", "password")
+	auths, profiles := createAccountForTesting(t, "username", "password")
 
 	form := ChangePasswordForm{1, "passwor", "newpassword"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -553,14 +469,9 @@ func TestChangePasswordInvalidOld(t *testing.T) {
 }
 
 func TestChangePasswordInvalidNew(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
-	auths, profiles := createAccountTest(t, "username", "password")
+	auths, profiles := createAccountForTesting(t, "username", "password")
 
 	form := ChangePasswordForm{1, "password", "newpa"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -580,14 +491,9 @@ func TestChangePasswordInvalidNew(t *testing.T) {
 }
 
 func TestChangePassword(t *testing.T) {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
+	api := getCleanAPIForTesting(t)
 
-	auths, profiles := createAccountTest(t, "username", "password")
+	auths, profiles := createAccountForTesting(t, "username", "password")
 
 	form := ChangePasswordForm{1, "password", "newpassword"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
