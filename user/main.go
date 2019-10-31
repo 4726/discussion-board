@@ -3,13 +3,15 @@ package main
 func main() {
 	cfg, err := ConfigFromJSON("config.json")
 	if err != nil {
-		panic(err)
+		log.WithFields(appFields).Fatal(err)
 	}
 
 	api, err := NewRestAPI(cfg)
 	if err != nil {
-		panic(err)
+		log.WithFields(appFields).Fatal(err)
 	}
 
-	panic(api.Run(":14000"))
+	err = api.Run(":14000")
+
+	log.WithFields(appFields).Fatal(err)
 }

@@ -20,7 +20,7 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api.engine = engine
 	api.setRoutes()
 
-	s := fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.DBName)
+	s := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.Addr, cfg.DBName)
 
 	db, err := gorm.Open("mysql", s)
 	if err != nil {
