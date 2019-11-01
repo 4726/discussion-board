@@ -5,7 +5,10 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"net/http"
 )
 
 type RestAPI struct {
@@ -13,13 +16,35 @@ type RestAPI struct {
 	db     *gorm.DB
 }
 
+var (
+	totalRequestsMetric = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: "user_service",
+		Name:      "total_requests",
+		Help:      "Total number of requests",
+	})
+
+	internalServerErrorsResponsesMetric = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: "user_service",
+		Name:      "total_internal_server_errors_reponses",
+		Help:      "Total number of internal server error reponses",
+	})
+
+	successfulResponsesMetric = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: "user_service",
+		Name:      "total_success_responses",
+		Help:      "Total number of successful reponses",
+	})
+)
+
 func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api := &RestAPI{}
 
 	engine := gin.Default()
 	gin.SetMode(gin.ReleaseMode)
 	api.engine = engine
+	api.engine.Use(api.monitorMiddleware())
 	api.setRoutes()
+
 	api.setMonitorRoute()
 
 	s := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.Addr, cfg.DBName)
@@ -62,5 +87,24 @@ func (a *RestAPI) setMonitorRoute() {
 }
 
 func (a *RestAPI) Run(addr string) error {
+	log.WithFields(appFields).Info("starting service on addr: " + addr)
 	return a.engine.Run(addr)
+}
+
+func (a *RestAPI) monitorMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		totalRequestsMetric.Inc()
+
+		c.Next()
+
+		if c.Writer.Status() == http.StatusInternalServerError {
+			internalServerErrorsResponsesMetric.Inc()
+			return
+		}
+
+		if c.Writer.Status() == http.StatusOK {
+			successfulResponsesMetric.Inc()
+			return
+		}
+	}
 }

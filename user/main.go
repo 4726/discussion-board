@@ -1,7 +1,15 @@
 package main
 
+import (
+	"flag"
+)
+
 func main() {
-	cfg, err := ConfigFromJSON("config.json")
+	configPath := flag.String("config", "config.json", "config file path")
+
+	flag.Parse()
+
+	cfg, err := ConfigFromJSON(*configPath)
 	if err != nil {
 		log.WithFields(appFields).Fatal(err)
 	}
