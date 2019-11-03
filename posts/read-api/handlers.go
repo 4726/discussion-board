@@ -17,7 +17,7 @@ func GetFullPost(db *gorm.DB, ctx *gin.Context) {
 
 	postID, err := strconv.Atoi(postIDS)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		ctx.JSON(http.StatusNotFound, gin.H{})
 		return
 	}
 
@@ -27,7 +27,7 @@ func GetFullPost(db *gorm.DB, ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, gin.H{})
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
 
@@ -42,12 +42,12 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 
 	total, err := strconv.Atoi(totalS)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid total query"})
 		return
 	}
 	from, err := strconv.Atoi(fromS)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid from query"})
 		return
 	}
 
@@ -68,6 +68,7 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 		}
 
 		ctx.JSON(http.StatusOK, posts)
+		return
 	}
 
 	posts, err := getPosts(db, from, total, sortType)
@@ -82,7 +83,7 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 //what happens to non selected fields? set to zero value?
 func getPosts(db *gorm.DB, from, total int, sortType string) ([]models.Post, error) {
 	posts := []models.Post{}
-	selectFields := []string{"Post_ID", "Likes", "User", "Title", "Created_At", "Updated_At"}
+	selectFields := []string{"Post_ID", "User", "Title", "Likes", "Created_At", "Updated_At"}
 	if err := db.Select(selectFields).
 		Order(sortType).
 		Offset(from).
@@ -96,7 +97,7 @@ func getPosts(db *gorm.DB, from, total int, sortType string) ([]models.Post, err
 
 func getPostsUser(db *gorm.DB, from, total int, user, sortType string) ([]models.Post, error) {
 	posts := []models.Post{}
-	selectFields := []string{"Post_ID", "Likes", "User", "Title", "Created_At", "Updated_At"}
+	selectFields := []string{"Post_ID", "User", "Title", "Likes", "Created_At", "Updated_At"}
 	if err := db.Select(selectFields).
 		Where("user = ?", user).
 		Order(sortType).

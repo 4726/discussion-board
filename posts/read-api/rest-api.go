@@ -26,6 +26,7 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	if err != nil {
 		return nil, err
 	}
+	// db.LogMode(true)
 	db.AutoMigrate(&models.Comment{}, &models.Post{})
 	api.db = db
 
