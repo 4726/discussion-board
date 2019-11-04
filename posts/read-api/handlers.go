@@ -52,12 +52,16 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 	}
 
 	switch sortType {
-	case "likes":
-		sortType = "Likes"
-	case "createdat":
-		sortType = "Created_At"
+	case "likes_desc":
+		sortType = "likes desc"
+	case "created_at_desc":
+		sortType = "created_at desc"
+	case "created_at":
+		sortType = "created_at"
+	case "updated_at":
+		sortType = "updated_at"
 	default:
-		sortType = "Updated_At"
+		sortType = "updated_at desc"
 	}
 
 	if user != "" {
@@ -80,11 +84,10 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, posts)
 }
 
-//what happens to non selected fields? set to zero value?
 func getPosts(db *gorm.DB, from, total int, sortType string) ([]models.Post, error) {
 	posts := []models.Post{}
-	selectFields := []string{"Post_ID", "User", "Title", "Likes", "Created_At", "Updated_At"}
-	if err := db.Select(selectFields).
+	selectFields := []string{"id", "user", "title", "likes", "created_at", "updated_at"}
+	if err := db.Preload("Comments").Select(selectFields).
 		Order(sortType).
 		Offset(from).
 		Limit(total).
@@ -97,8 +100,8 @@ func getPosts(db *gorm.DB, from, total int, sortType string) ([]models.Post, err
 
 func getPostsUser(db *gorm.DB, from, total int, user, sortType string) ([]models.Post, error) {
 	posts := []models.Post{}
-	selectFields := []string{"Post_ID", "User", "Title", "Likes", "Created_At", "Updated_At"}
-	if err := db.Select(selectFields).
+	selectFields := []string{"id", "user", "title", "likes", "created_at", "updated_at"}
+	if err := db.Preload("Comments").Select(selectFields).
 		Where("user = ?", user).
 		Order(sortType).
 		Offset(from).
