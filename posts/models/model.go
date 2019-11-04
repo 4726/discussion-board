@@ -5,9 +5,9 @@ import (
 )
 
 type Comment struct {
-	CommentID int `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
-	PostID    int `gorm:"FOREIGNKEY:PostID"`
-	ParentID  int `gorm:"DEFAULT:0"`
+	ID        uint `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
+	PostID    uint
+	ParentID  uint `gorm:"DEFAULT:0"`
 	User      string
 	Body      string
 	CreatedAt time.Time
@@ -15,12 +15,12 @@ type Comment struct {
 }
 
 type Post struct {
-	PostID    int `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
+	ID        uint `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
 	User      string
 	Title     string
 	Body      string
 	Likes     int
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	Comments  []Comment `gorm:"FOREIGNKEY:PostID`
+	Comments  []Comment
 }
