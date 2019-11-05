@@ -48,7 +48,7 @@ var (
 func CreatePost(db *gorm.DB, ctx *gin.Context) {
 	form := CreateForm{}
 	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
@@ -64,13 +64,13 @@ func CreatePost(db *gorm.DB, ctx *gin.Context) {
 	}
 
 	if err := validatePost(post); err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
 		return
 	}
 
 	if err := db.Save(&post).Error; err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -81,7 +81,7 @@ func CreatePost(db *gorm.DB, ctx *gin.Context) {
 func DeletePost(db *gorm.DB, ctx *gin.Context) {
 	form := DeleteForm{}
 	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
@@ -89,7 +89,7 @@ func DeletePost(db *gorm.DB, ctx *gin.Context) {
 	post := models.Post{ID: form.PostID}
 
 	if err := db.Delete(&post).Error; err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -100,7 +100,7 @@ func DeletePost(db *gorm.DB, ctx *gin.Context) {
 func UpdatePostLikes(db *gorm.DB, ctx *gin.Context) {
 	form := UpdateLikesForm{}
 	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
@@ -110,7 +110,7 @@ func UpdatePostLikes(db *gorm.DB, ctx *gin.Context) {
 	//uses UpdateColumn() instead of Update() because Update()
 	//automatically updates the UpdatedAt field
 	if err := db.Model(&post).UpdateColumn("Likes", form.Likes).Error; err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -121,7 +121,7 @@ func UpdatePostLikes(db *gorm.DB, ctx *gin.Context) {
 func CreateComment(db *gorm.DB, ctx *gin.Context) {
 	form := CreateCommentForm{}
 	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
@@ -138,11 +138,11 @@ func CreateComment(db *gorm.DB, ctx *gin.Context) {
 
 	if err := addCommentToDB(db, &comment); err != nil {
 		if err == PostDoesNotExist {
-			ctx.Set(logInfoKey, err.Error())
+			ctx.Set(logInfoKey, err)
 			ctx.JSON(http.StatusBadRequest, ErrorResponse{"post does not exist"})
 			return
 		}
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -153,7 +153,7 @@ func CreateComment(db *gorm.DB, ctx *gin.Context) {
 func ClearComment(db *gorm.DB, ctx *gin.Context) {
 	form := ClearCommentForm{}
 	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
@@ -161,7 +161,7 @@ func ClearComment(db *gorm.DB, ctx *gin.Context) {
 	comment := models.Comment{ID: form.CommentID}
 
 	if err := db.Model(&comment).UpdateColumn("Body", "").Error; err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -172,7 +172,7 @@ func ClearComment(db *gorm.DB, ctx *gin.Context) {
 func UpdateCommentLikes(db *gorm.DB, ctx *gin.Context) {
 	form := UpdateCommentLikesForm{}
 	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
@@ -180,7 +180,7 @@ func UpdateCommentLikes(db *gorm.DB, ctx *gin.Context) {
 	comment := models.Comment{ID: form.CommentID}
 
 	if err := db.Model(&comment).Update("Likes", form.Likes).Error; err != nil {
-		ctx.Set(logInfoKey, err.Error())
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}

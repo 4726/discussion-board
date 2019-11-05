@@ -76,9 +76,15 @@ func (a *RestAPI) logRequestsMiddleware() gin.HandlerFunc {
 		c.Next()
 
 		logMessage := ""
-		v, ok := c.Get(logInfoKey)
+		i, ok := c.Get(logInfoKey)
 		if ok {
-			logMessage, _ = v.(string)
+			switch v := i.(type) {
+			case string:
+				logMessage = v
+			case error:
+				logMessage = v.Error()
+			default:
+			}
 		}
 
 		if c.Writer.Status() == http.StatusInternalServerError {
