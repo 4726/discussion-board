@@ -30,6 +30,7 @@ func getCleanAPIForTesting(t testing.TB) *RestAPI {
 	assert.NoError(t, err)
 	api, err := NewRestAPI(cfg)
 	assert.NoError(t, err)
+	//cannot truncate because of foreign key constraints
 	api.db.Exec("DELETE FROM comments;")
 	api.db.Exec("DELETE FROM posts;")
 	api.db.Exec("ALTER TABLE posts AUTO_INCREMENT = 1;")

@@ -6,7 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"net/http"
 )
+
+const logInfoKey = "log info"
 
 type RestAPI struct {
 	engine *gin.Engine
@@ -20,6 +23,7 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 
 	engine := gin.Default()
 	api.engine = engine
+	api.engine.Use(api.logRequestsMiddleware())
 	api.setRoutes()
 
 	s := fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.DBName)
@@ -65,4 +69,31 @@ func (a *RestAPI) setRoutes() {
 
 func (a *RestAPI) Run(addr string) error {
 	return a.engine.Run(addr)
+}
+
+func (a *RestAPI) logRequestsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+
+		logMessage := ""
+		v, ok := c.Get(logInfoKey)
+		if ok {
+			logMessage, _ = v.(string)
+		}
+
+		if c.Writer.Status() == http.StatusInternalServerError {
+			standardRequestLoggingEntry(c).Error(logMessage)
+			return
+		}
+
+		if c.Writer.Status() == http.StatusOK {
+			standardRequestLoggingEntry(c).Info(logMessage)
+			return
+		}
+
+		if c.Writer.Status() == http.StatusBadRequest {
+			standardRequestLoggingEntry(c).Warn(logMessage)
+			return
+		}
+	}
 }
