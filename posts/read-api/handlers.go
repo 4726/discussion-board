@@ -17,12 +17,14 @@ func GetFullPost(db *gorm.DB, ctx *gin.Context) {
 
 	postID, err := strconv.Atoi(postIDS)
 	if err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusNotFound, gin.H{})
 		return
 	}
 
 	var post models.Post
 	if err := db.First(&post, postID).Error; err != nil {
+		ctx.Set(logInfoKey, err)
 		if gorm.IsRecordNotFoundError(err) {
 			ctx.JSON(http.StatusNotFound, gin.H{})
 			return
@@ -42,11 +44,13 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 
 	total, err := strconv.Atoi(totalS)
 	if err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid total query"})
 		return
 	}
 	from, err := strconv.Atoi(fromS)
 	if err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid from query"})
 		return
 	}
@@ -67,6 +71,7 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 	if user != "" {
 		posts, err := getPostsUser(db, from, total, user, sortType)
 		if err != nil {
+			ctx.Set(logInfoKey, err)
 			ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 			return
 		}
@@ -77,6 +82,7 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 
 	posts, err := getPosts(db, from, total, sortType)
 	if err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 		return
 	}

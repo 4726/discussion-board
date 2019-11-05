@@ -1,15 +1,28 @@
 package main
 
+import (
+	"flag"
+	"fmt"
+)
+
 func main() {
-	cfg, err := ConfigFromJSON("config.json")
+	configPath := flag.String("config", "config.json", "config file path")
+	port := flag.Int("port", 14000, "listen port")
+	flag.Parse()
+
+	cfg, err := ConfigFromJSON(*configPath)
 	if err != nil {
-		panic(err)
+		standardLoggingEntry().Error(err)
+		return
 	}
 
 	api, err := NewRestAPI(cfg)
 	if err != nil {
-		panic(err)
+		standardLoggingEntry().Error(err)
 	}
 
-	panic(api.Run(":14000"))
+	standardLoggingEntry().Infof("starting server on port: %v", *port)
+
+	err = api.Run(fmt.Sprintf(":%v", *port))
+	standardLoggingEntry().Error(err)
 }
