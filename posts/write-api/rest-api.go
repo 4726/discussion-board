@@ -16,6 +16,8 @@ type RestAPI struct {
 func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api := &RestAPI{}
 
+	gin.SetMode(gin.ReleaseMode)
+
 	engine := gin.Default()
 	api.engine = engine
 	api.setRoutes()
@@ -26,7 +28,10 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	if err != nil {
 		return nil, err
 	}
+	// db.LogMode(true)
 	db.AutoMigrate(&models.Comment{}, &models.Post{})
+	// deleting a post will also delete all of the post's comments
+	db.Model(&models.Comment{}).AddForeignKey("post_id", "posts(id)", "CASCADE", "CASCADE")
 	api.db = db
 
 	return api, err
