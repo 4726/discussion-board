@@ -6,7 +6,7 @@ import (
 )
 
 type Config struct {
-	Username, Password, DBName string
+	Username, Password, DBName, Addr string
 }
 
 func ConfigFromJSON(file string) (Config, error) {

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 )
 
@@ -25,8 +26,9 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api.engine = engine
 	api.engine.Use(api.logRequestsMiddleware())
 	api.setRoutes()
+	api.setMonitorRoute()
 
-	s := fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.DBName)
+	s := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.Addr, cfg.DBName)
 
 	db, err := gorm.Open("mysql", s)
 	if err != nil {
@@ -65,6 +67,10 @@ func (a *RestAPI) setRoutes() {
 	a.engine.POST("/comment/likes", func(ctx *gin.Context) {
 		UpdateCommentLikes(a.db, ctx)
 	})
+}
+
+func (a *RestAPI) setMonitorRoute() {
+	a.engine.Any("/metrics", gin.WrapH(promhttp.Handler()))
 }
 
 func (a *RestAPI) Run(addr string) error {

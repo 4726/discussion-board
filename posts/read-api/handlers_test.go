@@ -65,8 +65,10 @@ func getCleanAPIForTesting(t testing.TB) *RestAPI {
 	assert.NoError(t, err)
 	api, err := NewRestAPI(cfg)
 	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE comments;")
-	api.db.Exec("TRUNCATE posts;")
+	api.db.Exec("DELETE FROM comments;")
+	api.db.Exec("DELETE FROM posts;")
+	api.db.Exec("ALTER TABLE posts AUTO_INCREMENT = 1;")
+	api.db.Exec("ALTER TABLE comments AUTO_INCREMENT = 1;")
 
 	return api
 }
