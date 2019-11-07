@@ -123,3 +123,15 @@ func (esc *ESClient) Delete(id string) error {
 		Do(ctx)
 	return err
 }
+
+func (esc *ESClient) UpdateLastUpdate(id string, lastUpdate int64) error {
+	ctx := context.TODO()
+	query := elastic.NewTermQuery("Id", id)
+	script := elastic.NewScript(fmt.Sprintf("ctx._source.LastUpdate = %v", lastUpdate))
+	_, err := esc.client.UpdateByQuery().
+		Index(esc.indexName).
+		Query(query).
+		Script(script).
+		Do(ctx)
+	return err
+}

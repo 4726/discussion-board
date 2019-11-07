@@ -35,12 +35,16 @@ func (a *RestAPI) setRoutes() {
 		Search(a.esc, ctx)
 	})
 
-	a.engine.POST("/updatelikes", func(ctx *gin.Context) {
+	a.engine.POST("/update/likes", func(ctx *gin.Context) {
 		UpdateLikes(a.esc, ctx)
 	})
 
 	a.engine.POST("/deletepost", func(ctx *gin.Context) {
 		Delete(a.esc, ctx)
+	})
+
+	a.engine.POST("/update/lastupdate", func(ctx *gin.Context) {
+		UpdateLastUpdate(a.esc, ctx)
 	})
 }
 

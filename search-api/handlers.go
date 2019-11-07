@@ -22,6 +22,11 @@ type DeletePostForm struct {
 	Id string
 }
 
+type UpdateLastUpdateForm struct {
+	Id    string
+	LastUpdate int64
+}
+
 type ErrorResponse struct {
 	Error string
 }
@@ -93,6 +98,19 @@ func Delete(esc *ESClient, ctx *gin.Context) {
 		return
 	}
 	if err := esc.Delete(df.Id); err != nil {
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
+		return
+	}
+	ctx.JSON(http.StatusOK, struct{}{})
+}
+
+func UpdateLastUpdate(esc *ESClient, ctx *gin.Context) {
+	var form UpdateLastUpdateForm
+	if err := ctx.BindJSON(&form); err != nil {
+		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
+		return
+	}
+	if err := esc.UpdateLastUpdate(form.Id, form.LastUpdate); err != nil {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}

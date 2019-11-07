@@ -212,7 +212,7 @@ func TestUpdateLikesInvalidJSON(t *testing.T) {
 	buffer := bytes.NewBuffer([]byte("1"))
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/updatelikes", buffer)
+	req, _ := http.NewRequest("POST", "/update/likes", buffer)
 	api.engine.ServeHTTP(w, req)
 
 	expected := InvalidJSONBodyResponse
@@ -233,7 +233,7 @@ func TestUpdateLikesDoesNotExist(t *testing.T) {
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/updatelikes", buffer)
+	req, _ := http.NewRequest("POST", "/update/likes", buffer)
 	api.engine.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -252,7 +252,7 @@ func TestUpdateLikes(t *testing.T) {
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/updatelikes", buffer)
+	req, _ := http.NewRequest("POST", "/update/likes", buffer)
 	api.engine.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -326,4 +326,69 @@ func TestDeletePost(t *testing.T) {
 
 	postsAfter := queryESC(t, api)
 	assert.Equal(t, expectedUpdatedPosts, postsAfter)
+}
+
+func TestUpdateLastUpdateInvalidJSON(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillESTestData(t, api)
+
+	buffer := bytes.NewBuffer([]byte("1"))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/update/lastupdate", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	expected := InvalidJSONBodyResponse
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	postsAfter := queryESC(t, api)
+	assert.Equal(t, posts, postsAfter)
+}
+
+func TestUpdateLastUpdateDoesNotExist(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillESTestData(t, api)
+
+	form := UpdateLastUpdateForm{"qweqwe", time.Now().Unix()}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/update/lastupdate", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+
+	postsAfter := queryESC(t, api)
+	assert.Equal(t, posts, postsAfter)
+}
+
+func TestUpdateLastUpdate(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillESTestData(t, api)
+
+	newLastUpdate := time.Now().Unix()
+	form := UpdateLastUpdateForm{posts[1].Id, newLastUpdate}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/update/lastupdate", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+
+	expectedUpdatedPost := posts[1]
+	expectedUpdatedPost.LastUpdate = newLastUpdate
+
+	postsAfter := queryESC(t, api)
+	assert.Len(t, postsAfter, 3)
+	assert.Equal(t, posts[0], postsAfter[0])
+	assert.Equal(t, expectedUpdatedPost, postsAfter[1])
+	assert.Equal(t, posts[2], postsAfter[2])
 }
