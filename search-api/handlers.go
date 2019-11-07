@@ -23,7 +23,7 @@ type DeletePostForm struct {
 }
 
 type UpdateLastUpdateForm struct {
-	Id    string
+	Id         string
 	LastUpdate int64
 }
 
@@ -38,6 +38,7 @@ var (
 func Index(esc *ESClient, ctx *gin.Context) {
 	var form IndexForm
 	if err := ctx.BindJSON(&form); err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
@@ -45,6 +46,7 @@ func Index(esc *ESClient, ctx *gin.Context) {
 	post := Post{form.Title, form.Body, form.User, form.Id, form.Timestamp, form.Likes}
 
 	if err := esc.Index(post); err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -57,21 +59,25 @@ func Search(esc *ESClient, ctx *gin.Context) {
 	total := ctx.Query("total")
 	fromInt, err := strconv.Atoi(from)
 	if err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid from query"})
 		return
 	}
 	totalInt, err := strconv.Atoi(total)
 	if err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid total query"})
 		return
 	}
 	if err := verifySearchQuery(term, fromInt, totalInt); err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
 		return
 	}
 
 	res, err := esc.Search(term, fromInt, totalInt)
 	if err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 		return
 	}
@@ -81,10 +87,12 @@ func Search(esc *ESClient, ctx *gin.Context) {
 func UpdateLikes(esc *ESClient, ctx *gin.Context) {
 	var ulf UpdateLikesForm
 	if err := ctx.BindJSON(&ulf); err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
 	if err := esc.UpdateLikes(ulf.Id, ulf.Likes); err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -94,10 +102,12 @@ func UpdateLikes(esc *ESClient, ctx *gin.Context) {
 func Delete(esc *ESClient, ctx *gin.Context) {
 	var df DeletePostForm
 	if err := ctx.BindJSON(&df); err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
 	if err := esc.Delete(df.Id); err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -107,10 +117,12 @@ func Delete(esc *ESClient, ctx *gin.Context) {
 func UpdateLastUpdate(esc *ESClient, ctx *gin.Context) {
 	var form UpdateLastUpdateForm
 	if err := ctx.BindJSON(&form); err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
 	if err := esc.UpdateLastUpdate(form.Id, form.LastUpdate); err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
