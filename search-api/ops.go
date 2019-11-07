@@ -4,17 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/olivere/elastic/v7"
-	"time"
 )
 
 type ESClient struct {
-	client *elastic.Client
+	client    *elastic.Client
+	indexName string
 }
 
 type Post struct {
 	Title, Body, User, Id string
-	Timestamp             int64
+	LastUpdate            int64
 	Likes                 int
 }
 
@@ -22,17 +23,13 @@ var (
 	ERR_ACKNOWLEDGEMENT_FAILED = errors.New("acknowledgement failed")
 )
 
-const (
-	INDEX_NAME = "posts"
-)
-
-func NewESClient() (*ESClient, error) {
+func NewESClient(indexName string) (*ESClient, error) {
 	client, err := elastic.NewClient()
 	if err != nil {
 		return nil, err
 	}
 
-	esc := &ESClient{client}
+	esc := &ESClient{client, indexName}
 	if err = esc.createIndex(); err != nil {
 		return nil, err
 	}
@@ -43,12 +40,17 @@ func (esc *ESClient) createIndex() error {
 	mappings := `{
 		"mappings": {
 			"properties": {
-				"timestamp": {"type": "date"}
+				"Title": {"type": "text"},
+				"Body": {"type": "text"},
+				"User": {"type": "keyword"},
+				"Id": {"type": "keyword"},
+				"LastUpdate": {"type": "integer"},
+				"Likes": {"type": "integer"}
 			}
 		}	
 	}`
 	ctx := context.TODO()
-	createIndex, err := esc.client.CreateIndex(INDEX_NAME).
+	createIndex, err := esc.client.CreateIndex(esc.indexName).
 		BodyString(mappings).
 		Do(ctx)
 	if err != nil {
@@ -65,32 +67,24 @@ func (esc *ESClient) createIndex() error {
 	return nil
 }
 
-func (esc *ESClient) Index(title, body, user, id string) error {
+//is not immediately available for search,
+//can set refresh to wait until index completes before returning
+func (esc *ESClient) Index(post Post) error {
 	ctx := context.TODO()
 	_, err := esc.client.Index().
-		Index(INDEX_NAME).
-		BodyJson(Post{title, body, user, id, time.Now().Unix(), 0}).
-		Do(ctx)
-	return err
-}
-
-func (esc *ESClient) Delete(id string) error {
-	ctx := context.TODO()
-	query := elastic.NewTermQuery("id", id)
-	_, err := esc.client.DeleteByQuery().
-		Index(INDEX_NAME).
-		Query(query).
+		Index(esc.indexName).
+		BodyJson(post).
 		Do(ctx)
 	return err
 }
 
 func (esc *ESClient) Search(term string, from, total int) ([]string, error) {
 	ctx := context.TODO()
-	query := elastic.NewMultiMatchQuery(term, "title", "body")
+	query := elastic.NewMultiMatchQuery(term, "Title", "Body")
 	searchResult, err := esc.client.Search().
-		Index(INDEX_NAME).
+		Index(esc.indexName).
 		Query(query).
-		Sort("timestamp", false).
+		SortBy(elastic.NewFieldSort("LastUpdate").Asc()).
 		From(from).Size(total).
 		Do(ctx)
 	if err != nil {
@@ -110,12 +104,21 @@ func (esc *ESClient) Search(term string, from, total int) ([]string, error) {
 
 func (esc *ESClient) UpdateLikes(id string, likes int) error {
 	ctx := context.TODO()
-	query := elastic.NewTermQuery("id", id)
-	script := elastic.NewScript("ctx._source.likes = num").
-		Param("num", likes)
+	query := elastic.NewTermQuery("Id", id)
+	script := elastic.NewScript(fmt.Sprintf("ctx._source.Likes = %v", likes))
 	_, err := esc.client.UpdateByQuery().
-		Index(INDEX_NAME).
+		Index(esc.indexName).
+		Query(query).
 		Script(script).
+		Do(ctx)
+	return err
+}
+
+func (esc *ESClient) Delete(id string) error {
+	ctx := context.TODO()
+	query := elastic.NewTermQuery("Id", id)
+	_, err := esc.client.DeleteByQuery().
+		Index(esc.indexName).
 		Query(query).
 		Do(ctx)
 	return err

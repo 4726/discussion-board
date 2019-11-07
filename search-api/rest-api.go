@@ -9,9 +9,11 @@ type RestAPI struct {
 	engine *gin.Engine
 }
 
-func NewRestAPI() (*RestAPI, error) {
+func NewRestAPI(escIndexName string) (*RestAPI, error) {
+	gin.SetMode(gin.ReleaseMode)
+
 	api := &RestAPI{}
-	esc, err := NewESClient()
+	esc, err := NewESClient(escIndexName)
 	if err != nil {
 		return nil, err
 	}
@@ -25,19 +27,19 @@ func NewRestAPI() (*RestAPI, error) {
 }
 
 func (a *RestAPI) setRoutes() {
-	a.engine.GET("/search", func(ctx *gin.Context) {
-		Search(a.esc, ctx)
-	})
-
 	a.engine.POST("/index", func(ctx *gin.Context) {
 		Index(a.esc, ctx)
+	})
+
+	a.engine.GET("/search", func(ctx *gin.Context) {
+		Search(a.esc, ctx)
 	})
 
 	a.engine.POST("/updatelikes", func(ctx *gin.Context) {
 		UpdateLikes(a.esc, ctx)
 	})
 
-	a.engine.DELETE("/index/:id", func(ctx *gin.Context) {
+	a.engine.POST("/deletepost", func(ctx *gin.Context) {
 		Delete(a.esc, ctx)
 	})
 }

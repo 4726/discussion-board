@@ -1,7 +1,7 @@
 package main
 
 func main() {
-	api, err := NewRestAPI()
+	api, err := NewRestAPI("todo")
 	if err != nil {
 		panic(err)
 	}
