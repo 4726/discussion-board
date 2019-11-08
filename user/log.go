@@ -7,8 +7,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"github.com/bshuster-repo/logrus-logstash-hook"
-	"net"
 )
 
 var (
@@ -30,7 +28,6 @@ func init() {
 		return shortFunctionName, shortFileName
 	}
 
-
 	log.SetFormatter(&logrus.JSONFormatter{
 		CallerPrettyfier: prettyfier,
 	})
@@ -42,14 +39,6 @@ func init() {
 	} else {
 		standardLoggingEntry().Error(err)
 		log.SetOutput(os.Stderr)
-	}	
-
-	conn, err := net.Dial("tcp", "localhost:8911")
-	if err != nil {
-		standardLoggingEntry().Error(err)
-	} else {
-		hook := logrustash.New(conn, logrustash.DefaultFormatter(logrus.Fields{}))
-		log.Hooks.Add(hook)
 	}
 }
 

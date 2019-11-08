@@ -32,7 +32,14 @@ func init() {
 		CallerPrettyfier: prettyfier,
 	})
 	log.SetReportCaller(true)
-	log.SetOutput(os.Stderr)
+
+	file, err := os.OpenFile("logs/posts-write.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		log.SetOutput(file)
+	} else {
+		standardLoggingEntry().Error(err)
+		log.SetOutput(os.Stderr)
+	}
 }
 
 func standardLoggingEntry() *logrus.Entry {
