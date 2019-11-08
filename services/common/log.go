@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"fmt"
@@ -9,12 +9,17 @@ import (
 	"strings"
 )
 
-var (
-	appFields = logrus.Fields{"service": "posts-read"}
-	log       = logrus.New()
-)
+var log = logrus.New()
 
-func init() {
+type Log struct {
+	entry *logrus.Entry
+}
+
+func NewLogger(serviceName string) *Log {
+	entry := log.WithFields(logrus.Fields{
+		"service": serviceName,
+	})
+
 	prettyfier := func(f *runtime.Frame) (string, string) {
 		var shortFileName, shortFunctionName string
 		tokens := strings.Split(f.File, "/github.com/")
@@ -33,21 +38,23 @@ func init() {
 	})
 	log.SetReportCaller(true)
 
-	file, err := os.OpenFile("logs/posts-read.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile(fmt.Sprintf("logs/%s.log", serviceName), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		log.SetOutput(file)
 	} else {
-		standardLoggingEntry().Error(err)
+		entry.Error(err)
 		log.SetOutput(os.Stderr)
 	}
+
+	return &Log{entry}
 }
 
-func standardLoggingEntry() *logrus.Entry {
-	return log.WithFields(appFields)
+func (l *Log) Entry() *logrus.Entry {
+	return l.entry
 }
 
-func standardRequestLoggingEntry(ctx *gin.Context) *logrus.Entry {
-	return standardLoggingEntry().
+func (l *Log) HTTPRequestEntry(ctx *gin.Context) *logrus.Entry {
+	return l.entry.
 		WithField("from", ctx.ClientIP()).
 		WithField("statusCode", ctx.Writer.Status())
 }

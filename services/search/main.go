@@ -1,7 +1,12 @@
 package main
 
-import "flag"
-import "fmt"
+import (
+	"flag"
+	"fmt"
+	"github.com/4726/discussion-board/services/common"
+)
+
+var log = common.NewLogger("search")
 
 func main() {
 	configPath := flag.String("config", "config.json", "config file path")
@@ -9,14 +14,14 @@ func main() {
 
 	cfg, err := ConfigFromJSON(*configPath)
 	if err != nil {
-		standardLoggingEntry().Error(err)
+		log.Entry().Error(err)
 		return
 	}
 
 	api, err := NewRestAPI(cfg.ESIndex, cfg.ESAddr)
 	if err != nil {
-		standardLoggingEntry().Fatal(err)
+		log.Entry().Fatal(err)
 	}
 	err = api.Run(fmt.Sprintf(":%v", cfg.ListenPort))
-	standardLoggingEntry().Error(err)
+	log.Entry().Error(err)
 }

@@ -89,7 +89,7 @@ func (a *RestAPI) setMonitorRoute() {
 }
 
 func (a *RestAPI) Run(addr string) error {
-	standardLoggingEntry().Info("starting service on addr: " + addr)
+	log.Entry().Info("starting service on addr: " + addr)
 	return a.engine.Run(addr)
 }
 
@@ -128,27 +128,27 @@ func (a *RestAPI) logRequestsMiddleware() gin.HandlerFunc {
 		}
 
 		if c.Writer.Status() == http.StatusInternalServerError {
-			standardRequestLoggingEntry(c).Error(logMessage)
+			log.HTTPRequestEntry(c).Error(logMessage)
 			return
 		}
 
 		if c.Writer.Status() == http.StatusOK {
-			standardRequestLoggingEntry(c).Info(logMessage)
+			log.HTTPRequestEntry(c).Info(logMessage)
 			return
 		}
 
 		if c.Writer.Status() == http.StatusBadRequest {
-			standardRequestLoggingEntry(c).Warn(logMessage)
+			log.HTTPRequestEntry(c).Warn(logMessage)
 			return
 		}
 
 		if c.Writer.Status() == http.StatusNotFound {
-			standardRequestLoggingEntry(c).Warn(logMessage)
+			log.HTTPRequestEntry(c).Warn(logMessage)
 			return
 		}
 
 		if c.Writer.Status() == http.StatusUnauthorized {
-			standardRequestLoggingEntry(c).Warn(logMessage)
+			log.HTTPRequestEntry(c).Warn(logMessage)
 			return
 		}
 	}

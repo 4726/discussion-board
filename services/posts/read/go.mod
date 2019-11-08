@@ -3,6 +3,7 @@ module github.com/4726/discussion-board/posts/services/read
 go 1.13
 
 require (
+	github.com/4726/discussion-board/services/common v0.0.0-00010101000000-000000000000
 	github.com/4726/discussion-board/services/posts/models v0.0.0
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-sql-driver/mysql v1.4.1
@@ -14,3 +15,5 @@ require (
 )
 
 replace github.com/4726/discussion-board/services/posts/models => ../models
+
+replace github.com/4726/discussion-board/services/common => ../../common

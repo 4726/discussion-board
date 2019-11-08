@@ -94,17 +94,17 @@ func (a *RestAPI) logRequestsMiddleware() gin.HandlerFunc {
 		}
 
 		if c.Writer.Status() == http.StatusInternalServerError {
-			standardRequestLoggingEntry(c).Error(logMessage)
+			log.HTTPRequestEntry(c).Error(logMessage)
 			return
 		}
 
 		if c.Writer.Status() == http.StatusOK {
-			standardRequestLoggingEntry(c).Info(logMessage)
+			log.HTTPRequestEntry(c).Info(logMessage)
 			return
 		}
 
 		if c.Writer.Status() == http.StatusBadRequest {
-			standardRequestLoggingEntry(c).Warn(logMessage)
+			log.HTTPRequestEntry(c).Warn(logMessage)
 			return
 		}
 	}

@@ -3,7 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/4726/discussion-board/services/common"
 )
+
+var log = common.NewLogger("user")
 
 func main() {
 	configPath := flag.String("config", "config.json", "config file path")
@@ -12,15 +15,15 @@ func main() {
 
 	cfg, err := ConfigFromJSON(*configPath)
 	if err != nil {
-		standardLoggingEntry().Fatal(err)
+		log.Entry().Fatal(err)
 	}
 
 	api, err := NewRestAPI(cfg)
 	if err != nil {
-		standardLoggingEntry().Fatal(err)
+		log.Entry().Fatal(err)
 	}
 
 	err = api.Run(fmt.Sprintf(":%v", cfg.ListenPort))
 
-	standardLoggingEntry().Fatal(err)
+	log.Entry().Fatal(err)
 }
