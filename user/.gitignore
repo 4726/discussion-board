@@ -2,3 +2,5 @@ config.json
 config_test.json
 user
 setup.txt
+logs
+logrotate-config.txt

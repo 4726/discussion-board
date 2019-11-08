@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"regexp"
@@ -46,25 +45,18 @@ func GetProfile(db *gorm.DB, ctx *gin.Context) {
 
 	userid, err := strconv.Atoi(useridS)
 	if err != nil {
-		log.WithFields(appFields).
-			WithField("url", ctx.Request.URL.String()).
-			WithField("from", ctx.ClientIP()).
-			Warn(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid userid param"})
 		return
 	}
 
 	profile := Profile{}
 	if err := db.First(&profile, userid).Error; err != nil {
-		e := log.WithFields(appFields).
-			WithField("url", ctx.Request.URL.String()).
-			WithField("from", ctx.ClientIP())
+		ctx.Set(logInfoKey, err)
 		if gorm.IsRecordNotFoundError(err) {
-			e.Warn(err)
 			ctx.JSON(http.StatusNotFound, gin.H{})
 			return
 		}
-		e.Error(err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 		return
 	}
@@ -76,7 +68,7 @@ func ValidLogin(db *gorm.DB, ctx *gin.Context) {
 	form := LoginForm{}
 	err := ctx.BindJSON(&form)
 	if err != nil {
-		logInvalidJSONBody(err, ctx)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
@@ -84,17 +76,17 @@ func ValidLogin(db *gorm.DB, ctx *gin.Context) {
 	auth := Auth{}
 	if err := db.Where("username = ?", form.Username).First(&auth).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			logEntryWithClientIP(ctx).Warn(err)
+			ctx.Set(logInfoKey, err)
 			ctx.JSON(http.StatusUnauthorized, ErrorResponse{"invalid login"})
 			return
 		}
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(auth.Password), []byte(form.Password)); err != nil {
-		logEntryWithClientIP(ctx).Warn(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusUnauthorized, ErrorResponse{"invalid login"})
 		return
 	}
@@ -106,38 +98,38 @@ func CreateAccount(db *gorm.DB, ctx *gin.Context) {
 	form := CreateAccountForm{}
 	err := ctx.BindJSON(&form)
 	if err != nil {
-		logInvalidJSONBody(err, ctx)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
 
 	match, err := validUsername(form.Username)
 	if err != nil {
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
 	if !match {
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid username"})
 		return
 	}
 
 	match, err = validPassword(form.Password)
 	if err != nil {
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
 	if !match {
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid password"})
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
 	if err != nil {
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -149,7 +141,7 @@ func CreateAccount(db *gorm.DB, ctx *gin.Context) {
 		}
 	}()
 	if err := tx.Error; err != nil {
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -163,7 +155,7 @@ func CreateAccount(db *gorm.DB, ctx *gin.Context) {
 	}
 	if err := tx.Save(&auth).Error; err != nil {
 		tx.Rollback()
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -176,14 +168,14 @@ func CreateAccount(db *gorm.DB, ctx *gin.Context) {
 	}
 	if err := tx.Create(&profile).Error; err != nil {
 		tx.Rollback()
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -195,7 +187,7 @@ func UpdateProfile(db *gorm.DB, ctx *gin.Context) {
 	form := UpdateProfileForm{}
 	err := ctx.BindJSON(&form)
 	if err != nil {
-		logInvalidJSONBody(err, ctx)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
@@ -210,7 +202,7 @@ func UpdateProfile(db *gorm.DB, ctx *gin.Context) {
 
 	profile := Profile{UserID: form.UserID}
 	if err := db.Model(&profile).Updates(updates).Error; err != nil {
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
 		return
 	}
@@ -222,7 +214,7 @@ func ChangePassword(db *gorm.DB, ctx *gin.Context) {
 	form := ChangePasswordForm{}
 	err := ctx.BindJSON(&form)
 	if err != nil {
-		logInvalidJSONBody(err, ctx)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
@@ -234,7 +226,7 @@ func ChangePassword(db *gorm.DB, ctx *gin.Context) {
 		}
 	}()
 	if err := tx.Error; err != nil {
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -243,17 +235,17 @@ func ChangePassword(db *gorm.DB, ctx *gin.Context) {
 	if err := tx.First(&auth, form.UserID).Error; err != nil {
 		tx.Rollback()
 		if gorm.IsRecordNotFoundError(err) {
-			logEntryWithClientIP(ctx).Warn(err)
+			ctx.Set(logInfoKey, err)
 			ctx.JSON(http.StatusNotFound, gin.H{})
 			return
 		}
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(auth.Password), []byte(form.OldPass)); err != nil {
 		tx.Rollback()
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusUnauthorized, ErrorResponse{"invalid old password"})
 		return
 	}
@@ -261,13 +253,13 @@ func ChangePassword(db *gorm.DB, ctx *gin.Context) {
 	match, err := validPassword(form.NewPass)
 	if err != nil {
 		tx.Rollback()
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
 	if !match {
 		tx.Rollback()
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid new password"})
 		return
 	}
@@ -275,7 +267,7 @@ func ChangePassword(db *gorm.DB, ctx *gin.Context) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(form.NewPass), bcrypt.DefaultCost)
 	if err != nil {
 		tx.Rollback()
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -287,13 +279,13 @@ func ChangePassword(db *gorm.DB, ctx *gin.Context) {
 
 	if err := tx.Model(&auth).Updates(updates).Error; err != nil {
 		tx.Rollback()
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		logEntryWithClientIP(ctx).Error(err)
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -323,15 +315,4 @@ func validPassword(s string) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func logInvalidJSONBody(err error, ctx *gin.Context) {
-	log.WithFields(appFields).
-		WithField("from", ctx.ClientIP()).
-		Warn(err)
-}
-
-func logEntryWithClientIP(ctx *gin.Context) *logrus.Entry {
-	return log.WithFields(appFields).
-		WithField("from", ctx.ClientIP())
 }

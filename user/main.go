@@ -11,15 +11,15 @@ func main() {
 
 	cfg, err := ConfigFromJSON(*configPath)
 	if err != nil {
-		log.WithFields(appFields).Fatal(err)
+		standardLoggingEntry().Fatal(err)
 	}
 
 	api, err := NewRestAPI(cfg)
 	if err != nil {
-		log.WithFields(appFields).Fatal(err)
+		standardLoggingEntry().Fatal(err)
 	}
 
 	err = api.Run(":14000")
 
-	log.WithFields(appFields).Fatal(err)
+	standardLoggingEntry().Fatal(err)
 }

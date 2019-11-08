@@ -3,6 +3,7 @@ module github.com/4726/discussion-board/user
 go 1.13
 
 require (
+	github.com/bshuster-repo/logrus-logstash-hook v0.0.0-20190911164539-b3d898b5138a
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/jinzhu/gorm v1.9.11

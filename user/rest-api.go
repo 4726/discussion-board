@@ -11,6 +11,8 @@ import (
 	"net/http"
 )
 
+const logInfoKey = "log info"
+
 type RestAPI struct {
 	engine *gin.Engine
 	db     *gorm.DB
@@ -43,8 +45,8 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	gin.SetMode(gin.ReleaseMode)
 	api.engine = engine
 	api.engine.Use(api.monitorMiddleware())
+	api.engine.Use(api.logRequestsMiddleware())
 	api.setRoutes()
-
 	api.setMonitorRoute()
 
 	s := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.Addr, cfg.DBName)
@@ -87,7 +89,7 @@ func (a *RestAPI) setMonitorRoute() {
 }
 
 func (a *RestAPI) Run(addr string) error {
-	log.WithFields(appFields).Info("starting service on addr: " + addr)
+	standardLoggingEntry().Info("starting service on addr: " + addr)
 	return a.engine.Run(addr)
 }
 
@@ -104,6 +106,49 @@ func (a *RestAPI) monitorMiddleware() gin.HandlerFunc {
 
 		if c.Writer.Status() == http.StatusOK {
 			successfulResponsesMetric.Inc()
+			return
+		}
+	}
+}
+
+func (a *RestAPI) logRequestsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+
+		logMessage := ""
+		i, ok := c.Get(logInfoKey)
+		if ok {
+			switch v := i.(type) {
+			case string:
+				logMessage = v
+			case error:
+				logMessage = v.Error()
+			default:
+			}
+		}
+
+		if c.Writer.Status() == http.StatusInternalServerError {
+			standardRequestLoggingEntry(c).Error(logMessage)
+			return
+		}
+
+		if c.Writer.Status() == http.StatusOK {
+			standardRequestLoggingEntry(c).Info(logMessage)
+			return
+		}
+
+		if c.Writer.Status() == http.StatusBadRequest {
+			standardRequestLoggingEntry(c).Warn(logMessage)
+			return
+		}
+
+		if c.Writer.Status() == http.StatusNotFound {
+			standardRequestLoggingEntry(c).Warn(logMessage)
+			return
+		}
+
+		if c.Writer.Status() == http.StatusUnauthorized {
+			standardRequestLoggingEntry(c).Warn(logMessage)
 			return
 		}
 	}

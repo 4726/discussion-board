@@ -31,7 +31,7 @@ func createAccountForTesting(t testing.TB, username, password string) ([]Auth, [
 
 	expected := map[string]interface{}{"userid": 1}
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	auths, profiles := queryDBTest(t, api)
 	assert.Len(t, auths, 1)
@@ -80,7 +80,7 @@ func TestGetProfileInvalidParam(t *testing.T) {
 	expected := ErrorResponse{"invalid userid param"}
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	auths, profiles := queryDBTest(t, api)
 	assert.Len(t, auths, 0)
@@ -119,7 +119,7 @@ func TestGetProfile(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	authsAfter, profilesAfter := queryDBTest(t, api)
 	assert.Equal(t, auths, authsAfter)
@@ -138,7 +138,7 @@ func TestValidLoginWrongBodyFormat(t *testing.T) {
 	expected := InvalidJSONBodyResponse
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	auths, profiles := queryDBTest(t, api)
 	assert.Len(t, auths, 0)
@@ -158,7 +158,7 @@ func TestValidLoginUsernameDoesNotExist(t *testing.T) {
 	expected := ErrorResponse{"invalid login"}
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	auths, profiles := queryDBTest(t, api)
 	assert.Len(t, auths, 0)
@@ -180,7 +180,7 @@ func TestValidLoginWrongPassword(t *testing.T) {
 	expected := ErrorResponse{"invalid login"}
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	authsAfter, profilesAfter := queryDBTest(t, api)
 	assert.Equal(t, auths, authsAfter)
@@ -202,7 +202,7 @@ func TestValidLogin(t *testing.T) {
 	expected := map[string]interface{}{"userid": 1}
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	authsAfter, profilesAfter := queryDBTest(t, api)
 	assert.Equal(t, auths, authsAfter)
@@ -221,7 +221,7 @@ func TestCreateAccountWrongBodyFormat(t *testing.T) {
 	expected := InvalidJSONBodyResponse
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 }
 
 func TestCreateAccountInvalidUsername(t *testing.T) {
@@ -237,7 +237,7 @@ func TestCreateAccountInvalidUsername(t *testing.T) {
 	expected := ErrorResponse{"invalid username"}
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	auths, profiles := queryDBTest(t, api)
 	assert.Len(t, auths, 0)
@@ -257,7 +257,7 @@ func TestCreateAccountInvalidPassword(t *testing.T) {
 	expected := ErrorResponse{"invalid password"}
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	auths, profiles := queryDBTest(t, api)
 	assert.Len(t, auths, 0)
@@ -277,7 +277,7 @@ func TestCreateAccount(t *testing.T) {
 	expected := map[string]interface{}{"userid": 1}
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	form = CreateAccountForm{"username2", "password2"}
 	buffer = bytes.NewBuffer([]byte(assertJSON(t, form)))
@@ -289,7 +289,7 @@ func TestCreateAccount(t *testing.T) {
 	expected = map[string]interface{}{"userid": 2}
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 }
 
 func TestUpdateProfileWrongBodyFormat(t *testing.T) {
@@ -304,7 +304,7 @@ func TestUpdateProfileWrongBodyFormat(t *testing.T) {
 	expected := InvalidJSONBodyResponse
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	auths, profiles := queryDBTest(t, api)
 	assert.Len(t, auths, 0)
@@ -421,7 +421,7 @@ func TestChangePasswordWrongBodyFormat(t *testing.T) {
 	expected := InvalidJSONBodyResponse
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	auths, profiles := queryDBTest(t, api)
 	assert.Len(t, auths, 0)
@@ -461,7 +461,7 @@ func TestChangePasswordInvalidOld(t *testing.T) {
 	expected := ErrorResponse{"invalid old password"}
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	authsAfter, profilesAfter := queryDBTest(t, api)
 	assert.Equal(t, auths, authsAfter)
@@ -483,7 +483,7 @@ func TestChangePasswordInvalidNew(t *testing.T) {
 	expected := ErrorResponse{"invalid new password"}
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 
 	authsAfter, profilesAfter := queryDBTest(t, api)
 	assert.Equal(t, auths, authsAfter)
