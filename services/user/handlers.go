@@ -54,7 +54,7 @@ func GetProfile(db *gorm.DB, ctx *gin.Context) {
 	if err := db.First(&profile, userid).Error; err != nil {
 		ctx.Set(logInfoKey, err)
 		if gorm.IsRecordNotFoundError(err) {
-			ctx.JSON(http.StatusNotFound, gin.H{})
+			ctx.JSON(http.StatusNotFound, struct{}{})
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
@@ -207,7 +207,7 @@ func UpdateProfile(db *gorm.DB, ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	ctx.JSON(http.StatusOK, struct{}{})
 }
 
 func ChangePassword(db *gorm.DB, ctx *gin.Context) {
@@ -236,7 +236,7 @@ func ChangePassword(db *gorm.DB, ctx *gin.Context) {
 		tx.Rollback()
 		if gorm.IsRecordNotFoundError(err) {
 			ctx.Set(logInfoKey, err)
-			ctx.JSON(http.StatusNotFound, gin.H{})
+			ctx.JSON(http.StatusNotFound, struct{}{})
 			return
 		}
 		ctx.Set(logInfoKey, err)
@@ -290,7 +290,7 @@ func ChangePassword(db *gorm.DB, ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	ctx.JSON(http.StatusOK, struct{}{})
 }
 
 func validUsername(s string) (bool, error) {

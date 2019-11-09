@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/minio/minio-go/v6"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -22,7 +23,7 @@ func assertJSON(t testing.TB, obj interface{}) string {
 func fillDBTestData(t testing.TB, api *RestAPI) [][]byte {
 	msg1 := []byte("hello")
 	msg2 := []byte("world")
-	opts := minio.PutObjectOptions{}
+	opts := minio.PutObjectOptions{ContentType: "text/plain"}
 	_, err := api.mc.PutObject(bucketName, "1", bytes.NewReader(msg1), int64(len(msg1)), opts)
 	assert.NoError(t, err)
 	_, err = api.mc.PutObject(bucketName, "2", bytes.NewReader(msg2), int64(len(msg2)), opts)
@@ -141,4 +142,85 @@ func TestUpload(t *testing.T) {
 	contentsAfter := queryDBTest(t, api)
 	contents = append(contents, []byte("message"))
 	assert.ElementsMatch(t, contentsAfter, contents)
+}
+
+func TestRemoveDoesNotExist(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	contents := fillDBTestData(t, api)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/remove/3", nil)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+
+	contentsAfter := queryDBTest(t, api)
+	assert.Equal(t, contents, contentsAfter)
+}
+
+func TestRemove(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	contents := fillDBTestData(t, api)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/remove/1", nil)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+
+	expectedContents := [][]byte{contents[1]}
+
+	contentsAfter := queryDBTest(t, api)
+	assert.Equal(t, expectedContents, contentsAfter)
+}
+
+func TestInfo(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	contents := fillDBTestData(t, api)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/info", nil)
+	api.engine.ServeHTTP(w, req)
+
+	expected := InfoResponse{fmt.Sprintf("%s/%s/", api.mc.EndpointURL().String(), bucketName)}
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	contentsAfter := queryDBTest(t, api)
+	assert.Equal(t, contents, contentsAfter)
+}
+
+//tests if the bucket policy was set up correctly
+func TestPublicReadBucket(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	contents := fillDBTestData(t, api)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/info", nil)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	info := InfoResponse{}
+	err := json.Unmarshal(w.Body.Bytes(), &info)
+	assert.NoError(t, err)
+
+	resp, err := http.Get(info.StoreAddress + "1")
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := ioutil.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, "text/plain", resp.Header["Content-Type"][0])
+	assert.Equal(t, "hello", string(body))
+
+	contentsAfter := queryDBTest(t, api)
+	assert.Equal(t, contents, contentsAfter)
 }

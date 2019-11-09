@@ -18,7 +18,7 @@ func GetFullPost(db *gorm.DB, ctx *gin.Context) {
 	postID, err := strconv.Atoi(postIDS)
 	if err != nil {
 		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusNotFound, gin.H{})
+		ctx.JSON(http.StatusNotFound, struct{}{})
 		return
 	}
 
@@ -26,7 +26,7 @@ func GetFullPost(db *gorm.DB, ctx *gin.Context) {
 	if err := db.First(&post, postID).Error; err != nil {
 		ctx.Set(logInfoKey, err)
 		if gorm.IsRecordNotFoundError(err) {
-			ctx.JSON(http.StatusNotFound, gin.H{})
+			ctx.JSON(http.StatusNotFound, struct{}{})
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
