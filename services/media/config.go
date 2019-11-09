@@ -11,6 +11,7 @@ type Config struct {
 	SecretAccessKey string
 	UseSSL          bool
 	BucketName      string
+	ListenPort      int
 }
 
 func ConfigFromJSON(file string) (Config, error) {

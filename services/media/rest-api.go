@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v6"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"net/http"
 )
 
 const (
 	bucketExistsErrMsg = "Your previous request to create the named bucket succeeded and you already own it."
+	logInfoKey         = "log info"
 )
 
 var bucketName string
@@ -29,6 +32,8 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	engine := gin.Default()
 	api.engine = engine
 	api.setRoutes()
+	api.setMonitorRoute()
+	api.engine.Use(api.logRequestsMiddleware())
 
 	return api, nil
 }
@@ -45,6 +50,10 @@ func (a *RestAPI) setRoutes() {
 	a.engine.GET("/info", func(ctx *gin.Context) {
 		Info(a.mc, ctx)
 	})
+}
+
+func (a *RestAPI) setMonitorRoute() {
+	a.engine.Any("/metrics", gin.WrapH(promhttp.Handler()))
 }
 
 func (a *RestAPI) Run(addr string) error {
@@ -89,4 +98,37 @@ func (a *RestAPI) initMinio(cfg Config) error {
 	}
 	a.mc = client
 	return nil
+}
+
+func (a *RestAPI) logRequestsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+
+		logMessage := ""
+		i, ok := c.Get(logInfoKey)
+		if ok {
+			switch v := i.(type) {
+			case string:
+				logMessage = v
+			case error:
+				logMessage = v.Error()
+			default:
+			}
+		}
+
+		if c.Writer.Status() == http.StatusInternalServerError {
+			log.HTTPRequestEntry(c).Error(logMessage)
+			return
+		}
+
+		if c.Writer.Status() == http.StatusOK {
+			log.HTTPRequestEntry(c).Info(logMessage)
+			return
+		}
+
+		if c.Writer.Status() == http.StatusBadRequest {
+			log.HTTPRequestEntry(c).Warn(logMessage)
+			return
+		}
+	}
 }

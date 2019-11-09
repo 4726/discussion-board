@@ -23,6 +23,7 @@ type InfoResponse struct {
 func Upload(mc *minio.Client, ctx *gin.Context) {
 	fileHeader, err := ctx.FormFile("media")
 	if err != nil {
+		ctx.Set(logInfoKey, err)
 		if err.Error() == "missing form body" {
 			ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
 			return
@@ -37,10 +38,12 @@ func Upload(mc *minio.Client, ctx *gin.Context) {
 
 	contentTypes, ok := fileHeader.Header["Content-Type"]
 	if !ok {
+		ctx.Set(logInfoKey, "no Content-Type in header")
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
 	if len(contentTypes) == 0 {
+		ctx.Set(logInfoKey, "no Content-Type value set")
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -48,12 +51,14 @@ func Upload(mc *minio.Client, ctx *gin.Context) {
 
 	file, err := fileHeader.Open()
 	if err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
 
 	guid, err := ksuid.NewRandom() //not guaranteed unique
 	if err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -61,6 +66,7 @@ func Upload(mc *minio.Client, ctx *gin.Context) {
 	opts := minio.PutObjectOptions{ContentType: contentType}
 	_, err = mc.PutObject(bucketName, name, file, fileHeader.Size, opts)
 	if err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
@@ -71,6 +77,7 @@ func Upload(mc *minio.Client, ctx *gin.Context) {
 func Remove(mc *minio.Client, ctx *gin.Context) {
 	name := ctx.Param("name")
 	if err := mc.RemoveObject(bucketName, name); err != nil {
+		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
