@@ -10,6 +10,7 @@ type Config struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	UseSSL          bool
+	BucketName      string
 }
 
 func ConfigFromJSON(file string) (Config, error) {
