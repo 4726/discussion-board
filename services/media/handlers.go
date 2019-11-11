@@ -55,6 +55,7 @@ func Upload(mc *minio.Client, ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
+	defer file.Close()
 
 	guid, err := ksuid.NewRandom() //not guaranteed unique
 	if err != nil {
