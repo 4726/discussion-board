@@ -43,12 +43,12 @@ type PostsService interface {
 	CreateComment(data CommentData) error
 	ClearComment(commentID int) error
 	UpdateCommentLikes(commentID, likes int) error
-	DeleteIfOwner(postID, userID int) error //todo
+	DeleteIfOwner(postID, userID int) error //todo: can just accept an optional userid field
 	LikePost(postID, userID int) error  //todo: userID because might already liked
 	UnlikePost(postID, userID int) error //todo
 	LikeComment(commentID, userID int) //todo
 	UnlikeComment(commentID, userID int) //todo
-	ClearCommentIfOwner(commentID int) error //todo
+	ClearCommentIfOwner(commentID int) error //todo: same as deleteifowner
 	GetMultiple(postIDs []int) ([]Post, error) //todo
 }
 

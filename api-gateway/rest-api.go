@@ -25,8 +25,12 @@ func (a *RestAPI) setRoutes() {
 		GetPost(ctx)
 	})
 
-	a.engine.POST("/posts", func(ctx *gin.Context) {
+	a.engine.GET("/posts", func(ctx *gin.Context) {
 		GetPosts(ctx)
+	})
+
+	a.engine.POST("/post", func(ctx *gin.Context) {
+		CreatePost(ctx)
 	})
 
 	a.engine.DELETE("/post/:postid", func(ctx *gin.Context) {
