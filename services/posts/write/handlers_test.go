@@ -236,7 +236,7 @@ func TestDeletePostInvalidBody(t *testing.T) {
 func TestDeletePostDoesNotExist(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	form := DeleteForm{1}
+	form := DeleteForm{1, ""}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -256,7 +256,7 @@ func TestDeletePostWithComments(t *testing.T) {
 
 	posts := fillDBTestData(t, api)
 
-	form := DeleteForm{2}
+	form := DeleteForm{2, ""}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -273,12 +273,57 @@ func TestDeletePostWithComments(t *testing.T) {
 	assertPostEqual(t, posts[2], postsAfter[1])
 }
 
+func TestDeletePostWithWrongUser(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillDBTestData(t, api)
+
+	form := DeleteForm{1, "wrong"}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/post/delete", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+
+	postsAfter, comments := queryDBTest(t, api)
+	assert.Len(t, postsAfter, 3)
+	assert.Len(t, comments, 2)
+	assertPostEqual(t, posts[0], postsAfter[0])
+	assertPostEqual(t, posts[1], postsAfter[1])
+	assertPostEqual(t, posts[2], postsAfter[2])
+}
+
+func TestDeletePostWithRightUser(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillDBTestData(t, api)
+
+	form := DeleteForm{1, "name"}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/post/delete", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+
+	postsAfter, comments := queryDBTest(t, api)
+	assert.Len(t, postsAfter, 2)
+	assert.Len(t, comments, 2)
+	assertPostEqual(t, posts[1], postsAfter[0])
+	assertPostEqual(t, posts[2], postsAfter[1])
+}
+
 func TestDeletePost(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
 	posts := fillDBTestData(t, api)
 
-	form := DeleteForm{1}
+	form := DeleteForm{1, ""}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -461,7 +506,7 @@ func TestClearCommentInvalidBody(t *testing.T) {
 func TestClearCommentDoesNotExist(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	form := ClearCommentForm{1}
+	form := ClearCommentForm{1, ""}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -476,12 +521,61 @@ func TestClearCommentDoesNotExist(t *testing.T) {
 	assert.Len(t, comments, 0)
 }
 
+func TestClearCommentWithWrongUser(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillDBTestData(t, api)
+
+	form := ClearCommentForm{1, "wrong"}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/comment/clear", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+
+	postsAfter, comments := queryDBTest(t, api)
+	assert.Len(t, postsAfter, 3)
+	assert.Len(t, comments, 2)
+	assertPostEqual(t, posts[0], postsAfter[0])
+	assertPostEqual(t, posts[1], postsAfter[1])
+	assertPostEqual(t, posts[2], postsAfter[2])
+}
+
+func TestClearCommenttWithRightUser(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillDBTestData(t, api)
+
+	form := ClearCommentForm{1, "qwe"}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/comment/clear", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+
+	expectedUpdatedPost := posts[1]
+	expectedUpdatedPost.Comments[0].Body = ""
+
+	postsAfter, comments := queryDBTest(t, api)
+	assert.Len(t, postsAfter, 3)
+	assert.Len(t, comments, 2)
+	assertPostEqual(t, posts[0], postsAfter[0])
+	assertPostEqual(t, posts[2], postsAfter[2])
+	assertPostEqual(t, expectedUpdatedPost, postsAfter[1])
+}
+
 func TestClearComment(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
 	posts := fillDBTestData(t, api)
 
-	form := ClearCommentForm{1}
+	form := ClearCommentForm{1, ""}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()

@@ -40,13 +40,13 @@ func CreatePost(ctx *gin.Context) {
 func DeletePost(ctx *gin.Context) {
 	userID, err := getUserID()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
 	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 	
@@ -57,13 +57,13 @@ func DeletePost(ctx *gin.Context) {
 func LikePost(ctx *gin.Context) {
 	userID, err := getUserID()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
 	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
@@ -75,13 +75,13 @@ func LikePost(ctx *gin.Context) {
 func UnlikePost(ctx *gin.Context) {
 	userID, err := getUserID()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
 	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
@@ -94,13 +94,13 @@ func UnlikePost(ctx *gin.Context) {
 func AddComment(ctx *gin.Context) {
 	userID, err := getUserID()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
 	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
@@ -112,13 +112,13 @@ func AddComment(ctx *gin.Context) {
 func LikeComment(ctx *gin.Context) {
 	userID, err := getUserID()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
 	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
@@ -130,13 +130,13 @@ func LikeComment(ctx *gin.Context) {
 func UnlikeComment(ctx *gin.Context) {
 	userID, err := getUserID()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
 	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
@@ -148,13 +148,13 @@ func UnlikeComment(ctx *gin.Context) {
 func ClearComment(ctx *gin.Context) {
 	userID, err := getUserID()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
 	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
@@ -162,6 +162,7 @@ func ClearComment(ctx *gin.Context) {
 	resp, _ := post(postsServiceAddr + "/comment/clear/" + postIDParam, m)
 	ctx.JSON(resp.StatusCode, resp)
 }
+
 func Search(ctx *gin.Context) {
 	term := ctx.Query("term")
 	page := ctx.Query("page")
@@ -173,17 +174,17 @@ func Search(ctx *gin.Context) {
 func RegisterGET(ctx *gin.Context) {
 	userID := getUserID(ctx)
 	if userID != 0 {
-		ctx.JSON(http.StatusBadRequest, nil)
+		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, nil)
+	ctx.JSON(http.StatusOK, gin.H{})
 }
 
 func RegisterPOST(ctx *gin.Context) {
 	userID := getUserID(ctx)
 	if userID != 0 {
-		ctx.JSON(http.StatusBadRequest, nil)
+		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
 	defer ctx.Response.Body.Close()
@@ -195,17 +196,17 @@ func RegisterPOST(ctx *gin.Context) {
 func LoginGET(ctx *gin.Context) {
 	userID := getUserID(ctx)
 	if userID != 0 {
-		ctx.JSON(http.StatusBadRequest, nil)
+		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, nil)
+	ctx.JSON(http.StatusOK, gin.H{})
 }
 
 func LoginPOST(ctx *gin.Context) {
 	userID := getUserID(ctx)
 	if userID != 0 {
-		ctx.JSON(http.StatusBadRequest, nil)
+		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
 	defer ctx.Response.Body.Close()
@@ -217,13 +218,13 @@ func LoginPOST(ctx *gin.Context) {
 func ChangePassword(ctx *gin.Context) {
 	userID := getUserID(ctx)
 	if userID == 0 {
-		ctx.JSON(http.StatusUnauthorized, nil)
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
 	userID := getUserID(ctx)
 	if userID != 0 {
-		ctx.JSON(http.StatusBadRequest, nil)
+		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
 	defer ctx.Response.Body.Close()
@@ -240,36 +241,30 @@ func GetProfile(ctx *gin.Context) {
 func UpdateProfile(ctx *gin.Context) {
 	userID := getUserID(ctx)
 	if userID == 0 {
-		ctx.JSON(http.StatusUnauthorized, nil)
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	opts := UpdateProfileOptions{}
+	extra := gin.H{"UserID": userID}
 
-	bio := ctx.PostForm("bio")
-	if bio != "" {
-		opts.Bio = bio
-	}
 	fileHeader, err := ctx.FormFile("avatar")
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, nil)
+		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	} else {
-		objectName, err := mediaService.Upload(fileHeader.Filename)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, nil)
-			return
-		}
-		opts.Avatar = objectName
+		//upload multipart form to media service
+		//then get the avatar id
+		//then add to extra map
 	}
 
-	err := userService.UpdateProfile(userID, opts)
+	m, err := bindJSONAndAdd(ctx, extra)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
+	resp, _ := post(userServiceAddr + "/profile/update", m)
 
-	ctx.JSON(http.StatusOK, nil)
+	ctx.JSON(http.StatusOK, gin.H{})
 }
 
 func generateJWT(userID int) (string, error) {

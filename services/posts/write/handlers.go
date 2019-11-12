@@ -15,6 +15,7 @@ type CreateForm struct {
 
 type DeleteForm struct {
 	PostID uint
+	User string
 }
 
 type UpdateLikesForm struct {
@@ -29,6 +30,7 @@ type CreateCommentForm struct {
 
 type ClearCommentForm struct {
 	CommentID uint
+	User string
 }
 
 type UpdateCommentLikesForm struct {
@@ -87,6 +89,16 @@ func DeletePost(db *gorm.DB, ctx *gin.Context) {
 	}
 
 	post := models.Post{ID: form.PostID}
+
+	if form.User != "" {
+		if err := db.Where("user = ?", form.User).Delete(&post).Error; err != nil {
+			ctx.Set(logInfoKey, err)
+			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
+		} else {
+			ctx.JSON(http.StatusOK, gin.H{})
+			return
+		}
+	}
 
 	if err := db.Delete(&post).Error; err != nil {
 		ctx.Set(logInfoKey, err)
@@ -160,6 +172,16 @@ func ClearComment(db *gorm.DB, ctx *gin.Context) {
 
 	comment := models.Comment{ID: form.CommentID}
 
+	if form.User != "" {
+		if err := db.Model(&comment).Where("User = ?", form.User).UpdateColumn("Body", "").Error; err != nil {
+			ctx.Set(logInfoKey, err)
+			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
+		} else {
+			ctx.JSON(http.StatusOK, gin.H{})
+		}
+		return
+	}
+
 	if err := db.Model(&comment).UpdateColumn("Body", "").Error; err != nil {
 		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
@@ -186,33 +208,6 @@ func UpdateCommentLikes(db *gorm.DB, ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{})
-}
-
-func deletePostFromDB(db *gorm.DB, postID uint) error {
-	post := models.Post{ID: postID}
-	tx := db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-	if err := tx.Error; err != nil {
-		return err
-	}
-	if err := tx.Delete(&post).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-	if err := tx.Where("id = ?", postID).Delete("Comment{}").Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return nil
 }
 
 func addCommentToDB(db *gorm.DB, comment *models.Comment) error {
