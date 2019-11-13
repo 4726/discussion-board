@@ -15,12 +15,12 @@ var (
 
 func Index(esc *ESClient, ctx *gin.Context) {
 	form := struct {
-		Title string `binding:"required"`
-		Body string `binding:"required"`
-		User string `binding:"required"`
-		Id string `binding:"required"`
+		Title     string `binding:"required"`
+		Body      string `binding:"required"`
+		User      string `binding:"required"`
+		Id        string `binding:"required"`
 		Timestamp int64
-		Likes int
+		Likes     int
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
@@ -39,10 +39,10 @@ func Index(esc *ESClient, ctx *gin.Context) {
 }
 
 func Search(esc *ESClient, ctx *gin.Context) {
-	query := struct{
-		Term string `form:"term" binding:"required"`
-		From uint `form:"from"`
-		Total uint `form:"total" binding:"required"`
+	query := struct {
+		Term  string `form:"term" binding:"required"`
+		From  uint   `form:"from"`
+		Total uint   `form:"total" binding:"required"`
 	}{}
 
 	err := ctx.BindQuery(&query)
@@ -62,7 +62,7 @@ func Search(esc *ESClient, ctx *gin.Context) {
 }
 
 func UpdateLikes(esc *ESClient, ctx *gin.Context) {
-	form := struct{
+	form := struct {
 		Id    string `binding:"required"`
 		Likes int
 	}{}
@@ -80,7 +80,7 @@ func UpdateLikes(esc *ESClient, ctx *gin.Context) {
 }
 
 func Delete(esc *ESClient, ctx *gin.Context) {
-	form := struct{
+	form := struct {
 		Id string `binding:"required"`
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
@@ -97,7 +97,7 @@ func Delete(esc *ESClient, ctx *gin.Context) {
 }
 
 func UpdateLastUpdate(esc *ESClient, ctx *gin.Context) {
-	form := struct{
+	form := struct {
 		Id         string `binding:"required"`
 		LastUpdate int64
 	}{}

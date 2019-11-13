@@ -13,7 +13,7 @@ type PostLikeForm struct {
 }
 type CommentLikeForm struct {
 	CommentID uint `binding:"required"`
-	UserID uint `binding:"required"`
+	UserID    uint `binding:"required"`
 }
 
 type IDsForm struct {

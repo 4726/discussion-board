@@ -19,10 +19,10 @@ var (
 )
 
 func CreatePost(db *gorm.DB, ctx *gin.Context) {
-	form := struct{
+	form := struct {
 		Title string `binding:"required"`
-		Body string `binding:"required"`
-		User string `binding:"required"`
+		Body  string `binding:"required"`
+		User  string `binding:"required"`
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
@@ -50,9 +50,9 @@ func CreatePost(db *gorm.DB, ctx *gin.Context) {
 }
 
 func DeletePost(db *gorm.DB, ctx *gin.Context) {
-	form := struct{
+	form := struct {
 		PostID uint `binding:"required"`
-		User string
+		User   string
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
@@ -82,7 +82,7 @@ func DeletePost(db *gorm.DB, ctx *gin.Context) {
 }
 
 func UpdatePostLikes(db *gorm.DB, ctx *gin.Context) {
-	form := struct{
+	form := struct {
 		PostID uint `binding:"required"`
 		Likes  int
 	}{}
@@ -106,11 +106,11 @@ func UpdatePostLikes(db *gorm.DB, ctx *gin.Context) {
 }
 
 func CreateComment(db *gorm.DB, ctx *gin.Context) {
-	form := struct{
-		PostID uint `binding:"required"`
+	form := struct {
+		PostID   uint `binding:"required"`
 		ParentID uint
-		User string `binding:"required"`
-		Body string `binding:"required"`
+		User     string `binding:"required"`
+		Body     string `binding:"required"`
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
@@ -143,9 +143,9 @@ func CreateComment(db *gorm.DB, ctx *gin.Context) {
 }
 
 func ClearComment(db *gorm.DB, ctx *gin.Context) {
-	form := struct{
+	form := struct {
 		CommentID uint `binding:"required"`
-		User string
+		User      string
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
@@ -175,7 +175,7 @@ func ClearComment(db *gorm.DB, ctx *gin.Context) {
 }
 
 func UpdateCommentLikes(db *gorm.DB, ctx *gin.Context) {
-	form := struct{
+	form := struct {
 		CommentID uint `binding:"required"`
 		Likes     int
 	}{}

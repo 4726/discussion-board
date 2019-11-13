@@ -13,13 +13,13 @@ import (
 
 type CreateForm struct {
 	Title string
-	Body string
-	User string
+	Body  string
+	User  string
 }
 
 type DeleteForm struct {
 	PostID uint
-	User string
+	User   string
 }
 
 type UpdateLikesForm struct {
@@ -34,7 +34,7 @@ type CreateCommentForm struct {
 
 type ClearCommentForm struct {
 	CommentID uint
-	User string
+	User      string
 }
 
 type UpdateCommentLikesForm struct {

@@ -37,11 +37,11 @@ func GetFullPost(db *gorm.DB, ctx *gin.Context) {
 }
 
 func GetPosts(db *gorm.DB, ctx *gin.Context) {
-	query := struct{
-		Total uint `form:"total" binding:"required"` 
-		From uint `form:"from"` 
-		User string `form:"user"` 
-		Sort string `form:"sort"` 
+	query := struct {
+		Total uint   `form:"total" binding:"required"`
+		From  uint   `form:"from"`
+		User  string `form:"user"`
+		Sort  string `form:"sort"`
 	}{}
 
 	if err := ctx.BindQuery(&query); err != nil {

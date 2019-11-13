@@ -47,7 +47,7 @@ func GetProfile(db *gorm.DB, ctx *gin.Context) {
 }
 
 func ValidLogin(db *gorm.DB, ctx *gin.Context) {
-	form := struct{
+	form := struct {
 		Username string `binding:"required"`
 		Password string `binding:"required"`
 	}{}
@@ -80,7 +80,7 @@ func ValidLogin(db *gorm.DB, ctx *gin.Context) {
 }
 
 func CreateAccount(db *gorm.DB, ctx *gin.Context) {
-	form := struct{
+	form := struct {
 		Username string `binding:"required"`
 		Password string `binding:"required"`
 	}{}
@@ -172,7 +172,7 @@ func CreateAccount(db *gorm.DB, ctx *gin.Context) {
 }
 
 func UpdateProfile(db *gorm.DB, ctx *gin.Context) {
-	form := struct{
+	form := struct {
 		UserID        int `binding:"required"`
 		Bio, AvatarID string
 	}{}
@@ -203,7 +203,7 @@ func UpdateProfile(db *gorm.DB, ctx *gin.Context) {
 
 func ChangePassword(db *gorm.DB, ctx *gin.Context) {
 	form := struct {
-		UserID  int `binding:"required"`
+		UserID  int    `binding:"required"`
 		OldPass string `binding:"required"`
 		NewPass string `binding:"required"`
 	}{}
