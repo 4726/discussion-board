@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 )
 
 type IndexForm struct {
@@ -54,28 +52,20 @@ func Index(esc *ESClient, ctx *gin.Context) {
 }
 
 func Search(esc *ESClient, ctx *gin.Context) {
-	term := ctx.Query("term")
-	from := ctx.Query("from")
-	total := ctx.Query("total")
-	fromInt, err := strconv.Atoi(from)
+	query := struct{
+		Term string `form:"term" binding:"required"`
+		From uint `form:"from"`
+		Total uint `form:"total" binding:"required"`
+	}{}
+
+	err := ctx.BindQuery(&query)
 	if err != nil {
 		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid from query"})
-		return
-	}
-	totalInt, err := strconv.Atoi(total)
-	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid total query"})
-		return
-	}
-	if err := verifySearchQuery(term, fromInt, totalInt); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{err.Error()})
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid query"})
 		return
 	}
 
-	res, err := esc.Search(term, fromInt, totalInt)
+	res, err := esc.Search(query.Term, int(query.From), int(query.Total))
 	if err != nil {
 		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
@@ -127,14 +117,4 @@ func UpdateLastUpdate(esc *ESClient, ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, struct{}{})
-}
-
-func verifySearchQuery(term string, from, total int) error {
-	if total < 1 {
-		return fmt.Errorf("invalid total query")
-	}
-	if term == "" {
-		return fmt.Errorf("invalid term query")
-	}
-	return nil
 }

@@ -37,25 +37,22 @@ func GetFullPost(db *gorm.DB, ctx *gin.Context) {
 }
 
 func GetPosts(db *gorm.DB, ctx *gin.Context) {
-	totalS := ctx.Query("total")
-	fromS := ctx.Query("from")
-	user := ctx.Query("user")
-	sortType := ctx.Query("sort")
+	query := struct{
+		Total uint `form:"total" binding:"required"` 
+		From uint `form:"from"` 
+		User string `form:"user"` 
+		Sort string `form:"sort"` 
+	}{}
 
-	total, err := strconv.Atoi(totalS)
-	if err != nil {
+	if err := ctx.BindQuery(&query); err != nil {
 		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid total query"})
-		return
-	}
-	from, err := strconv.Atoi(fromS)
-	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid from query"})
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid query"})
 		return
 	}
 
-	switch sortType {
+	var sortType string
+
+	switch query.Sort {
 	case "likes_desc":
 		sortType = "likes desc"
 	case "created_at_desc":
@@ -68,11 +65,11 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 		sortType = "updated_at desc"
 	}
 
-	if user != "" {
-		posts, err := getPostsUser(db, from, total, user, sortType)
+	if query.User != "" {
+		posts, err := getPostsUser(db, query.From, query.Total, query.User, sortType)
 		if err != nil {
 			ctx.Set(logInfoKey, err)
-			ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
+			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 			return
 		}
 
@@ -80,17 +77,17 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 		return
 	}
 
-	posts, err := getPosts(db, from, total, sortType)
+	posts, err := getPosts(db, query.From, query.Total, sortType)
 	if err != nil {
 		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
+		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, posts)
 }
 
-func getPosts(db *gorm.DB, from, total int, sortType string) ([]models.Post, error) {
+func getPosts(db *gorm.DB, from, total uint, sortType string) ([]models.Post, error) {
 	posts := []models.Post{}
 	selectFields := []string{"id", "user", "title", "likes", "created_at", "updated_at"}
 	if err := db.Preload("Comments").Select(selectFields).
@@ -104,7 +101,7 @@ func getPosts(db *gorm.DB, from, total int, sortType string) ([]models.Post, err
 	return posts, nil
 }
 
-func getPostsUser(db *gorm.DB, from, total int, user, sortType string) ([]models.Post, error) {
+func getPostsUser(db *gorm.DB, from, total uint, user, sortType string) ([]models.Post, error) {
 	posts := []models.Post{}
 	selectFields := []string{"id", "user", "title", "likes", "created_at", "updated_at"}
 	if err := db.Preload("Comments").Select(selectFields).

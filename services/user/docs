@@ -1,0 +1,25 @@
+GET /profile/:userid
+return: {
+    UserID   int
+	Username string
+	Bio      string
+	AvatarID string
+}
+
+POST /login
+Username, Password string
+return: userID string
+
+POST /account
+Username, Password string
+return: userID string
+
+POST /profile/update	
+UserID        int
+Bio, AvatarID string
+return: {}
+
+POST /password
+UserID           int
+OldPass, NewPass string
+return: {}

@@ -123,7 +123,7 @@ func TestSearchInvalidFromQuery(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/search?from=a", nil)
 	api.engine.ServeHTTP(w, req)
 
-	expected := ErrorResponse{"invalid from query"}
+	expected := ErrorResponse{"invalid query"}
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
@@ -131,6 +131,25 @@ func TestSearchInvalidFromQuery(t *testing.T) {
 	postsAfter := queryESC(t, api)
 	assert.Equal(t, posts, postsAfter)
 }
+
+func TestSearchInvalidFromQuery2(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillESTestData(t, api)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/search?from=-2", nil)
+	api.engine.ServeHTTP(w, req)
+
+	expected := ErrorResponse{"invalid query"}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	postsAfter := queryESC(t, api)
+	assert.Equal(t, posts, postsAfter)
+}
+
 
 func TestSearchInvalidTotalQuery(t *testing.T) {
 	api := getCleanAPIForTesting(t)
@@ -141,7 +160,7 @@ func TestSearchInvalidTotalQuery(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/search?from=0&total=a", nil)
 	api.engine.ServeHTTP(w, req)
 
-	expected := ErrorResponse{"invalid total query"}
+	expected := ErrorResponse{"invalid query"}
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
@@ -159,7 +178,7 @@ func TestSearchInvalidTotalQuery2(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/search?from=0&total=0", nil)
 	api.engine.ServeHTTP(w, req)
 
-	expected := ErrorResponse{"invalid total query"}
+	expected := ErrorResponse{"invalid query"}
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
@@ -177,7 +196,7 @@ func TestSearchInvalidTermQuery(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/search?term=&from=0&total=10", nil)
 	api.engine.ServeHTTP(w, req)
 
-	expected := ErrorResponse{"invalid term query"}
+	expected := ErrorResponse{"invalid query"}
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())

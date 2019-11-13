@@ -1,0 +1,25 @@
+POST /index
+Title, Body, User, Id string
+Timestamp             int64
+Likes                 int
+return: {}
+
+GET /search
+Term string
+From uint
+Total uint
+return: []PostID
+
+POST /update/likes
+Id    string
+Likes int
+return: {}
+
+POST /deletepost
+Id string
+return: {}
+
+POST /update/lastupdate
+Id         string
+LastUpdate int64
+return: {}

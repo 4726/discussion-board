@@ -176,7 +176,7 @@ func TestGetPostsInvalidTotal(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/posts?total=a", nil)
 	api.engine.ServeHTTP(w, req)
 
-	expected := ErrorResponse{"invalid total query"}
+	expected := ErrorResponse{"invalid query"}
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
@@ -195,7 +195,27 @@ func TestGetPostsInvalidFrom(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/posts?total=1&from=a", nil)
 	api.engine.ServeHTTP(w, req)
 
-	expected := ErrorResponse{"invalid from query"}
+	expected := ErrorResponse{"invalid query"}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	posts, comments := queryDBTest(t, api)
+	assert.Len(t, posts, 1)
+	assert.Len(t, comments, 0)
+	assertPostEqual(t, posts[0], post)
+}
+
+func TestGetPostsNoTotalQuery(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	post := addPostForTesting(t, api, "name", "title", "hello world", 5)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/posts?from=10", nil)
+	api.engine.ServeHTTP(w, req)
+
+	expected := ErrorResponse{"invalid query"}
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())

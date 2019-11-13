@@ -6,7 +6,7 @@ import (
 	"github.com/4726/discussion-board/services/common"
 )
 
-var log = common.NewLogger("user")
+var log = common.NewLogger("likes")
 
 func main() {
 	configPath := flag.String("config", "config.json", "config file path")

@@ -1,0 +1,36 @@
+GET /post/:postid
+return: {
+    ID        uint
+	User      string
+	Title     string
+	Body      string
+	Likes     int
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Comments  []{
+            ID        uint
+            PostID    uint
+            ParentID  uint
+            User      string
+            Body      string
+            CreatedAt time.Time
+            Likes     int
+        }
+}	
+
+GET /posts
+Query:
+    Total uint
+    From uint
+    User string
+    Sort string
+return: {
+    ID        uint
+	User      string
+	Title     string
+	Body      string empty
+	Likes     int
+	CreatedAt time.Time
+	UpdatedAt time.Time
+    Comments []{} empty
+}

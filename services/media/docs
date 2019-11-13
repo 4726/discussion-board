@@ -1,0 +1,9 @@
+POST /upload
+multipart form with media field
+return: Name string (object name for direct access with object store addr)
+
+POST /remove/:name
+return: {}
+
+GET /info
+return: StoreAddress string

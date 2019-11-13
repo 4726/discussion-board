@@ -1,0 +1,27 @@
+POST /post/like
+PostID uint
+UserID uint 
+return: total int
+
+POST /post/unlike
+PostID uint
+UserID uint 
+return: total int
+
+POST /comment/like
+CommentID uint
+UserID uint 
+return: total int
+
+POST /comment/unlike
+CommentID uint
+UserID uint 
+return: total int
+
+GET /post/likes
+IDs []uint
+return: []{ID uint, Likes int}
+
+GET /comment/likes
+IDs []uint
+return: []{ID uint, Likes int}
