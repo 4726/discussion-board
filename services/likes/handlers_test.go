@@ -107,6 +107,50 @@ func TestLikePostInvalidForm(t *testing.T) {
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
+func TestLikePostNoPostID(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	pLikes, cLikes := fillDBTestData(t, api)
+
+	form := PostLikeForm{0, 3}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/post/like", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	expected := ErrorResponse{"invalid form"}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestLikePostNoUserID(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	pLikes, cLikes := fillDBTestData(t, api)
+
+	form := PostLikeForm{1, 0}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/post/like", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	expected := ErrorResponse{"invalid form"}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
 func TestLikePost(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
@@ -139,6 +183,50 @@ func TestLikeCommentInvalidForm(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/comment/like", nil)
+	api.engine.ServeHTTP(w, req)
+
+	expected := ErrorResponse{"invalid form"}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestLikeCommentNoCommentID(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	pLikes, cLikes := fillDBTestData(t, api)
+
+	form := CommentLikeForm{0, 3}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/comment/like", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	expected := ErrorResponse{"invalid form"}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestLikeCommentNoUserID(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	pLikes, cLikes := fillDBTestData(t, api)
+
+	form := CommentLikeForm{3, 0}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/comment/like", buffer)
 	api.engine.ServeHTTP(w, req)
 
 	expected := ErrorResponse{"invalid form"}

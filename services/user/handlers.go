@@ -10,24 +10,6 @@ import (
 	"time"
 )
 
-type LoginForm struct {
-	Username, Password string
-}
-
-type CreateAccountForm struct {
-	Username, Password string
-}
-
-type UpdateProfileForm struct {
-	UserID        int
-	Bio, AvatarID string
-}
-
-type ChangePasswordForm struct {
-	UserID           int
-	OldPass, NewPass string
-}
-
 type ErrorResponse struct {
 	Error string
 }
@@ -65,7 +47,10 @@ func GetProfile(db *gorm.DB, ctx *gin.Context) {
 }
 
 func ValidLogin(db *gorm.DB, ctx *gin.Context) {
-	form := LoginForm{}
+	form := struct{
+		Username string `binding:"required"`
+		Password string `binding:"required"`
+	}{}
 	err := ctx.BindJSON(&form)
 	if err != nil {
 		ctx.Set(logInfoKey, err)
@@ -95,7 +80,10 @@ func ValidLogin(db *gorm.DB, ctx *gin.Context) {
 }
 
 func CreateAccount(db *gorm.DB, ctx *gin.Context) {
-	form := CreateAccountForm{}
+	form := struct{
+		Username string `binding:"required"`
+		Password string `binding:"required"`
+	}{}
 	err := ctx.BindJSON(&form)
 	if err != nil {
 		ctx.Set(logInfoKey, err)
@@ -184,7 +172,10 @@ func CreateAccount(db *gorm.DB, ctx *gin.Context) {
 }
 
 func UpdateProfile(db *gorm.DB, ctx *gin.Context) {
-	form := UpdateProfileForm{}
+	form := struct{
+		UserID        int `binding:"required"`
+		Bio, AvatarID string
+	}{}
 	err := ctx.BindJSON(&form)
 	if err != nil {
 		ctx.Set(logInfoKey, err)
@@ -211,9 +202,12 @@ func UpdateProfile(db *gorm.DB, ctx *gin.Context) {
 }
 
 func ChangePassword(db *gorm.DB, ctx *gin.Context) {
-	form := ChangePasswordForm{}
-	err := ctx.BindJSON(&form)
-	if err != nil {
+	form := struct {
+		UserID  int `binding:"required"`
+		OldPass string `binding:"required"`
+		NewPass string `binding:"required"`
+	}{}
+	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return

@@ -12,6 +12,26 @@ import (
 	"time"
 )
 
+type IndexForm struct {
+	Title, Body, User, Id string
+	Timestamp             int64
+	Likes                 int
+}
+
+type UpdateLikesForm struct {
+	Id    string
+	Likes int
+}
+
+type DeletePostForm struct {
+	Id string
+}
+
+type UpdateLastUpdateForm struct {
+	Id         string
+	LastUpdate int64
+}
+
 func assertJSON(t testing.TB, obj interface{}) string {
 	b, err := json.Marshal(obj)
 	assert.NoError(t, err)
@@ -70,24 +90,35 @@ func indexForTesting(t testing.TB, api *RestAPI, p Post) {
 	assert.NoError(t, err)
 }
 
-func TestIndexInvalidJSONForm(t *testing.T) {
+func testInvalidBody(t *testing.T, form interface{}, route string) {
 	api := getCleanAPIForTesting(t)
 
 	posts := fillESTestData(t, api)
 
-	buffer := bytes.NewBuffer([]byte("1"))
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/index", buffer)
+	req, _ := http.NewRequest("POST", route, buffer)
 	api.engine.ServeHTTP(w, req)
 
 	expected := InvalidJSONBodyResponse
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+	assert.Equal(t, assertJSON(t, expected), w.Body.String())
 
 	postsAfter := queryESC(t, api)
 	assert.Equal(t, posts, postsAfter)
+}
+
+func TestIndexInvalidBody(t *testing.T) {
+	form := IndexForm{"", "body", "10", "10", 0, 0}
+	testInvalidBody(t, form, "/index")
+	form = IndexForm{"title", "", "10", "10", 0, 0}
+	testInvalidBody(t, form, "/index")
+	form = IndexForm{"title", "body", "", "10", 0, 0}
+	testInvalidBody(t, form, "/index")
+	form = IndexForm{"title", "body", "10", "", 0, 0}
+	testInvalidBody(t, form, "/index")
 }
 
 func TestIndex(t *testing.T) {
@@ -150,7 +181,6 @@ func TestSearchInvalidFromQuery2(t *testing.T) {
 	assert.Equal(t, posts, postsAfter)
 }
 
-
 func TestSearchInvalidTotalQuery(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
@@ -176,6 +206,24 @@ func TestSearchInvalidTotalQuery2(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/search?from=0&total=0", nil)
+	api.engine.ServeHTTP(w, req)
+
+	expected := ErrorResponse{"invalid query"}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	postsAfter := queryESC(t, api)
+	assert.Equal(t, posts, postsAfter)
+}
+
+func TestSearchInvalidTotalQuery3(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillESTestData(t, api)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/search?from=0&total=-1", nil)
 	api.engine.ServeHTTP(w, req)
 
 	expected := ErrorResponse{"invalid query"}
@@ -223,24 +271,9 @@ func TestSearch(t *testing.T) {
 	assert.Equal(t, posts, postsAfter)
 }
 
-func TestUpdateLikesInvalidJSON(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	posts := fillESTestData(t, api)
-
-	buffer := bytes.NewBuffer([]byte("1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/update/likes", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	postsAfter := queryESC(t, api)
-	assert.Equal(t, posts, postsAfter)
+func TestUpdateLikesInvalidBody(t *testing.T) {
+	form := UpdateLikesForm{"", 100}
+	testInvalidBody(t, form, "/update/likes")
 }
 
 func TestUpdateLikesDoesNotExist(t *testing.T) {
@@ -288,23 +321,8 @@ func TestUpdateLikes(t *testing.T) {
 }
 
 func TestDeletePostInvalidJSON(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	posts := fillESTestData(t, api)
-
-	buffer := bytes.NewBuffer([]byte("1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/deletepost", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	postsAfter := queryESC(t, api)
-	assert.Equal(t, posts, postsAfter)
+	form := DeletePostForm{""}
+	testInvalidBody(t, form, "/deletepost")
 }
 
 func TestDeletePostDoesNotExist(t *testing.T) {
@@ -348,23 +366,8 @@ func TestDeletePost(t *testing.T) {
 }
 
 func TestUpdateLastUpdateInvalidJSON(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	posts := fillESTestData(t, api)
-
-	buffer := bytes.NewBuffer([]byte("1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/update/lastupdate", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	postsAfter := queryESC(t, api)
-	assert.Equal(t, posts, postsAfter)
+	form := UpdateLastUpdateForm{"", 1}
+	testInvalidBody(t, form, "/update/lastupdate")
 }
 
 func TestUpdateLastUpdateDoesNotExist(t *testing.T) {

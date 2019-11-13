@@ -12,14 +12,6 @@ type ErrorResponse struct {
 	Error string
 }
 
-type UploadResponse struct {
-	Name string
-}
-
-type InfoResponse struct {
-	StoreAddress string
-}
-
 func Upload(mc *minio.Client, ctx *gin.Context) {
 	fileHeader, err := ctx.FormFile("media")
 	if err != nil {
@@ -72,7 +64,7 @@ func Upload(mc *minio.Client, ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, UploadResponse{name})
+	ctx.JSON(http.StatusOK, gin.H{"Name": name})
 }
 
 func Remove(mc *minio.Client, ctx *gin.Context) {
@@ -87,5 +79,5 @@ func Remove(mc *minio.Client, ctx *gin.Context) {
 
 func Info(mc *minio.Client, ctx *gin.Context) {
 	endpoint := fmt.Sprintf("%s/%s/", mc.EndpointURL().String(), bucketName)
-	ctx.JSON(http.StatusOK, InfoResponse{endpoint})
+	ctx.JSON(http.StatusOK, gin.H{"StoreAddress": endpoint})
 }

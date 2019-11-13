@@ -187,7 +187,7 @@ func TestInfo(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/info", nil)
 	api.engine.ServeHTTP(w, req)
 
-	expected := InfoResponse{fmt.Sprintf("%s/%s/", api.mc.EndpointURL().String(), bucketName)}
+	expected := map[string]interface{}{"StoreAddress": fmt.Sprintf("%s/%s/", api.mc.EndpointURL().String(), bucketName)}
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
@@ -207,11 +207,11 @@ func TestPublicReadBucket(t *testing.T) {
 	api.engine.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	info := InfoResponse{}
+	info := map[string]interface{}{}
 	err := json.Unmarshal(w.Body.Bytes(), &info)
 	assert.NoError(t, err)
 
-	resp, err := http.Get(info.StoreAddress + "1")
+	resp, err := http.Get(info["StoreAddress"].(string) + "1")
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 

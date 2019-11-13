@@ -5,26 +5,6 @@ import (
 	"net/http"
 )
 
-type IndexForm struct {
-	Title, Body, User, Id string
-	Timestamp             int64
-	Likes                 int
-}
-
-type UpdateLikesForm struct {
-	Id    string
-	Likes int
-}
-
-type DeletePostForm struct {
-	Id string
-}
-
-type UpdateLastUpdateForm struct {
-	Id         string
-	LastUpdate int64
-}
-
 type ErrorResponse struct {
 	Error string
 }
@@ -34,7 +14,14 @@ var (
 )
 
 func Index(esc *ESClient, ctx *gin.Context) {
-	var form IndexForm
+	form := struct {
+		Title string `binding:"required"`
+		Body string `binding:"required"`
+		User string `binding:"required"`
+		Id string `binding:"required"`
+		Timestamp int64
+		Likes int
+	}{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
@@ -75,13 +62,16 @@ func Search(esc *ESClient, ctx *gin.Context) {
 }
 
 func UpdateLikes(esc *ESClient, ctx *gin.Context) {
-	var ulf UpdateLikesForm
-	if err := ctx.BindJSON(&ulf); err != nil {
+	form := struct{
+		Id    string `binding:"required"`
+		Likes int
+	}{}
+	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
-	if err := esc.UpdateLikes(ulf.Id, ulf.Likes); err != nil {
+	if err := esc.UpdateLikes(form.Id, form.Likes); err != nil {
 		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
@@ -90,13 +80,15 @@ func UpdateLikes(esc *ESClient, ctx *gin.Context) {
 }
 
 func Delete(esc *ESClient, ctx *gin.Context) {
-	var df DeletePostForm
-	if err := ctx.BindJSON(&df); err != nil {
+	form := struct{
+		Id string `binding:"required"`
+	}{}
+	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
 		return
 	}
-	if err := esc.Delete(df.Id); err != nil {
+	if err := esc.Delete(form.Id); err != nil {
 		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		return
@@ -105,7 +97,10 @@ func Delete(esc *ESClient, ctx *gin.Context) {
 }
 
 func UpdateLastUpdate(esc *ESClient, ctx *gin.Context) {
-	var form UpdateLastUpdateForm
+	form := struct{
+		Id         string `binding:"required"`
+		LastUpdate int64
+	}{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
 		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)

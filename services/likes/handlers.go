@@ -8,11 +8,12 @@ import (
 )
 
 type PostLikeForm struct {
-	PostID, UserID uint
+	PostID uint `binding:"required"`
+	UserID uint `binding:"required"`
 }
-
 type CommentLikeForm struct {
-	CommentID, UserID uint
+	CommentID uint `binding:"required"`
+	UserID uint `binding:"required"`
 }
 
 type IDsForm struct {

@@ -11,6 +11,37 @@ import (
 	"time"
 )
 
+type CreateForm struct {
+	Title string
+	Body string
+	User string
+}
+
+type DeleteForm struct {
+	PostID uint
+	User string
+}
+
+type UpdateLikesForm struct {
+	PostID uint
+	Likes  int
+}
+
+type CreateCommentForm struct {
+	PostID, ParentID uint
+	User, Body       string
+}
+
+type ClearCommentForm struct {
+	CommentID uint
+	User string
+}
+
+type UpdateCommentLikesForm struct {
+	CommentID uint
+	Likes     int
+}
+
 func assertJSON(t testing.TB, obj interface{}) string {
 	b, err := json.Marshal(obj)
 	assert.NoError(t, err)
@@ -106,83 +137,19 @@ func assertPostsEqual(t testing.TB, expected, actual []models.Post) {
 	}
 }
 
-func TestCreatePostInvalidBody(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	buffer := bytes.NewBuffer([]byte("1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/post/create", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 0)
-	assert.Len(t, comments, 0)
-}
-
 func TestCreatePostEmptyUser(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
 	form := CreateForm{"title", "body", ""}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/post/create", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"empty user"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 0)
-	assert.Len(t, comments, 0)
+	testInvalidBody(t, form, "/post/create")
 }
 
 func TestCreatePostEmptyTitle(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
 	form := CreateForm{"", "body", "name"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/post/create", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"empty title"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 0)
-	assert.Len(t, comments, 0)
+	testInvalidBody(t, form, "/post/create")
 }
 
 func TestCreatePostEmptyBody(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
 	form := CreateForm{"title", "", "name"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/post/create", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"empty body"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 0)
-	assert.Len(t, comments, 0)
+	testInvalidBody(t, form, "/post/create")
 }
 
 func TestCreatePost(t *testing.T) {
@@ -214,13 +181,36 @@ func TestCreatePost(t *testing.T) {
 	assert.WithinDuration(t, post.CreatedAt, time.Now(), time.Second*10)
 }
 
-func TestDeletePostInvalidBody(t *testing.T) {
+func TestDeletePostDoesNotExist(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	buffer := bytes.NewBuffer([]byte("1"))
+	form := DeleteForm{1, ""}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/post/delete", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
+
+	posts, comments := queryDBTest(t, api)
+	assert.Len(t, posts, 0)
+	assert.Len(t, comments, 0)
+}
+
+func TestDeletePostNoPostID(t *testing.T) {
+	form := DeleteForm{0, ""}
+	testInvalidBody(t, form, "/post/delete")
+}
+
+func testInvalidBody(t *testing.T, form interface{}, route string) {
+	api := getCleanAPIForTesting(t)
+
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", route, buffer)
 	api.engine.ServeHTTP(w, req)
 
 	expected := InvalidJSONBodyResponse
@@ -233,7 +223,7 @@ func TestDeletePostInvalidBody(t *testing.T) {
 	assert.Len(t, comments, 0)
 }
 
-func TestDeletePostDoesNotExist(t *testing.T) {
+func TestDeletePostNoUser(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
 	form := DeleteForm{1, ""}
@@ -340,19 +330,23 @@ func TestDeletePost(t *testing.T) {
 	assertPostEqual(t, posts[2], postsAfter[1])
 }
 
-func TestUpdatePostLikesInvalidBody(t *testing.T) {
+func TestUpdatePostNoPostID(t *testing.T) {
+	form := UpdateLikesForm{0, 1}
+	testInvalidBody(t, form, "/post/likes")
+}
+
+func TestUpdatePostNoLikes(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	buffer := bytes.NewBuffer([]byte("1"))
+	form := UpdateLikesForm{1, 0}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/post/likes", buffer)
 	api.engine.ServeHTTP(w, req)
 
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "{}", w.Body.String())
 
 	posts, comments := queryDBTest(t, api)
 	assert.Len(t, posts, 0)
@@ -403,23 +397,19 @@ func TestUpdatePostLikes(t *testing.T) {
 	assertPostEqual(t, posts[2], postsAfter[2])
 }
 
-func TestCreateCommentInvalidBody(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+func TestCreateCommentNoPostID(t *testing.T) {
+	form := CreateCommentForm{0, 0, "user", "body"}
+	testInvalidBody(t, form, "/comment/create")
+}
 
-	buffer := bytes.NewBuffer([]byte("1"))
+func TestCreateCommentNoUser(t *testing.T) {
+	form := CreateCommentForm{1, 0, "", "body"}
+	testInvalidBody(t, form, "/comment/create")
+}
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/comment/create", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 0)
-	assert.Len(t, comments, 0)
+func TestCreateCommentNoBody(t *testing.T) {
+	form := CreateCommentForm{1, 0, "user", ""}
+	testInvalidBody(t, form, "/comment/create")
 }
 
 func TestCreateCommentPostDoesNotExist(t *testing.T) {
@@ -484,23 +474,9 @@ func TestCreateComment(t *testing.T) {
 	assertPostEqual(t, expectedUpdatedPost, postsAfter[1])
 }
 
-func TestClearCommentInvalidBody(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	buffer := bytes.NewBuffer([]byte("1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/comment/clear", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 0)
-	assert.Len(t, comments, 0)
+func TestClearCommentNoCommentID(t *testing.T) {
+	form := ClearCommentForm{0, ""}
+	testInvalidBody(t, form, "/comment/clear")
 }
 
 func TestClearCommentDoesNotExist(t *testing.T) {
@@ -596,23 +572,9 @@ func TestClearComment(t *testing.T) {
 	assertPostEqual(t, expectedUpdatedPost, postsAfter[1])
 }
 
-func TestUpdateCommentLikesInvalidBody(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	buffer := bytes.NewBuffer([]byte("1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/comment/likes", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 0)
-	assert.Len(t, comments, 0)
+func TestUpdateCommentNoCommentID(t *testing.T) {
+	form := UpdateCommentLikesForm{0, 1}
+	testInvalidBody(t, form, "/comment/likes")
 }
 
 func TestUpdateCommentLikesDoesNotExist(t *testing.T) {

@@ -10,6 +10,24 @@ import (
 	"time"
 )
 
+type LoginForm struct {
+	Username, Password string
+}
+
+type CreateAccountForm struct {
+	Username, Password string
+}
+
+type UpdateProfileForm struct {
+	UserID        int
+	Bio, AvatarID string
+}
+
+type ChangePasswordForm struct {
+	UserID           int
+	OldPass, NewPass string
+}
+
 func assertJSON(t testing.TB, obj interface{}) string {
 	b, err := json.Marshal(obj)
 	assert.NoError(t, err)
@@ -70,6 +88,27 @@ func getCleanAPIForTesting(t testing.TB) *RestAPI {
 	return api
 }
 
+func testInvalidBody(t *testing.T, form interface{}, route string) {
+	api := getCleanAPIForTesting(t)
+
+	auths, profiles := createAccountForTesting(t, "username", "password")
+
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", route, buffer)
+	api.engine.ServeHTTP(w, req)
+
+	expected := InvalidJSONBodyResponse
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	authsAfter, profilesAfter := queryDBTest(t, api)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
+
 func TestGetProfileInvalidParam(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
@@ -126,23 +165,11 @@ func TestGetProfile(t *testing.T) {
 	assert.Equal(t, profiles, profilesAfter)
 }
 
-func TestValidLoginWrongBodyFormat(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	buffer := bytes.NewBuffer([]byte("1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/login", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	auths, profiles := queryDBTest(t, api)
-	assert.Len(t, auths, 0)
-	assert.Len(t, profiles, 0)
+func TestValidLoginInvalidBody(t *testing.T) {
+	form := LoginForm{"", "password"}
+	testInvalidBody(t, form, "/login")
+	form = LoginForm{"username", ""}
+	testInvalidBody(t, form, "/login")
 }
 
 func TestValidLoginUsernameDoesNotExist(t *testing.T) {
@@ -209,19 +236,11 @@ func TestValidLogin(t *testing.T) {
 	assert.Equal(t, profiles, profilesAfter)
 }
 
-func TestCreateAccountWrongBodyFormat(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	buffer := bytes.NewBuffer([]byte("1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/account", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+func TestCreateAccountInvalidBody(t *testing.T) {
+	form := CreateAccountForm{"", "password"}
+	testInvalidBody(t, form, "/account")
+	form = CreateAccountForm{"username", ""}
+	testInvalidBody(t, form, "/account")
 }
 
 func TestCreateAccountInvalidUsername(t *testing.T) {
@@ -242,6 +261,7 @@ func TestCreateAccountInvalidUsername(t *testing.T) {
 	auths, profiles := queryDBTest(t, api)
 	assert.Len(t, auths, 0)
 	assert.Len(t, profiles, 0)
+
 }
 
 func TestCreateAccountInvalidPassword(t *testing.T) {
@@ -292,23 +312,9 @@ func TestCreateAccount(t *testing.T) {
 	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
 }
 
-func TestUpdateProfileWrongBodyFormat(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	buffer := bytes.NewBuffer([]byte("1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/profile/update", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	auths, profiles := queryDBTest(t, api)
-	assert.Len(t, auths, 0)
-	assert.Len(t, profiles, 0)
+func TestUpdateProfileInvalidBody(t *testing.T) {
+	form := UpdateProfileForm{0, "a", "a"}
+	testInvalidBody(t, form, "/profile/update")
 }
 
 func TestUpdateProfileNone(t *testing.T) {
@@ -409,23 +415,13 @@ func TestUpdateProfile(t *testing.T) {
 	assert.Equal(t, profileAfter.Bio, "hello world")
 }
 
-func TestChangePasswordWrongBodyFormat(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	buffer := bytes.NewBuffer([]byte("1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/password", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	auths, profiles := queryDBTest(t, api)
-	assert.Len(t, auths, 0)
-	assert.Len(t, profiles, 0)
+func TestChangePasswordInvalidBody(t *testing.T) {
+	form := ChangePasswordForm{0, "password", "newpassword"}
+	testInvalidBody(t, form, "/password")
+	form = ChangePasswordForm{1, "", "newpassword"}
+	testInvalidBody(t, form, "/password")
+	form = ChangePasswordForm{1, "password", ""}
+	testInvalidBody(t, form, "/password")
 }
 
 func TestChangePasswordUserDoesNotExist(t *testing.T) {
