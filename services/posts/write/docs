@@ -1,28 +1,33 @@
 POST /post/create
-Title, Body, User string
+Title  string `binding:"required"`
+Body   string `binding:"required"`
+UserID uint   `binding:"required"`
 return: postID uint
 
 POST /post/delete
-PostID uint
-User string
+PostID uint `binding:"required"`
+UserID uint
 return: {}
 
 POST /post/likes
-PostID uint
-Likes int
+PostID uint `binding:"required"`
+Likes  int
 return: {}
 
 POST /comment/create
-PostID, ParentID uint
-User, Body string
+PostID   uint `binding:"required"`
+ParentID uint
+UserID   uint   `binding:"required"`
+Body     string `binding:"required"`
 return: {}
 
 POST /comment/clear
-CommentID uint
-User string
+CommentID uint `binding:"required"`
+UserID    uint
 return: {}
 
 POST /comment/likes
-CommentID uint
-Likes     int   
+CommentID uint `binding:"required"`
+Likes     int
 return: {}
+

@@ -1,21 +1,21 @@
 POST /post/like
-PostID uint
-UserID uint 
+PostID uint `binding:"required"`
+UserID uint `binding:"required"`
 return: total int
 
 POST /post/unlike
-PostID uint
-UserID uint 
+PostID uint `binding:"required"`
+UserID uint `binding:"required"`
 return: total int
 
 POST /comment/like
-CommentID uint
-UserID uint 
+CommentID uint `binding:"required"`
+UserID uint `binding:"required"`
 return: total int
 
 POST /comment/unlike
-CommentID uint
-UserID uint 
+CommentID uint `binding:"required"`
+UserID uint `binding:"required"`
 return: total int
 
 GET /post/likes

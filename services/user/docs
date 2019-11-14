@@ -1,25 +1,28 @@
 GET /profile/:userid
 return: {
-    UserID   int
+    UserID   uint
 	Username string
 	Bio      string
 	AvatarID string
 }
 
 POST /login
-Username, Password string
-return: userID string
+Username string `binding:"required"`
+Password string `binding:"required"`
+return: userID uint
 
 POST /account
-Username, Password string
-return: userID string
+Username string `binding:"required"`
+Password string `binding:"required"`
+return: userID uint
 
 POST /profile/update	
-UserID        int
+UserID        uint `binding:"required"`
 Bio, AvatarID string
 return: {}
 
 POST /password
-UserID           int
-OldPass, NewPass string
+UserID  int    `binding:"required"`
+OldPass string `binding:"required"`
+NewPass string `binding:"required"`
 return: {}

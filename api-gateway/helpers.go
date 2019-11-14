@@ -1,12 +1,19 @@
 package main
 
 import (
-	"net/http"
-	"fmt"
-	"io/ioutil"
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"io"
+	"io/ioutil"
+	"net/http"
 )
+
+type Resp struct {
+	Data       map[string]interface{}
+	StatusCode int
+}
 
 func parseJSON(body io.ReadCloser) (map[string]interface{}, error) {
 	data := map[string]interface{}{}
@@ -15,74 +22,73 @@ func parseJSON(body io.ReadCloser) (map[string]interface{}, error) {
 	if err != nil {
 		return data, err
 	}
-	err := json.Unmarshal(b, &data)
+	err = json.Unmarshal(b, &data)
 	return data, err
 }
 
-func get(addr string) (map[string]interface{}, error) {
+func get(addr string) (Resp, error) {
 	resp, err := http.Get(addr)
 	if err != nil {
-		return map[string]interface{}{}, err
+		return Resp{map[string]interface{}{}, resp.StatusCode}, err
 	}
 	defer resp.Body.Close()
 
 	data, err := parseJSON(resp.Body)
 	if err != nil {
-		retrun data, err
+		return Resp{data, resp.StatusCode}, err
 	}
 
-	return data, err
+	return Resp{data, resp.StatusCode}, err
 }
 
-func post(addr string, data interface{}) (map[string]interface{}, error) {
+func post(addr string, data interface{}) (Resp, error) {
 	b, err := json.Marshal(data)
 	if err != nil {
-		return map[string]interface{}{}, err
+		return Resp{map[string]interface{}{}, 0}, err
 	}
 
-	resp, err := http.Post(addr, "application/json", bytes.NewBuffer(respData))
+	resp, err := http.Post(addr, "application/json", bytes.NewBuffer(b))
 	if err != nil {
-		return map[string]interface{}{}, err
+		return Resp{map[string]interface{}{}, resp.StatusCode}, err
 	}
 	defer resp.Body.Close()
 
-	data, err := parseJSON(resp.Body) 
+	respData, err := parseJSON(resp.Body)
 	if err != nil {
-		return data, err
+		return Resp{respData, resp.StatusCode}, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return data, data["Error"]
+		return Resp{respData, resp.StatusCode}, fmt.Errorf(respData["Error"].(string))
 	}
 
-	return data, nil
+	return Resp{respData, resp.StatusCode}, nil
 }
 
-func postProxy(addr string, body io.ReadCloser) (map[string]interface{}, error) {
+func postProxy(addr string, body io.ReadCloser) (Resp, error) {
 	resp, err := http.Post(addr, "application/json", body)
 	if err != nil {
-		return map[string]interface{}{}, err
+		return Resp{map[string]interface{}{}, 0}, err
 	}
 	defer resp.Body.Close()
 
-	data, err := parseJSON(resp.Body) 
+	data, err := parseJSON(resp.Body)
 	if err != nil {
-		return data, err
+		return Resp{map[string]interface{}{}, resp.StatusCode}, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return data, data["Error"]
+		return Resp{data, resp.StatusCode}, fmt.Errorf(data["Error"].(string))
 	}
 
-	return data, nil
+	return Resp{data, resp.StatusCode}, nil
 }
 
 func bindJSONAndAdd(ctx *gin.Context, other map[string]interface{}) (map[string]interface{}, error) {
 	m := map[string]interface{}{}
 	err := ctx.ShouldBindJSON(&m)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, nil)
-		return
+		return m, nil
 	}
 
 	for k, v := range other {

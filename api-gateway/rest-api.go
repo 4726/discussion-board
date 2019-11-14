@@ -2,9 +2,8 @@ package main
 
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"github.com/jinzhu/gorm"
 )
 
 type RestAPI struct {

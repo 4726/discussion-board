@@ -20,10 +20,10 @@ return: {
 
 GET /posts
 Query:
-    Total uint
-    From uint
-    User string
-    Sort string
+Total  uint   `form:"total" binding:"required"`
+From   uint   `form:"from"`
+UserID uint   `form:"userid"`
+Sort   string `form:"sort"`
 return: {
     ID        uint
 	User      string

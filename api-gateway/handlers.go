@@ -1,44 +1,41 @@
 package main
 
 import (
-	"strconv"
-	"net/http"
-	"github.com/dgrijalva/jwt-go"
-	"strings"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
+	"net/http"
+	"strings"
+	"time"
 )
 
 var jwtSecretKey = []byte("todosecretkey")
 
-type ErrorResponse{
-	Error string
-}
-
 type JWTClaims struct {
 	jwt.StandardClaims
-	UserID int
+	UserID uint
 }
 
 func GetPost(ctx *gin.Context) {
 	postIDParam := ctx.Param("postid")
-	resp, _ := get(postsServiceAddr + "/posts/" + postIDParam)
-	ctx.JSON(resp.StatusCode, resp)
+	resp, _ := get(PostsReadServiceAddr() + "/posts/" + postIDParam)
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func GetPosts(ctx *gin.Context) {
-	resp, _ := get(fmt.Sprintf("%s/posts?from=%v&total=%v&user=%v&sort=%v", 
-	postsServiceAddr, 0, 10, "", ""))
-	ctx.JSON(resp.StatusCode, resp)
+	resp, _ := get(fmt.Sprintf("%s/posts?from=%v&total=%v&user=%v&sort=%v",
+		PostsReadServiceAddr(), 0, 10, "", ""))
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func CreatePost(ctx *gin.Context) {
-	defer ctx.Response.Body.Close()
-	resp, _ := postProxy(postsServiceAddr + "/post/create", ctx.Response.Body)
-	ctx.JSON(resp.StatusCode, resp)
+	defer ctx.Request.Body.Close()
+	resp, _ := postProxy(PostsWriteServiceAddr()+"/post/create", ctx.Request.Body)
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func DeletePost(ctx *gin.Context) {
-	userID, err := getUserID()
+	userID, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -49,13 +46,13 @@ func DeletePost(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	
-	resp, _ := post(postsServiceAddr + "/post/delete", m)
-	ctx.JSON(resp.StatusCode, resp)
+
+	resp, _ := post(PostsWriteServiceAddr()+"/post/delete", m)
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func LikePost(ctx *gin.Context) {
-	userID, err := getUserID()
+	userID, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -67,13 +64,23 @@ func LikePost(ctx *gin.Context) {
 		return
 	}
 
-	postIDParam := ctx.Param("postid")
-	resp, _ := post(postsServiceAddr + "/post/addlike/" + postIDParam, m)
-	ctx.JSON(resp.StatusCode, resp)
+	resp, _ := post(LikesServiceAddr()+"/post/like", m)
+
+	//should not matter much if it fails since
+	//it can try again when another user likes/unlikes
+	go func() {
+		data := struct {
+			PostID uint
+			Likes  int
+		}{m["PostID"].(uint), resp.Data["Total"].(int)}
+		_, _ = post(PostsWriteServiceAddr()+"/post/likes", data)
+	}()
+
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func UnlikePost(ctx *gin.Context) {
-	userID, err := getUserID()
+	userID, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -85,14 +92,21 @@ func UnlikePost(ctx *gin.Context) {
 		return
 	}
 
-	postIDParam := ctx.Param("postid")
-	resp, _ := post(postsServiceAddr + "/post/removelike/" + postIDParam, m)
-	ctx.JSON(resp.StatusCode, resp)
+	resp, _ := post(LikesServiceAddr()+"/post/unlike", m)
+
+	go func() {
+		data := struct {
+			PostID uint
+			Likes  int
+		}{m["PostID"].(uint), resp.Data["Total"].(int)}
+		_, _ = post(PostsWriteServiceAddr()+"/post/likes", data)
+	}()
+
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
-
 func AddComment(ctx *gin.Context) {
-	userID, err := getUserID()
+	userID, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -104,13 +118,12 @@ func AddComment(ctx *gin.Context) {
 		return
 	}
 
-	postIDParam := ctx.Param("postid")
-	resp, _ := post(postsServiceAddr + "/comment/create", m)
-	ctx.JSON(resp.StatusCode, resp)
+	resp, _ := post(PostsWriteServiceAddr()+"/comment/create", m)
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func LikeComment(ctx *gin.Context) {
-	userID, err := getUserID()
+	userID, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -122,13 +135,21 @@ func LikeComment(ctx *gin.Context) {
 		return
 	}
 
-	postIDParam := ctx.Param("postid")
-	resp, _ := post(postsServiceAddr + "/comment/addlike/" + postIDParam, m)
-	ctx.JSON(resp.StatusCode, resp)
+	resp, _ := post(LikesServiceAddr()+"/comment/like", m)
+
+	go func() {
+		data := struct {
+			PostID uint
+			Likes  int
+		}{m["PostID"].(uint), resp.Data["Total"].(int)}
+		_, _ = post(PostsWriteServiceAddr()+"/post/likes", data)
+	}()
+
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func UnlikeComment(ctx *gin.Context) {
-	userID, err := getUserID()
+	userID, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -140,13 +161,21 @@ func UnlikeComment(ctx *gin.Context) {
 		return
 	}
 
-	postIDParam := ctx.Param("postid")
-	resp, _ := post(postsServiceAddr + "/post/unlike/" + postIDParam, m)
-	ctx.JSON(resp.StatusCode, resp)
+	resp, _ := post(LikesServiceAddr()+"/post/unlike", m)
+
+	go func() {
+		data := struct {
+			PostID uint
+			Likes  int
+		}{m["PostID"].(uint), resp.Data["Total"].(int)}
+		_, _ = post(PostsWriteServiceAddr()+"/post/likes", data)
+	}()
+
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func ClearComment(ctx *gin.Context) {
-	userID, err := getUserID()
+	userID, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -159,21 +188,27 @@ func ClearComment(ctx *gin.Context) {
 	}
 
 	postIDParam := ctx.Param("postid")
-	resp, _ := post(postsServiceAddr + "/comment/clear/" + postIDParam, m)
-	ctx.JSON(resp.StatusCode, resp)
+	resp, _ := post(PostsWriteServiceAddr()+"/comment/clear/"+postIDParam, m)
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func Search(ctx *gin.Context) {
-	term := ctx.Query("term")
-	page := ctx.Query("page")
-	resp, _ := get(fmt.Sprintf("%s/search?from=%v&total=%v&term=%v", 
-	searchServiceAddr, (page * 10) - 10, 10, term))
-	ctx.JSON(resp.StatusCode, resp)
+	form := struct {
+		Term string `form:"term" binding:"required"`
+		Page uint   `form:"page" binding:"required"`
+	}{}
+	if err := ctx.BindQuery(&form); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{})
+		return
+	}
+
+	resp, _ := get(fmt.Sprintf("%s/search?from=%v&total=%v&term=%v",
+		SearchServiceAddr(), (form.Page*10)-10, 10, form.Term))
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func RegisterGET(ctx *gin.Context) {
-	userID := getUserID(ctx)
-	if userID != 0 {
+	if _, err := getUserID(ctx); err == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
@@ -182,20 +217,23 @@ func RegisterGET(ctx *gin.Context) {
 }
 
 func RegisterPOST(ctx *gin.Context) {
-	userID := getUserID(ctx)
-	if userID != 0 {
+	if _, err := getUserID(ctx); err == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
-	defer ctx.Response.Body.Close()
-	resp, _ := postProxy(userServiceAddr + "/account", ctx.Response.Body)
-	//add jwt
-	ctx.JSON(resp.StatusCode, resp)
+	defer ctx.Request.Body.Close()
+	resp, _ := postProxy(UserServiceAddr()+"/account", ctx.Request.Body)
+	jwt, err := generateJWT(resp.Data["userID"].(uint))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
+	resp.Data["jwt"] = jwt
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func LoginGET(ctx *gin.Context) {
-	userID := getUserID(ctx)
-	if userID != 0 {
+	if _, err := getUserID(ctx); err == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
@@ -204,50 +242,54 @@ func LoginGET(ctx *gin.Context) {
 }
 
 func LoginPOST(ctx *gin.Context) {
-	userID := getUserID(ctx)
-	if userID != 0 {
+	if _, err := getUserID(ctx); err == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
-	defer ctx.Response.Body.Close()
-	resp, _ := postProxy(userServiceAddr + "/login", ctx.Response.Body)
-	//add jwt
-	ctx.JSON(resp.StatusCode, resp)
+	defer ctx.Request.Body.Close()
+	resp, _ := postProxy(UserServiceAddr()+"/login", ctx.Request.Body)
+	jwt, err := generateJWT(resp.Data["userID"].(uint))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
+	resp.Data["jwt"] = jwt
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func ChangePassword(ctx *gin.Context) {
-	userID := getUserID(ctx)
-	if userID == 0 {
+	userID, err := getUserID(ctx)
+	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	userID := getUserID(ctx)
-	if userID != 0 {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
+	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	defer ctx.Response.Body.Close()
-	resp, _ := postProxy(userServiceAddr + "/password", ctx.Response.Body)
-	ctx.JSON(resp.StatusCode, resp)
+
+	resp, _ := post(UserServiceAddr()+"/password", m)
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func GetProfile(ctx *gin.Context) {
 	userIDParam := ctx.Param("userid")
-	resp, _ := get(userServiceAddr + "/" + userIDParam))
-	ctx.JSON(resp.StatusCode, resp)
+	resp, _ := get(UserServiceAddr() + "/" + userIDParam)
+	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func UpdateProfile(ctx *gin.Context) {
-	userID := getUserID(ctx)
-	if userID == 0 {
+	userID, err := getUserID(ctx)
+	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
 	extra := gin.H{"UserID": userID}
 
-	fileHeader, err := ctx.FormFile("avatar")
+	_, err = ctx.FormFile("avatar")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
@@ -262,12 +304,12 @@ func UpdateProfile(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	resp, _ := post(userServiceAddr + "/profile/update", m)
+	_, _ = post(UserServiceAddr()+"/profile/update", m)
 
 	ctx.JSON(http.StatusOK, gin.H{})
 }
 
-func generateJWT(userID int) (string, error) {
+func generateJWT(userID uint) (string, error) {
 	claims := JWTClaims{
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour).Unix(),
@@ -275,33 +317,37 @@ func generateJWT(userID int) (string, error) {
 		userID,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHMAC, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(jwtSecretKey)
 }
 
 //jwt must be stored in authorization bearer
 //format: Authorization: Bearer <token>
-func getUserID(ctx *gin.Context) (int, error) {
+func getUserID(ctx *gin.Context) (uint, error) {
 	authHeader := ctx.GetHeader("Authorization")
 	splitTokens := strings.Split(authHeader, "Bearer ")
 	if len(splitTokens) != 2 {
 		return 0, fmt.Errorf("invalid authorization header format")
 	}
 	reqToken := strings.TrimSpace(splitTokens[1])
-	token, err := jwt.ParseWithClaims(reqToken, jwt.JWTClaims, func(t *jwt.Toke) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+	token, err := jwt.ParseWithClaims(reqToken, &JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signingmethod")
 		}
-		
-		return []byte(jwtKey), nil
+
+		return []byte(jwtSecretKey), nil
 	})
+
+	if err != nil {
+		return 0, err
+	}
 
 	if !token.Valid {
 		return 0, fmt.Errorf("invalid token")
 	}
 
-	if claims, ok := token.Claims(jwt.JWTClaims); ok {
-		userID := claims["userID"]
+	if claims, ok := token.Claims.(*JWTClaims); ok {
+		userID := claims.UserID
 		if userID < 1 {
 			return 0, fmt.Errorf("invalid userid")
 		}
