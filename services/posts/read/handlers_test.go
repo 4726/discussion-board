@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/4726/discussion-board/services/posts/models"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -74,21 +73,21 @@ func getCleanAPIForTesting(t testing.TB) *RestAPI {
 }
 
 func fillDBTestData(t testing.TB, api *RestAPI) []models.Post {
-	post := addPostForTesting(t, api, "name", "title", "hello world", 0)
+	post := addPostForTesting(t, api, 2, "title", "hello world", 0)
 	time.Sleep(time.Second)
-	post2 := addPostForTesting(t, api, "asd", "title2", "hello world 2", 5)
+	post2 := addPostForTesting(t, api, 1, "title2", "hello world 2", 5)
 	time.Sleep(time.Second)
-	comment1 := addCommentForTesting(t, api, "qwe", "my comment", 0, post2.ID)
-	comment2 := addCommentForTesting(t, api, "qwer", "another comment", 0, post2.ID)
+	comment1 := addCommentForTesting(t, api, 3, "my comment", 0, post2.ID)
+	comment2 := addCommentForTesting(t, api, 4, "another comment", 0, post2.ID)
 	post2.Comments = []models.Comment{comment1, comment2}
-	post3 := addPostForTesting(t, api, "asd", "title3", "hello world 3", 0)
+	post3 := addPostForTesting(t, api, 1, "title3", "hello world 3", 0)
 	return []models.Post{post, post2, post3}
 }
 
-func addPostForTesting(t testing.TB, api *RestAPI, username, title, body string, likes int) models.Post {
+func addPostForTesting(t testing.TB, api *RestAPI, userID uint, title, body string, likes int) models.Post {
 	created := time.Now()
 	post := models.Post{
-		User:      username,
+		UserID:    userID,
 		Title:     title,
 		Body:      body,
 		Likes:     likes,
@@ -103,11 +102,11 @@ func addPostForTesting(t testing.TB, api *RestAPI, username, title, body string,
 	return post
 }
 
-func addCommentForTesting(t testing.TB, api *RestAPI, username, body string, likes int, postID uint) models.Comment {
+func addCommentForTesting(t testing.TB, api *RestAPI, userID uint, body string, likes int, postID uint) models.Comment {
 	created := time.Now()
 	comment := models.Comment{
 		PostID:    postID,
-		User:      username,
+		UserID:    userID,
 		Body:      body,
 		Likes:     likes,
 		CreatedAt: created,
@@ -152,21 +151,19 @@ func TestGetFullPostDoesNotExist(t *testing.T) {
 func TestGetFullPost(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	post := addPostForTesting(t, api, "name", "title", "hello world", 0)
+	posts := fillDBTestData(t, api)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/post/%v", post.ID), nil)
+	req, _ := http.NewRequest("GET", "/post/1", nil)
 	api.engine.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	actualPost := models.Post{}
 	json.Unmarshal(w.Body.Bytes(), &actualPost)
-	assertPostEqual(t, post, actualPost)
+	assertPostEqual(t, posts[0], actualPost)
 
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 1)
-	assert.Len(t, comments, 0)
-	assertPostEqual(t, posts[0], post)
+	postsAfter, _ := queryDBTest(t, api)
+	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsInvalidTotal(t *testing.T) {
@@ -189,7 +186,7 @@ func TestGetPostsInvalidTotal(t *testing.T) {
 func TestGetPostsInvalidFrom(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	post := addPostForTesting(t, api, "name", "title", "hello world", 5)
+	posts := fillDBTestData(t, api)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/posts?total=1&from=a", nil)
@@ -200,16 +197,14 @@ func TestGetPostsInvalidFrom(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
 
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 1)
-	assert.Len(t, comments, 0)
-	assertPostEqual(t, posts[0], post)
+	postsAfter, _ := queryDBTest(t, api)
+	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsNoTotalQuery(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	post := addPostForTesting(t, api, "name", "title", "hello world", 5)
+	posts := fillDBTestData(t, api)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/posts?from=10", nil)
@@ -220,10 +215,8 @@ func TestGetPostsNoTotalQuery(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, assertJSON(t, expected), w.Body.String())
 
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 1)
-	assert.Len(t, comments, 0)
-	assertPostEqual(t, posts[0], post)
+	postsAfter, _ := queryDBTest(t, api)
+	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsNoPosts(t *testing.T) {
@@ -244,19 +237,17 @@ func TestGetPostsNoPosts(t *testing.T) {
 func TestGetPostsUserNoPosts(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	post := addPostForTesting(t, api, "name", "title", "hello world", 0)
+	posts := fillDBTestData(t, api)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/posts?total=1&from=10&user=asd", nil)
+	req, _ := http.NewRequest("GET", "/posts?total=1&from=10&userid=10", nil)
 	api.engine.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "[]", w.Body.String())
 
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 1)
-	assert.Len(t, comments, 0)
-	assertPostEqual(t, posts[0], post)
+	postsAfter, _ := queryDBTest(t, api)
+	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsSorted(t *testing.T) {
@@ -290,7 +281,7 @@ func TestGetPostsUserSorted(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, _ := http.NewRequest("GET", "/posts?total=10&from=0&user=asd&sort=created_at", nil)
+	req, _ := http.NewRequest("GET", "/posts?total=10&from=0&userid=1&sort=created_at", nil)
 	api.engine.ServeHTTP(w, req)
 
 	expected := []models.Post{posts[1], posts[2]}
@@ -338,7 +329,7 @@ func TestGetPostsUserUnSorted(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	req, _ := http.NewRequest("GET", "/posts?total=10&from=0&user=asd", nil)
+	req, _ := http.NewRequest("GET", "/posts?total=10&from=0&userid=1", nil)
 	api.engine.ServeHTTP(w, req)
 
 	expected := []models.Post{posts[2], posts[1]}

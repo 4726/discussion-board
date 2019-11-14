@@ -173,7 +173,7 @@ func CreateAccount(db *gorm.DB, ctx *gin.Context) {
 
 func UpdateProfile(db *gorm.DB, ctx *gin.Context) {
 	form := struct {
-		UserID        int `binding:"required"`
+		UserID        uint `binding:"required"`
 		Bio, AvatarID string
 	}{}
 	err := ctx.BindJSON(&form)

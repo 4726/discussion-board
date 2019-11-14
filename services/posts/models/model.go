@@ -8,7 +8,7 @@ type Comment struct {
 	ID        uint `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
 	PostID    uint
 	ParentID  uint `gorm:"DEFAULT:0"`
-	User      string
+	UserID      uint
 	Body      string
 	CreatedAt time.Time
 	Likes     int
@@ -16,7 +16,7 @@ type Comment struct {
 
 type Post struct {
 	ID        uint `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
-	User      string
+	UserID      uint
 	Title     string
 	Body      string
 	Likes     int

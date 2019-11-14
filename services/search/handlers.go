@@ -17,7 +17,7 @@ func Index(esc *ESClient, ctx *gin.Context) {
 	form := struct {
 		Title     string `binding:"required"`
 		Body      string `binding:"required"`
-		User      string `binding:"required"`
+		UserID    uint   `binding:"required"`
 		Id        string `binding:"required"`
 		Timestamp int64
 		Likes     int
@@ -28,7 +28,7 @@ func Index(esc *ESClient, ctx *gin.Context) {
 		return
 	}
 
-	post := Post{form.Title, form.Body, form.User, form.Id, form.Timestamp, form.Likes}
+	post := Post{form.Title, form.Body, form.Id, int(form.UserID), form.Timestamp, form.Likes}
 
 	if err := esc.Index(post); err != nil {
 		ctx.Set(logInfoKey, err)

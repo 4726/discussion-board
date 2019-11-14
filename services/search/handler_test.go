@@ -13,9 +13,10 @@ import (
 )
 
 type IndexForm struct {
-	Title, Body, User, Id string
-	Timestamp             int64
-	Likes                 int
+	Title, Body, Id string
+	UserID          uint
+	Timestamp       int64
+	Likes           int
 }
 
 type UpdateLikesForm struct {
@@ -72,11 +73,11 @@ func getCleanAPIForTesting(t testing.TB) *RestAPI {
 }
 
 func fillESTestData(t testing.TB, api *RestAPI) []Post {
-	p1 := Post{"my first post", "hello world", "user1", "id1", time.Now().Unix(), 0}
+	p1 := Post{"my first post", "hello world", "id1", 1, time.Now().Unix(), 0}
 	indexForTesting(t, api, p1)
-	p2 := Post{"post @2 world", "body #2", "user2", "id2", time.Now().Unix() + 10, 0}
+	p2 := Post{"post @2 world", "body #2", "id2", 2, time.Now().Unix() + 10, 0}
 	indexForTesting(t, api, p2)
-	p3 := Post{"title3", "hello WORLd", "user3", "id3", time.Now().Unix() + 20, 0}
+	p3 := Post{"title3", "hello WORLd", "id3", 3, time.Now().Unix() + 20, 0}
 	indexForTesting(t, api, p3)
 	return []Post{p1, p2, p3}
 }
@@ -111,13 +112,13 @@ func testInvalidBody(t *testing.T, form interface{}, route string) {
 }
 
 func TestIndexInvalidBody(t *testing.T) {
-	form := IndexForm{"", "body", "10", "10", 0, 0}
+	form := IndexForm{"", "body", "10", 10, 0, 0}
 	testInvalidBody(t, form, "/index")
-	form = IndexForm{"title", "", "10", "10", 0, 0}
+	form = IndexForm{"title", "", "10", 10, 0, 0}
 	testInvalidBody(t, form, "/index")
-	form = IndexForm{"title", "body", "", "10", 0, 0}
+	form = IndexForm{"title", "body", "", 10, 0, 0}
 	testInvalidBody(t, form, "/index")
-	form = IndexForm{"title", "body", "10", "", 0, 0}
+	form = IndexForm{"title", "body", "10", 0, 0, 0}
 	testInvalidBody(t, form, "/index")
 }
 
@@ -126,7 +127,7 @@ func TestIndex(t *testing.T) {
 
 	posts := fillESTestData(t, api)
 
-	form := IndexForm{"title", "body", "10", "10", time.Now().Unix() + 30, 1}
+	form := IndexForm{"title", "body", "10", 10, time.Now().Unix() + 30, 1}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -141,7 +142,7 @@ func TestIndex(t *testing.T) {
 	assert.Equal(t, posts[0], postsAfter[0])
 	assert.Equal(t, posts[1], postsAfter[1])
 	assert.Equal(t, posts[2], postsAfter[2])
-	addedPost := Post{form.Title, form.Body, form.User, form.Id, form.Timestamp, form.Likes}
+	addedPost := Post{form.Title, form.Body, form.Id, int(form.UserID), form.Timestamp, form.Likes}
 	assert.Equal(t, addedPost, postsAfter[3])
 }
 

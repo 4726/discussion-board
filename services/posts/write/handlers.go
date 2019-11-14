@@ -20,9 +20,9 @@ var (
 
 func CreatePost(db *gorm.DB, ctx *gin.Context) {
 	form := struct {
-		Title string `binding:"required"`
-		Body  string `binding:"required"`
-		User  string `binding:"required"`
+		Title  string `binding:"required"`
+		Body   string `binding:"required"`
+		UserID uint   `binding:"required"`
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
@@ -32,7 +32,7 @@ func CreatePost(db *gorm.DB, ctx *gin.Context) {
 
 	created := time.Now()
 	post := models.Post{
-		User:      form.User,
+		UserID:    form.UserID,
 		Title:     form.Title,
 		Body:      form.Body,
 		Likes:     0,
@@ -52,7 +52,7 @@ func CreatePost(db *gorm.DB, ctx *gin.Context) {
 func DeletePost(db *gorm.DB, ctx *gin.Context) {
 	form := struct {
 		PostID uint `binding:"required"`
-		User   string
+		UserID uint
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
@@ -62,8 +62,8 @@ func DeletePost(db *gorm.DB, ctx *gin.Context) {
 
 	post := models.Post{ID: form.PostID}
 
-	if form.User != "" {
-		if err := db.Where("user = ?", form.User).Delete(&post).Error; err != nil {
+	if form.UserID != 0 {
+		if err := db.Where("user_id = ?", form.UserID).Delete(&post).Error; err != nil {
 			ctx.Set(logInfoKey, err)
 			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		} else {
@@ -109,7 +109,7 @@ func CreateComment(db *gorm.DB, ctx *gin.Context) {
 	form := struct {
 		PostID   uint `binding:"required"`
 		ParentID uint
-		User     string `binding:"required"`
+		UserID   uint   `binding:"required"`
 		Body     string `binding:"required"`
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
@@ -122,7 +122,7 @@ func CreateComment(db *gorm.DB, ctx *gin.Context) {
 	comment := models.Comment{
 		PostID:    form.PostID,
 		ParentID:  form.ParentID,
-		User:      form.User,
+		UserID:    form.UserID,
 		Body:      form.Body,
 		CreatedAt: created,
 		Likes:     0,
@@ -145,7 +145,7 @@ func CreateComment(db *gorm.DB, ctx *gin.Context) {
 func ClearComment(db *gorm.DB, ctx *gin.Context) {
 	form := struct {
 		CommentID uint `binding:"required"`
-		User      string
+		UserID    uint
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
@@ -155,8 +155,8 @@ func ClearComment(db *gorm.DB, ctx *gin.Context) {
 
 	comment := models.Comment{ID: form.CommentID}
 
-	if form.User != "" {
-		if err := db.Model(&comment).Where("User = ?", form.User).UpdateColumn("Body", "").Error; err != nil {
+	if form.UserID != 0 {
+		if err := db.Model(&comment).Where("user_id = ?", form.UserID).UpdateColumn("Body", "").Error; err != nil {
 			ctx.Set(logInfoKey, err)
 			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
 		} else {

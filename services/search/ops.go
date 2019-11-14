@@ -14,9 +14,10 @@ type ESClient struct {
 }
 
 type Post struct {
-	Title, Body, User, Id string
-	LastUpdate            int64
-	Likes                 int
+	Title, Body, Id string
+	UserID          int
+	LastUpdate      int64
+	Likes           int
 }
 
 var (
@@ -44,7 +45,7 @@ func (esc *ESClient) createIndex() error {
 			"properties": {
 				"Title": {"type": "text"},
 				"Body": {"type": "text"},
-				"User": {"type": "keyword"},
+				"UserID": {"type": "integer"},
 				"Id": {"type": "keyword"},
 				"LastUpdate": {"type": "integer"},
 				"Likes": {"type": "integer"}

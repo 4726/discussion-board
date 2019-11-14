@@ -12,14 +12,14 @@ import (
 )
 
 type CreateForm struct {
-	Title string
-	Body  string
-	User  string
+	Title  string
+	Body   string
+	UserID uint
 }
 
 type DeleteForm struct {
 	PostID uint
-	User   string
+	UserID uint
 }
 
 type UpdateLikesForm struct {
@@ -29,12 +29,13 @@ type UpdateLikesForm struct {
 
 type CreateCommentForm struct {
 	PostID, ParentID uint
-	User, Body       string
+	UserID           uint
+	Body             string
 }
 
 type ClearCommentForm struct {
 	CommentID uint
-	User      string
+	UserID    uint
 }
 
 type UpdateCommentLikesForm struct {
@@ -71,21 +72,21 @@ func getCleanAPIForTesting(t testing.TB) *RestAPI {
 }
 
 func fillDBTestData(t testing.TB, api *RestAPI) []models.Post {
-	post := addPostForTesting(t, api, "name", "title", "hello world", 0)
+	post := addPostForTesting(t, api, 1, "title", "hello world", 0)
 	time.Sleep(time.Second)
-	post2 := addPostForTesting(t, api, "asd", "title2", "hello world 2", 5)
+	post2 := addPostForTesting(t, api, 2, "title2", "hello world 2", 5)
 	time.Sleep(time.Second)
-	comment1 := addCommentForTesting(t, api, "qwe", "my comment", 0, post2.ID)
-	comment2 := addCommentForTesting(t, api, "qwer", "another comment", 0, post2.ID)
+	comment1 := addCommentForTesting(t, api, 3, "my comment", 0, post2.ID)
+	comment2 := addCommentForTesting(t, api, 4, "another comment", 0, post2.ID)
 	post2.Comments = []models.Comment{comment1, comment2}
-	post3 := addPostForTesting(t, api, "asd", "title3", "hello world 3", 0)
+	post3 := addPostForTesting(t, api, 2, "title3", "hello world 3", 0)
 	return []models.Post{post, post2, post3}
 }
 
-func addPostForTesting(t testing.TB, api *RestAPI, username, title, body string, likes int) models.Post {
+func addPostForTesting(t testing.TB, api *RestAPI, userID uint, title, body string, likes int) models.Post {
 	created := time.Now()
 	post := models.Post{
-		User:      username,
+		UserID:    userID,
 		Title:     title,
 		Body:      body,
 		Likes:     likes,
@@ -100,11 +101,11 @@ func addPostForTesting(t testing.TB, api *RestAPI, username, title, body string,
 	return post
 }
 
-func addCommentForTesting(t testing.TB, api *RestAPI, username, body string, likes int, postID uint) models.Comment {
+func addCommentForTesting(t testing.TB, api *RestAPI, userID uint, body string, likes int, postID uint) models.Comment {
 	created := time.Now()
 	comment := models.Comment{
 		PostID:    postID,
-		User:      username,
+		UserID:    userID,
 		Body:      body,
 		Likes:     likes,
 		CreatedAt: created,
@@ -138,24 +139,24 @@ func assertPostsEqual(t testing.TB, expected, actual []models.Post) {
 }
 
 func TestCreatePostEmptyUser(t *testing.T) {
-	form := CreateForm{"title", "body", ""}
+	form := CreateForm{"title", "body", 0}
 	testInvalidBody(t, form, "/post/create")
 }
 
 func TestCreatePostEmptyTitle(t *testing.T) {
-	form := CreateForm{"", "body", "name"}
+	form := CreateForm{"", "body", 1}
 	testInvalidBody(t, form, "/post/create")
 }
 
 func TestCreatePostEmptyBody(t *testing.T) {
-	form := CreateForm{"title", "", "name"}
+	form := CreateForm{"title", "", 1}
 	testInvalidBody(t, form, "/post/create")
 }
 
 func TestCreatePost(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	form := CreateForm{"first post", "hello world", "player1"}
+	form := CreateForm{"first post", "hello world", 1}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -172,7 +173,7 @@ func TestCreatePost(t *testing.T) {
 	assert.Len(t, comments, 0)
 	post := posts[0]
 	assert.Equal(t, uint(1), post.ID)
-	assert.Equal(t, "player1", post.User)
+	assert.Equal(t, uint(1), post.UserID)
 	assert.Equal(t, "first post", post.Title)
 	assert.Equal(t, "hello world", post.Body)
 	assert.Equal(t, 0, post.Likes)
@@ -184,7 +185,7 @@ func TestCreatePost(t *testing.T) {
 func TestDeletePostDoesNotExist(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	form := DeleteForm{1, ""}
+	form := DeleteForm{1, 0}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -200,7 +201,7 @@ func TestDeletePostDoesNotExist(t *testing.T) {
 }
 
 func TestDeletePostNoPostID(t *testing.T) {
-	form := DeleteForm{0, ""}
+	form := DeleteForm{0, 0}
 	testInvalidBody(t, form, "/post/delete")
 }
 
@@ -226,7 +227,7 @@ func testInvalidBody(t *testing.T, form interface{}, route string) {
 func TestDeletePostNoUser(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	form := DeleteForm{1, ""}
+	form := DeleteForm{1, 0}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -246,7 +247,7 @@ func TestDeletePostWithComments(t *testing.T) {
 
 	posts := fillDBTestData(t, api)
 
-	form := DeleteForm{2, ""}
+	form := DeleteForm{2, 0}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -268,7 +269,7 @@ func TestDeletePostWithWrongUser(t *testing.T) {
 
 	posts := fillDBTestData(t, api)
 
-	form := DeleteForm{1, "wrong"}
+	form := DeleteForm{1, 2}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -291,7 +292,7 @@ func TestDeletePostWithRightUser(t *testing.T) {
 
 	posts := fillDBTestData(t, api)
 
-	form := DeleteForm{1, "name"}
+	form := DeleteForm{1, 1}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -313,7 +314,7 @@ func TestDeletePost(t *testing.T) {
 
 	posts := fillDBTestData(t, api)
 
-	form := DeleteForm{1, ""}
+	form := DeleteForm{1, 0}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -398,24 +399,24 @@ func TestUpdatePostLikes(t *testing.T) {
 }
 
 func TestCreateCommentNoPostID(t *testing.T) {
-	form := CreateCommentForm{0, 0, "user", "body"}
+	form := CreateCommentForm{0, 0, 1, "body"}
 	testInvalidBody(t, form, "/comment/create")
 }
 
 func TestCreateCommentNoUser(t *testing.T) {
-	form := CreateCommentForm{1, 0, "", "body"}
+	form := CreateCommentForm{1, 0, 0, "body"}
 	testInvalidBody(t, form, "/comment/create")
 }
 
 func TestCreateCommentNoBody(t *testing.T) {
-	form := CreateCommentForm{1, 0, "user", ""}
+	form := CreateCommentForm{1, 0, 1, ""}
 	testInvalidBody(t, form, "/comment/create")
 }
 
 func TestCreateCommentPostDoesNotExist(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	form := CreateCommentForm{1, 0, "user", "body"}
+	form := CreateCommentForm{1, 0, 1, "body"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -438,7 +439,7 @@ func TestCreateComment(t *testing.T) {
 	posts := fillDBTestData(t, api)
 	time.Sleep(time.Second * 3) //sleep to check if UpdatedAt field changes
 
-	form := CreateCommentForm{2, 1, "user", "body"}
+	form := CreateCommentForm{2, 1, 1, "body"}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -453,7 +454,7 @@ func TestCreateComment(t *testing.T) {
 		ID:       3,
 		PostID:   2,
 		ParentID: 1,
-		User:     "user",
+		UserID:   1,
 		Body:     "body",
 		Likes:    0,
 	}
@@ -475,14 +476,14 @@ func TestCreateComment(t *testing.T) {
 }
 
 func TestClearCommentNoCommentID(t *testing.T) {
-	form := ClearCommentForm{0, ""}
+	form := ClearCommentForm{0, 0}
 	testInvalidBody(t, form, "/comment/clear")
 }
 
 func TestClearCommentDoesNotExist(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
-	form := ClearCommentForm{1, ""}
+	form := ClearCommentForm{1, 0}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -502,7 +503,7 @@ func TestClearCommentWithWrongUser(t *testing.T) {
 
 	posts := fillDBTestData(t, api)
 
-	form := ClearCommentForm{1, "wrong"}
+	form := ClearCommentForm{1, 1}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -525,7 +526,7 @@ func TestClearCommenttWithRightUser(t *testing.T) {
 
 	posts := fillDBTestData(t, api)
 
-	form := ClearCommentForm{1, "qwe"}
+	form := ClearCommentForm{1, 3}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -551,7 +552,7 @@ func TestClearComment(t *testing.T) {
 
 	posts := fillDBTestData(t, api)
 
-	form := ClearCommentForm{1, ""}
+	form := ClearCommentForm{1, 0}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()

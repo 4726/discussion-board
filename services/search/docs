@@ -1,5 +1,6 @@
 POST /index
-Title, Body, User, Id string
+Title, Body, Id string
+UserID uint
 Timestamp             int64
 Likes                 int
 return: {}

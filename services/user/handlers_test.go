@@ -19,12 +19,12 @@ type CreateAccountForm struct {
 }
 
 type UpdateProfileForm struct {
-	UserID        int
+	UserID        uint
 	Bio, AvatarID string
 }
 
 type ChangePasswordForm struct {
-	UserID           int
+	UserID           uint
 	OldPass, NewPass string
 }
 
@@ -56,7 +56,7 @@ func createAccountForTesting(t testing.TB, username, password string) ([]Auth, [
 	assert.Len(t, profiles, 1)
 	auth := auths[0]
 	profile := profiles[0]
-	assert.Equal(t, 1, auth.UserID)
+	assert.Equal(t, uint(1), auth.UserID)
 	assert.Equal(t, "username", auth.Username)
 	assert.NotEqual(t, "password", auth.Password)
 	assert.Equal(t, auth.CreatedAt, auth.UpdatedAt)

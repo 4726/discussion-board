@@ -38,10 +38,10 @@ func GetFullPost(db *gorm.DB, ctx *gin.Context) {
 
 func GetPosts(db *gorm.DB, ctx *gin.Context) {
 	query := struct {
-		Total uint   `form:"total" binding:"required"`
-		From  uint   `form:"from"`
-		User  string `form:"user"`
-		Sort  string `form:"sort"`
+		Total  uint   `form:"total" binding:"required"`
+		From   uint   `form:"from"`
+		UserID uint   `form:"userid"`
+		Sort   string `form:"sort"`
 	}{}
 
 	if err := ctx.BindQuery(&query); err != nil {
@@ -65,8 +65,8 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 		sortType = "updated_at desc"
 	}
 
-	if query.User != "" {
-		posts, err := getPostsUser(db, query.From, query.Total, query.User, sortType)
+	if query.UserID != 0 {
+		posts, err := getPostsUser(db, query.From, query.Total, query.UserID, sortType)
 		if err != nil {
 			ctx.Set(logInfoKey, err)
 			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
@@ -89,7 +89,7 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 
 func getPosts(db *gorm.DB, from, total uint, sortType string) ([]models.Post, error) {
 	posts := []models.Post{}
-	selectFields := []string{"id", "user", "title", "likes", "created_at", "updated_at"}
+	selectFields := []string{"id", "user_id", "title", "likes", "created_at", "updated_at"}
 	if err := db.Preload("Comments").Select(selectFields).
 		Order(sortType).
 		Offset(from).
@@ -101,11 +101,11 @@ func getPosts(db *gorm.DB, from, total uint, sortType string) ([]models.Post, er
 	return posts, nil
 }
 
-func getPostsUser(db *gorm.DB, from, total uint, user, sortType string) ([]models.Post, error) {
+func getPostsUser(db *gorm.DB, from, total uint, userID uint, sortType string) ([]models.Post, error) {
 	posts := []models.Post{}
-	selectFields := []string{"id", "user", "title", "likes", "created_at", "updated_at"}
+	selectFields := []string{"id", "user_id", "title", "likes", "created_at", "updated_at"}
 	if err := db.Preload("Comments").Select(selectFields).
-		Where("user = ?", user).
+		Where("user_id = ?", userID).
 		Order(sortType).
 		Offset(from).
 		Limit(total).
