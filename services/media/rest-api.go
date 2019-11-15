@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v6"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
 )
 
 const (
@@ -29,11 +28,12 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	}
 
 	gin.SetMode(gin.ReleaseMode)
-	engine := gin.Default()
+	engine := gin.New()
 	api.engine = engine
+	api.engine.Use(gin.Recovery())
 	api.setRoutes()
 	api.setMonitorRoute()
-	api.engine.Use(api.logRequestsMiddleware())
+	api.engine.Use(log.RequestMiddleware())
 
 	return api, nil
 }
@@ -98,37 +98,4 @@ func (a *RestAPI) initMinio(cfg Config) error {
 	}
 	a.mc = client
 	return nil
-}
-
-func (a *RestAPI) logRequestsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-
-		logMessage := ""
-		i, ok := c.Get(logInfoKey)
-		if ok {
-			switch v := i.(type) {
-			case string:
-				logMessage = v
-			case error:
-				logMessage = v.Error()
-			default:
-			}
-		}
-
-		if c.Writer.Status() == http.StatusInternalServerError {
-			log.HTTPRequestEntry(c).Error(logMessage)
-			return
-		}
-
-		if c.Writer.Status() == http.StatusOK {
-			log.HTTPRequestEntry(c).Info(logMessage)
-			return
-		}
-
-		if c.Writer.Status() == http.StatusBadRequest {
-			log.HTTPRequestEntry(c).Warn(logMessage)
-			return
-		}
-	}
 }

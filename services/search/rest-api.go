@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
 )
 
 type RestAPI struct {
@@ -23,9 +22,10 @@ func NewRestAPI(escIndexName, escAddr string) (*RestAPI, error) {
 	}
 	api.esc = esc
 
-	engine := gin.Default()
+	engine := gin.New()
 	api.engine = engine
-	api.engine.Use(api.logRequestsMiddleware())
+	api.engine.Use(gin.Recovery())
+	api.engine.Use(log.RequestMiddleware())
 	api.setRoutes()
 	api.setMonitorRoute()
 
@@ -60,37 +60,4 @@ func (a *RestAPI) setMonitorRoute() {
 
 func (a *RestAPI) Run(addr string) error {
 	return a.engine.Run(addr)
-}
-
-func (a *RestAPI) logRequestsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-
-		logMessage := ""
-		i, ok := c.Get(logInfoKey)
-		if ok {
-			switch v := i.(type) {
-			case string:
-				logMessage = v
-			case error:
-				logMessage = v.Error()
-			default:
-			}
-		}
-
-		if c.Writer.Status() == http.StatusInternalServerError {
-			log.HTTPRequestEntry(c).Error(logMessage)
-			return
-		}
-
-		if c.Writer.Status() == http.StatusOK {
-			log.HTTPRequestEntry(c).Info(logMessage)
-			return
-		}
-
-		if c.Writer.Status() == http.StatusBadRequest {
-			log.HTTPRequestEntry(c).Warn(logMessage)
-			return
-		}
-	}
 }

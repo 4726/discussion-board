@@ -7,7 +7,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
 )
 
 const logInfoKey = "log info"
@@ -22,9 +21,10 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 
 	gin.SetMode(gin.ReleaseMode)
 
-	engine := gin.Default()
+	engine := gin.New()
 	api.engine = engine
-	api.engine.Use(api.logRequestsMiddleware())
+	api.engine.Use(gin.Recovery())
+	api.engine.Use(log.RequestMiddleware())
 	api.setRoutes()
 	api.setMonitorRoute()
 
@@ -57,42 +57,4 @@ func (a *RestAPI) setMonitorRoute() {
 
 func (a *RestAPI) Run(addr string) error {
 	return a.engine.Run(addr)
-}
-
-func (a *RestAPI) logRequestsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-
-		logMessage := ""
-		i, ok := c.Get(logInfoKey)
-		if ok {
-			switch v := i.(type) {
-			case string:
-				logMessage = v
-			case error:
-				logMessage = v.Error()
-			default:
-			}
-		}
-
-		if c.Writer.Status() == http.StatusInternalServerError {
-			log.HTTPRequestEntry(c).Error(logMessage)
-			return
-		}
-
-		if c.Writer.Status() == http.StatusOK {
-			log.HTTPRequestEntry(c).Info(logMessage)
-			return
-		}
-
-		if c.Writer.Status() == http.StatusNotFound {
-			log.HTTPRequestEntry(c).Info(logMessage)
-			return
-		}
-
-		if c.Writer.Status() == http.StatusBadRequest {
-			log.HTTPRequestEntry(c).Warn(logMessage)
-			return
-		}
-	}
 }

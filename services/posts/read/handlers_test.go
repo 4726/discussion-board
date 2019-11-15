@@ -4,11 +4,18 @@ import (
 	"encoding/json"
 	"github.com/4726/discussion-board/services/posts/models"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
+
+func TestMain(m *testing.M) {
+	log.SetOutput(ioutil.Discard)
+	os.Exit(m.Run())
+}
 
 func assertJSON(t testing.TB, obj interface{}) string {
 	b, err := json.Marshal(obj)

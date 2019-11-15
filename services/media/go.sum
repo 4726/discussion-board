@@ -1,5 +1,3 @@
-github.com/4726/discussion-board/services/common v0.0.0-20191109220144-9bb6e66fe249 h1:iP5qvV7PXiSuBg2szDX/D6KBxZcCixJiQJlG+6d/x0w=
-github.com/4726/discussion-board/services/common v0.0.0-20191109220144-9bb6e66fe249/go.mod h1:9p0s68/UUOzAeixs6RFE1XJ1eXUswfq/jFdqxd/fyHM=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=

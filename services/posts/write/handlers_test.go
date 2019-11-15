@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"github.com/4726/discussion-board/services/posts/models"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -41,6 +43,11 @@ type ClearCommentForm struct {
 type UpdateCommentLikesForm struct {
 	CommentID uint
 	Likes     int
+}
+
+func TestMain(m *testing.M) {
+	log.SetOutput(ioutil.Discard)
+	os.Exit(m.Run())
 }
 
 func assertJSON(t testing.TB, obj interface{}) string {

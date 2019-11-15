@@ -14,6 +14,11 @@ import (
 	"testing"
 )
 
+func TestMain(m *testing.M) {
+	log.SetOutput(ioutil.Discard)
+	os.Exit(m.Run())
+}
+
 func assertJSON(t testing.TB, obj interface{}) string {
 	b, err := json.Marshal(obj)
 	assert.NoError(t, err)

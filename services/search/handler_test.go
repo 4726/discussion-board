@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"github.com/olivere/elastic/v7"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -31,6 +33,11 @@ type DeletePostForm struct {
 type UpdateLastUpdateForm struct {
 	Id         string
 	LastUpdate int64
+}
+
+func TestMain(m *testing.M) {
+	log.SetOutput(ioutil.Discard)
+	os.Exit(m.Run())
 }
 
 func assertJSON(t testing.TB, obj interface{}) string {

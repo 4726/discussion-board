@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -26,6 +28,11 @@ type UpdateProfileForm struct {
 type ChangePasswordForm struct {
 	UserID           uint
 	OldPass, NewPass string
+}
+
+func TestMain(m *testing.M) {
+	log.SetOutput(ioutil.Discard)
+	os.Exit(m.Run())
 }
 
 func assertJSON(t testing.TB, obj interface{}) string {

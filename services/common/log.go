@@ -3,6 +3,7 @@ package common
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"io"
 	"os"
 	"time"
 )
@@ -24,10 +25,14 @@ func NewLogger(serviceName string) *Log {
 	// 	log.SetOutput(file)
 	// } else {
 	// 	entry.Error(err)
-		log.SetOutput(os.Stderr)
+	log.SetOutput(os.Stderr)
 	// }
 
 	return &Log{entry}
+}
+
+func (l *Log) SetOutput(output io.Writer) {
+	log.SetOutput(output)
 }
 
 func (l *Log) Entry() *logrus.Entry {
@@ -58,11 +63,11 @@ func (l *Log) RequestMiddleware() gin.HandlerFunc {
 
 		e := l.entry.WithFields(logrus.Fields{
 			"StatusCode": statusCode,
-			"ClientIP":  c.ClientIP(),
-			"Method": c.Request.Method,
-			"Path": c.Request.URL.Path,
-			"Message": logMessage,
-			"Latency": finish.Sub(start),
+			"ClientIP":   c.ClientIP(),
+			"Method":     c.Request.Method,
+			"Path":       c.Request.URL.Path,
+			"Message":    logMessage,
+			"Latency":    finish.Sub(start),
 		})
 
 		switch v := statusCode; {
