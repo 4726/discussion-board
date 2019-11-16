@@ -1,7 +1,7 @@
 package main
 
-
 import (
+	"github.com/4726/discussion-board/services/common"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 )
@@ -14,7 +14,13 @@ type RestAPI struct {
 func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api := &RestAPI{}
 
+	engine := gin.New()
+	gin.SetMode(gin.ReleaseMode)
+	api.engine = engine
+	api.engine.Use(gin.Recovery())
+	api.engine.Use(log.RequestMiddleware())
 	api.setRoutes()
+	common.AddMonitorHandler(api.engine)
 
 	return api, nil
 }
@@ -52,11 +58,15 @@ func (a *RestAPI) setRoutes() {
 		LikeComment(ctx)
 	})
 
+	a.engine.POST("/comment/unlike", func(ctx *gin.Context) {
+		UnlikeComment(ctx)
+	})
+
 	a.engine.POST("/comment/clear", func(ctx *gin.Context) {
 		ClearComment(ctx)
 	})
 
-	a.engine.POST("/search", func(ctx *gin.Context) {
+	a.engine.GET("/search", func(ctx *gin.Context) {
 		Search(ctx)
 	})
 

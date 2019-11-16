@@ -18,26 +18,49 @@ type JWTClaims struct {
 
 func GetPost(ctx *gin.Context) {
 	postIDParam := ctx.Param("postid")
-	resp, _ := get(PostsReadServiceAddr() + "/posts/" + postIDParam)
+	resp, err := get(PostsReadServiceAddr() + "/posts/" + postIDParam)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func GetPosts(ctx *gin.Context) {
-	resp, _ := get(fmt.Sprintf("%s/posts?from=%v&total=%v&user=%v&sort=%v",
+	resp, err := get(fmt.Sprintf("%s/posts?from=%v&total=%v&user=%v&sort=%v",
 		PostsReadServiceAddr(), 0, 10, "", ""))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func CreatePost(ctx *gin.Context) {
-	defer ctx.Request.Body.Close()
-	resp, _ := postProxy(PostsWriteServiceAddr()+"/post/create", ctx.Request.Body)
+	userID, err := getUserID(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		return
+	}
+
+	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
+
+	resp, err := post(PostsWriteServiceAddr()+"/post/create", m)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func DeletePost(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
@@ -47,14 +70,18 @@ func DeletePost(ctx *gin.Context) {
 		return
 	}
 
-	resp, _ := post(PostsWriteServiceAddr()+"/post/delete", m)
+	resp, err := post(PostsWriteServiceAddr()+"/post/delete", m)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func LikePost(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
@@ -64,7 +91,11 @@ func LikePost(ctx *gin.Context) {
 		return
 	}
 
-	resp, _ := post(LikesServiceAddr()+"/post/like", m)
+	resp, err := post(LikesServiceAddr()+"/post/like", m)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 
 	//should not matter much if it fails since
 	//it can try again when another user likes/unlikes
@@ -82,7 +113,7 @@ func LikePost(ctx *gin.Context) {
 func UnlikePost(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
@@ -92,7 +123,11 @@ func UnlikePost(ctx *gin.Context) {
 		return
 	}
 
-	resp, _ := post(LikesServiceAddr()+"/post/unlike", m)
+	resp, err := post(LikesServiceAddr()+"/post/unlike", m)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 
 	go func() {
 		data := struct {
@@ -108,7 +143,7 @@ func UnlikePost(ctx *gin.Context) {
 func AddComment(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
@@ -118,14 +153,18 @@ func AddComment(ctx *gin.Context) {
 		return
 	}
 
-	resp, _ := post(PostsWriteServiceAddr()+"/comment/create", m)
+	resp, err := post(PostsWriteServiceAddr()+"/comment/create", m)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func LikeComment(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
@@ -135,7 +174,11 @@ func LikeComment(ctx *gin.Context) {
 		return
 	}
 
-	resp, _ := post(LikesServiceAddr()+"/comment/like", m)
+	resp, err := post(LikesServiceAddr()+"/comment/like", m)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 
 	go func() {
 		data := struct {
@@ -151,7 +194,7 @@ func LikeComment(ctx *gin.Context) {
 func UnlikeComment(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
@@ -161,7 +204,11 @@ func UnlikeComment(ctx *gin.Context) {
 		return
 	}
 
-	resp, _ := post(LikesServiceAddr()+"/post/unlike", m)
+	resp, err := post(LikesServiceAddr()+"/post/unlike", m)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 
 	go func() {
 		data := struct {
@@ -177,7 +224,7 @@ func UnlikeComment(ctx *gin.Context) {
 func ClearComment(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
@@ -187,8 +234,11 @@ func ClearComment(ctx *gin.Context) {
 		return
 	}
 
-	postIDParam := ctx.Param("postid")
-	resp, _ := post(PostsWriteServiceAddr()+"/comment/clear/"+postIDParam, m)
+	resp, err := post(PostsWriteServiceAddr()+"/comment/clear/", m)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
@@ -202,8 +252,12 @@ func Search(ctx *gin.Context) {
 		return
 	}
 
-	resp, _ := get(fmt.Sprintf("%s/search?from=%v&total=%v&term=%v",
+	resp, err := get(fmt.Sprintf("%s/search?from=%v&total=%v&term=%v",
 		SearchServiceAddr(), (form.Page*10)-10, 10, form.Term))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
@@ -221,8 +275,11 @@ func RegisterPOST(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
-	defer ctx.Request.Body.Close()
-	resp, _ := postProxy(UserServiceAddr()+"/account", ctx.Request.Body)
+	resp, err := postProxy(UserServiceAddr()+"/account", ctx.Request.Body)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 	jwt, err := generateJWT(resp.Data["userID"].(uint))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
@@ -246,8 +303,11 @@ func LoginPOST(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
-	defer ctx.Request.Body.Close()
-	resp, _ := postProxy(UserServiceAddr()+"/login", ctx.Request.Body)
+	resp, err := postProxy(UserServiceAddr()+"/login", ctx.Request.Body)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 	jwt, err := generateJWT(resp.Data["userID"].(uint))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
@@ -270,13 +330,21 @@ func ChangePassword(ctx *gin.Context) {
 		return
 	}
 
-	resp, _ := post(UserServiceAddr()+"/password", m)
+	resp, err := post(UserServiceAddr()+"/password", m)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
 func GetProfile(ctx *gin.Context) {
 	userIDParam := ctx.Param("userid")
-	resp, _ := get(UserServiceAddr() + "/" + userIDParam)
+	resp, err := get(UserServiceAddr() + "/" + userIDParam)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 
@@ -298,6 +366,13 @@ func UpdateProfile(ctx *gin.Context) {
 		//then get the avatar id
 		//then add to extra map
 	}
+
+	newBody, ok := ctx.GetPostForm("body")
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, gin.H{})
+		return
+	}
+	extra["body"] = newBody
 
 	m, err := bindJSONAndAdd(ctx, extra)
 	if err != nil {

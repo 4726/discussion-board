@@ -29,7 +29,7 @@ func parseJSON(body io.ReadCloser) (map[string]interface{}, error) {
 func get(addr string) (Resp, error) {
 	resp, err := http.Get(addr)
 	if err != nil {
-		return Resp{map[string]interface{}{}, resp.StatusCode}, err
+		return Resp{map[string]interface{}{}, 0}, err
 	}
 	defer resp.Body.Close()
 
@@ -49,7 +49,7 @@ func post(addr string, data interface{}) (Resp, error) {
 
 	resp, err := http.Post(addr, "application/json", bytes.NewBuffer(b))
 	if err != nil {
-		return Resp{map[string]interface{}{}, resp.StatusCode}, err
+		return Resp{map[string]interface{}{}, 0}, err
 	}
 	defer resp.Body.Close()
 
@@ -66,6 +66,11 @@ func post(addr string, data interface{}) (Resp, error) {
 }
 
 func postProxy(addr string, body io.ReadCloser) (Resp, error) {
+	defer func() {
+		if body != nil {
+			body.Close()
+		}
+	}()
 	resp, err := http.Post(addr, "application/json", body)
 	if err != nil {
 		return Resp{map[string]interface{}{}, 0}, err
