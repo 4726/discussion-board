@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v6"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/4726/discussion-board/services/common"
 )
 
 const (
@@ -32,7 +32,7 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api.engine = engine
 	api.engine.Use(gin.Recovery())
 	api.setRoutes()
-	api.setMonitorRoute()
+	common.AddMonitorHandler(api.engine)
 	api.engine.Use(log.RequestMiddleware())
 
 	return api, nil
@@ -50,10 +50,6 @@ func (a *RestAPI) setRoutes() {
 	a.engine.GET("/info", func(ctx *gin.Context) {
 		Info(a.mc, ctx)
 	})
-}
-
-func (a *RestAPI) setMonitorRoute() {
-	a.engine.Any("/metrics", gin.WrapH(promhttp.Handler()))
 }
 
 func (a *RestAPI) Run(addr string) error {

@@ -25,7 +25,7 @@ func NewLogger(serviceName string) *Log {
 	// 	log.SetOutput(file)
 	// } else {
 	// 	entry.Error(err)
-	log.SetOutput(os.Stderr)
+	log.SetOutput(os.Stdout)
 	// }
 
 	return &Log{entry}

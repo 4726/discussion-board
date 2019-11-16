@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/4726/discussion-board/services/common"
 )
 
 type RestAPI struct {
@@ -27,7 +27,7 @@ func NewRestAPI(escIndexName, escAddr string) (*RestAPI, error) {
 	api.engine.Use(gin.Recovery())
 	api.engine.Use(log.RequestMiddleware())
 	api.setRoutes()
-	api.setMonitorRoute()
+	common.AddMonitorHandler(api.engine)
 
 	return api, err
 }
@@ -52,10 +52,6 @@ func (a *RestAPI) setRoutes() {
 	a.engine.POST("/update/lastupdate", func(ctx *gin.Context) {
 		UpdateLastUpdate(a.esc, ctx)
 	})
-}
-
-func (a *RestAPI) setMonitorRoute() {
-	a.engine.Any("/metrics", gin.WrapH(promhttp.Handler()))
 }
 
 func (a *RestAPI) Run(addr string) error {
