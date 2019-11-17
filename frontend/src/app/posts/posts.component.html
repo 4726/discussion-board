@@ -1,0 +1,9 @@
+<div *ngFor="let post of posts; index as postID">
+
+    <h3>
+      <a [title]="post.name" [routerLink]="['/posts', postID]">
+        {{ post.name }}
+      </a>
+    </h3>
+  <!-- . . . -->
+  </div>
