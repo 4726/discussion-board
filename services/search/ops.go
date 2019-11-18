@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/olivere/elastic/v7"
 )
 
@@ -14,10 +15,11 @@ type ESClient struct {
 }
 
 type Post struct {
-	Title, Body, Id string
-	UserID          int
-	LastUpdate      int64
-	Likes           int
+	Title, Body string
+	Id          uint
+	UserID      int
+	LastUpdate  int64
+	Likes       int
 }
 
 var (
@@ -46,7 +48,7 @@ func (esc *ESClient) createIndex() error {
 				"Title": {"type": "text"},
 				"Body": {"type": "text"},
 				"UserID": {"type": "integer"},
-				"Id": {"type": "keyword"},
+				"Id": {"type": "integer"},
 				"LastUpdate": {"type": "integer"},
 				"Likes": {"type": "integer"}
 			}
@@ -81,7 +83,7 @@ func (esc *ESClient) Index(post Post) error {
 	return err
 }
 
-func (esc *ESClient) Search(term string, from, total int) ([]string, error) {
+func (esc *ESClient) Search(term string, from, total int) ([]uint, error) {
 	ctx := context.TODO()
 	query := elastic.NewMultiMatchQuery(term, "Title", "Body")
 	searchResult, err := esc.client.Search().
@@ -91,13 +93,13 @@ func (esc *ESClient) Search(term string, from, total int) ([]string, error) {
 		From(from).Size(total).
 		Do(ctx)
 	if err != nil {
-		return []string{}, err
+		return []uint{}, err
 	}
-	results := []string{}
+	results := []uint{}
 	for _, hit := range searchResult.Hits.Hits {
 		var p Post
 		if err := json.Unmarshal(hit.Source, &p); err != nil {
-			return []string{}, err
+			return []uint{}, err
 		}
 		results = append(results, p.Id)
 	}
@@ -105,7 +107,7 @@ func (esc *ESClient) Search(term string, from, total int) ([]string, error) {
 	return results, nil
 }
 
-func (esc *ESClient) UpdateLikes(id string, likes int) error {
+func (esc *ESClient) UpdateLikes(id uint, likes int) error {
 	ctx := context.TODO()
 	query := elastic.NewTermQuery("Id", id)
 	script := elastic.NewScript(fmt.Sprintf("ctx._source.Likes = %v", likes))
@@ -117,7 +119,7 @@ func (esc *ESClient) UpdateLikes(id string, likes int) error {
 	return err
 }
 
-func (esc *ESClient) Delete(id string) error {
+func (esc *ESClient) Delete(id uint) error {
 	ctx := context.TODO()
 	query := elastic.NewTermQuery("Id", id)
 	_, err := esc.client.DeleteByQuery().
@@ -127,7 +129,7 @@ func (esc *ESClient) Delete(id string) error {
 	return err
 }
 
-func (esc *ESClient) UpdateLastUpdate(id string, lastUpdate int64) error {
+func (esc *ESClient) UpdateLastUpdate(id uint, lastUpdate int64) error {
 	ctx := context.TODO()
 	query := elastic.NewTermQuery("Id", id)
 	script := elastic.NewScript(fmt.Sprintf("ctx._source.LastUpdate = %v", lastUpdate))

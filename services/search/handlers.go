@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type ErrorResponse struct {
@@ -18,7 +19,7 @@ func Index(esc *ESClient, ctx *gin.Context) {
 		Title     string `binding:"required"`
 		Body      string `binding:"required"`
 		UserID    uint   `binding:"required"`
-		Id        string `binding:"required"`
+		Id        uint   `binding:"required"`
 		Timestamp int64
 		Likes     int
 	}{}
@@ -63,7 +64,7 @@ func Search(esc *ESClient, ctx *gin.Context) {
 
 func UpdateLikes(esc *ESClient, ctx *gin.Context) {
 	form := struct {
-		Id    string `binding:"required"`
+		Id    uint `binding:"required"`
 		Likes int
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
@@ -81,7 +82,7 @@ func UpdateLikes(esc *ESClient, ctx *gin.Context) {
 
 func Delete(esc *ESClient, ctx *gin.Context) {
 	form := struct {
-		Id string `binding:"required"`
+		Id uint `binding:"required"`
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {
 		ctx.Set(logInfoKey, err)
@@ -98,7 +99,7 @@ func Delete(esc *ESClient, ctx *gin.Context) {
 
 func UpdateLastUpdate(esc *ESClient, ctx *gin.Context) {
 	form := struct {
-		Id         string `binding:"required"`
+		Id         uint `binding:"required"`
 		LastUpdate int64
 	}{}
 	if err := ctx.BindJSON(&form); err != nil {

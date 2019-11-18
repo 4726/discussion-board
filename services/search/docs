@@ -2,7 +2,7 @@ POST /index
 Title     string `binding:"required"`
 Body      string `binding:"required"`
 UserID    uint   `binding:"required"`
-Id        string `binding:"required"`
+Id        uint `binding:"required"`
 Timestamp int64
 Likes     int
 return: {}
@@ -11,18 +11,18 @@ GET /search
 Term  string `form:"term" binding:"required"`
 From  uint   `form:"from"`
 Total uint   `form:"total" binding:"required"`
-return: []string (array of PostIDs)
+return: []uint (array of PostIDs)
 
 POST /update/likes
-Id    string `binding:"required"`
+Id    uint `binding:"required"`
 Likes int
 return: {}
 
 POST /deletepost
-Id string `binding:"required"`
+Id uint `binding:"required"`
 return: {}
 
 POST /update/lastupdate
-Id         string `binding:"required"`
+Id         uint `binding:"required"`
 LastUpdate int64
 return: {}

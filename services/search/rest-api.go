@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/4726/discussion-board/services/common"
+	"github.com/gin-gonic/gin"
 )
 
 type RestAPI struct {

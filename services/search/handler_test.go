@@ -4,34 +4,36 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/olivere/elastic/v7"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/olivere/elastic/v7"
+	"github.com/stretchr/testify/assert"
 )
 
 type IndexForm struct {
-	Title, Body, Id string
-	UserID          uint
-	Timestamp       int64
-	Likes           int
+	Title, Body string
+	Id          uint
+	UserID      uint
+	Timestamp   int64
+	Likes       int
 }
 
 type UpdateLikesForm struct {
-	Id    string
+	Id    uint
 	Likes int
 }
 
 type DeletePostForm struct {
-	Id string
+	Id uint
 }
 
 type UpdateLastUpdateForm struct {
-	Id         string
+	Id         uint
 	LastUpdate int64
 }
 
@@ -80,11 +82,11 @@ func getCleanAPIForTesting(t testing.TB) *RestAPI {
 }
 
 func fillESTestData(t testing.TB, api *RestAPI) []Post {
-	p1 := Post{"my first post", "hello world", "id1", 1, time.Now().Unix(), 0}
+	p1 := Post{"my first post", "hello world", 1, 1, time.Now().Unix(), 0}
 	indexForTesting(t, api, p1)
-	p2 := Post{"post @2 world", "body #2", "id2", 2, time.Now().Unix() + 10, 0}
+	p2 := Post{"post @2 world", "body #2", 2, 2, time.Now().Unix() + 10, 0}
 	indexForTesting(t, api, p2)
-	p3 := Post{"title3", "hello WORLd", "id3", 3, time.Now().Unix() + 20, 0}
+	p3 := Post{"title3", "hello WORLd", 3, 3, time.Now().Unix() + 20, 0}
 	indexForTesting(t, api, p3)
 	return []Post{p1, p2, p3}
 }
@@ -119,13 +121,13 @@ func testInvalidBody(t *testing.T, form interface{}, route string) {
 }
 
 func TestIndexInvalidBody(t *testing.T) {
-	form := IndexForm{"", "body", "10", 10, 0, 0}
+	form := IndexForm{"", "body", 10, 10, 0, 0}
 	testInvalidBody(t, form, "/index")
-	form = IndexForm{"title", "", "10", 10, 0, 0}
+	form = IndexForm{"title", "", 10, 10, 0, 0}
 	testInvalidBody(t, form, "/index")
-	form = IndexForm{"title", "body", "", 10, 0, 0}
+	form = IndexForm{"title", "body", 0, 10, 0, 0}
 	testInvalidBody(t, form, "/index")
-	form = IndexForm{"title", "body", "10", 0, 0, 0}
+	form = IndexForm{"title", "body", 10, 0, 0, 0}
 	testInvalidBody(t, form, "/index")
 }
 
@@ -134,7 +136,7 @@ func TestIndex(t *testing.T) {
 
 	posts := fillESTestData(t, api)
 
-	form := IndexForm{"title", "body", "10", 10, time.Now().Unix() + 30, 1}
+	form := IndexForm{"title", "body", 10, 10, time.Now().Unix() + 30, 1}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -270,7 +272,25 @@ func TestSearch(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/search?term=hello&from=0&total=10", nil)
 	api.engine.ServeHTTP(w, req)
 
-	expected := []string{posts[0].Id, posts[2].Id}
+	expected := []uint{posts[0].Id, posts[2].Id}
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	postsAfter := queryESC(t, api)
+	assert.Equal(t, posts, postsAfter)
+}
+
+func TestSearch2(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillESTestData(t, api)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/search?term=world&from=0&total=10", nil)
+	api.engine.ServeHTTP(w, req)
+
+	expected := []uint{posts[0].Id, posts[1].Id, posts[2].Id}
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
@@ -280,7 +300,7 @@ func TestSearch(t *testing.T) {
 }
 
 func TestUpdateLikesInvalidBody(t *testing.T) {
-	form := UpdateLikesForm{"", 100}
+	form := UpdateLikesForm{0, 100}
 	testInvalidBody(t, form, "/update/likes")
 }
 
@@ -289,7 +309,7 @@ func TestUpdateLikesDoesNotExist(t *testing.T) {
 
 	posts := fillESTestData(t, api)
 
-	form := UpdateLikesForm{"qweqwe", 100}
+	form := UpdateLikesForm{5, 100}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -329,7 +349,7 @@ func TestUpdateLikes(t *testing.T) {
 }
 
 func TestDeletePostInvalidJSON(t *testing.T) {
-	form := DeletePostForm{""}
+	form := DeletePostForm{0}
 	testInvalidBody(t, form, "/deletepost")
 }
 
@@ -338,7 +358,7 @@ func TestDeletePostDoesNotExist(t *testing.T) {
 
 	posts := fillESTestData(t, api)
 
-	form := DeletePostForm{"qweqwe"}
+	form := DeletePostForm{5}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
@@ -374,7 +394,7 @@ func TestDeletePost(t *testing.T) {
 }
 
 func TestUpdateLastUpdateInvalidJSON(t *testing.T) {
-	form := UpdateLastUpdateForm{"", 1}
+	form := UpdateLastUpdateForm{0, 1}
 	testInvalidBody(t, form, "/update/lastupdate")
 }
 
@@ -383,7 +403,7 @@ func TestUpdateLastUpdateDoesNotExist(t *testing.T) {
 
 	posts := fillESTestData(t, api)
 
-	form := UpdateLastUpdateForm{"qweqwe", time.Now().Unix()}
+	form := UpdateLastUpdateForm{5, time.Now().Unix()}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
