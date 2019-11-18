@@ -1,0 +1,22 @@
+<h3>New Post</h3>
+
+<form [formGroup]="createForm" 
+    (ngSubmit)="obSubmit(createForm.value)">
+
+    <div>
+        <label for="title">
+          Title
+        </label>
+        <input id="title" type="text" formControlName="title">
+      </div>
+    
+      <div>
+        <label for="body">
+          Body
+        </label>
+        <input id="body" type="text" formControlName="body">
+      </div>
+
+    <button class="button" type="submit">Create</button>
+  
+</form>
