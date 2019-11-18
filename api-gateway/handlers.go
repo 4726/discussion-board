@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
 )
 
 var jwtSecretKey = []byte("todosecretkey")
@@ -258,6 +259,13 @@ func Search(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
+
+	resp, err := post(PostsReadServiceAddr()+"/posts/multiple", resp.Data)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
+
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 

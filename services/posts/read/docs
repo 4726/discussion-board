@@ -24,7 +24,20 @@ Total  uint   `form:"total" binding:"required"`
 From   uint   `form:"from"`
 UserID uint   `form:"userid"`
 Sort   string `form:"sort"`
-return: {
+return: []{
+    ID        uint
+	User      string
+	Title     string
+	Body      string empty
+	Likes     int
+	CreatedAt time.Time
+	UpdatedAt time.Time
+    Comments []{} empty
+}
+
+POST /posts/multiple
+	[]uint
+return: []{
     ID        uint
 	User      string
 	Title     string

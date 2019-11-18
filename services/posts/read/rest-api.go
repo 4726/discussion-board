@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/4726/discussion-board/services/common"
 	"github.com/4726/discussion-board/services/posts/models"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
-	"github.com/4726/discussion-board/services/common"
 )
 
 const logInfoKey = "log info"
@@ -48,6 +48,10 @@ func (a *RestAPI) setRoutes() {
 
 	a.engine.GET("/posts", func(ctx *gin.Context) {
 		GetPosts(a.db, ctx)
+	})
+
+	a.engine.POST("/posts/multiple", func(ctx *gin.Context) {
+		GetMultiplePosts(a.db, ctx)
 	})
 }
 func (a *RestAPI) Run(addr string) error {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/4726/discussion-board/services/posts/models"
 	"github.com/stretchr/testify/assert"
@@ -275,10 +276,10 @@ func TestGetPostsSorted(t *testing.T) {
 	assert.Len(t, actualPosts, 3)
 	assertMiniPostsEqual(t, expected, actualPosts)
 
-	actualPosts, comments := queryDBTest(t, api)
+	postsAfter, comments := queryDBTest(t, api)
 	assert.Len(t, posts, 3)
 	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, actualPosts)
+	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsUserSorted(t *testing.T) {
@@ -296,13 +297,11 @@ func TestGetPostsUserSorted(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	actualPosts := []models.Post{}
 	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assert.Len(t, actualPosts, 2)
 	assertMiniPostsEqual(t, expected, actualPosts)
 
-	actualPosts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 3)
+	psotsAfter, comments := queryDBTest(t, api)
 	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, actualPosts)
+	assertPostsEqual(t, posts, psotsAfter)
 }
 
 func TestGetPostsUnSorted(t *testing.T) {
@@ -320,13 +319,11 @@ func TestGetPostsUnSorted(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	actualPosts := []models.Post{}
 	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assert.Len(t, actualPosts, 3)
 	assertMiniPostsEqual(t, expected, actualPosts)
 
-	actualPosts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 3)
+	postsAfter, comments := queryDBTest(t, api)
 	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, actualPosts)
+	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsUserUnSorted(t *testing.T) {
@@ -344,13 +341,11 @@ func TestGetPostsUserUnSorted(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	actualPosts := []models.Post{}
 	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assert.Len(t, actualPosts, 2)
 	assertMiniPostsEqual(t, expected, actualPosts)
 
-	actualPosts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 3)
+	postsAfter, comments := queryDBTest(t, api)
 	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, actualPosts)
+	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsTotal(t *testing.T) {
@@ -368,13 +363,11 @@ func TestGetPostsTotal(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	actualPosts := []models.Post{}
 	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assert.Len(t, actualPosts, 2)
 	assertMiniPostsEqual(t, expected, actualPosts)
 
-	actualPosts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 3)
+	postsAfter, comments := queryDBTest(t, api)
 	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, actualPosts)
+	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsFrom(t *testing.T) {
@@ -392,11 +385,91 @@ func TestGetPostsFrom(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	actualPosts := []models.Post{}
 	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assert.Len(t, actualPosts, 2)
 	assertMiniPostsEqual(t, expected, actualPosts)
 
-	actualPosts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 3)
+	postsAfter, _ := queryDBTest(t, api)
+	assertPostsEqual(t, posts, postsAfter)
+}
+
+func TestGetMultiplePostsInvalidForm(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillDBTestData(t, api)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/posts/multiple", nil)
+	api.engine.ServeHTTP(w, req)
+
+	expected := ErrorResponse{"invalid form"}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+
+	postsAfter, comments := queryDBTest(t, api)
 	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, actualPosts)
+	assertPostsEqual(t, posts, postsAfter)
+}
+
+func TestGetMultiplePostsNone(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillDBTestData(t, api)
+
+	form := []uint{}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/posts/multiple", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "[]", w.Body.String())
+
+	postsAfter, comments := queryDBTest(t, api)
+	assert.Len(t, comments, 2)
+	assertPostsEqual(t, posts, postsAfter)
+}
+
+func TestGetMultiplePostsDoesNotExist(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillDBTestData(t, api)
+
+	form := []uint{5, 10}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/posts/multiple", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "[]", w.Body.String())
+
+	postsAfter, comments := queryDBTest(t, api)
+	assert.Len(t, comments, 2)
+	assertPostsEqual(t, posts, postsAfter)
+}
+
+func TestGetMultiplePosts(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	posts := fillDBTestData(t, api)
+
+	form := []uint{2, 3}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/posts/multiple", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	expected := []models.Post{posts[1], posts[2]}
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	actualPosts := []models.Post{}
+	json.Unmarshal(w.Body.Bytes(), &actualPosts)
+	assertMiniPostsEqual(t, expected, actualPosts)
+
+	postsAfter, comments := queryDBTest(t, api)
+	assert.Len(t, comments, 2)
+	assertPostsEqual(t, posts, postsAfter)
 }

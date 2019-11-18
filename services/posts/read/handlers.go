@@ -87,6 +87,26 @@ func GetPosts(db *gorm.DB, ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, posts)
 }
 
+func GetMultiplePosts(db *gorm.DB, ctx *gin.Context) {
+	form := []uint{}
+
+	if err := ctx.BindJSON(&form); err != nil {
+		ctx.Set(logInfoKey, err)
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
+		return
+	}
+
+	posts := []models.Post{}
+	selectFields := []string{"id", "user_id", "title", "likes", "created_at", "updated_at"}
+	if err := db.Preload("Comments").Select(selectFields).
+		Where(form).
+		Find(&posts).Error; err != nil {
+		return
+	}
+
+	ctx.JSON(http.StatusOK, posts)
+}
+
 func getPosts(db *gorm.DB, from, total uint, sortType string) ([]models.Post, error) {
 	posts := []models.Post{}
 	selectFields := []string{"id", "user_id", "title", "likes", "created_at", "updated_at"}
