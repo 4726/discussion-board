@@ -260,7 +260,7 @@ func Search(ctx *gin.Context) {
 		return
 	}
 
-	resp, err := post(PostsReadServiceAddr()+"/posts/multiple", resp.Data)
+	resp, err = post(PostsReadServiceAddr()+"/posts/multiple", resp.Data)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return

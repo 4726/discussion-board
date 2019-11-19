@@ -6,9 +6,7 @@ import { Observable } from 'rxjs';
 @Injectable({
   providedIn: 'root'
 })
-
-//user should not be able to view /login route if already logged in
-export class NoAuthGuard implements CanActivate {
+export class AuthGuard implements CanActivate {
 
   constructor(
     // private gatewayService: GatewayService,
@@ -18,14 +16,14 @@ export class NoAuthGuard implements CanActivate {
   canActivate(
     next: ActivatedRouteSnapshot,
     state: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
-    // const loggedIn = this.gatewayService.validJWT()
-    const loggedIn = true
-    if (loggedIn) {
-      this.router.navigate(['home']);
-      return false
-    } else {
-      return true
-    }
+        // const loggedIn = this.gatewayService.validJWT()
+        const loggedIn = true
+        if (!loggedIn) {
+          this.router.navigate(['home']);
+          return false
+        } else {
+          return true
+        }
   }
   
 }

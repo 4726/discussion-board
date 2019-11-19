@@ -14,6 +14,15 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { httpInterceptorProviders } from './http-interceptors/index';
 import { NoAuthGuard } from './no-auth.guard';
 import { GatewayService } from './gateway.service';
+import { HomeComponent } from './home/home.component';
+import { GetPostComponent } from './get-post/get-post.component';
+import { HeaderComponent } from './header/header.component';
+import {MatToolbarModule} from '@angular/material/toolbar';
+import {MatInputModule} from '@angular/material/input';
+import {MatListModule} from '@angular/material/list';
+import {MatIconModule} from '@angular/material/icon';
+import {MatTableModule} from '@angular/material/table';
+import {MatButtonModule} from '@angular/material/button';
 
 @NgModule({
   declarations: [
@@ -22,7 +31,10 @@ import { GatewayService } from './gateway.service';
     CreatePostComponent,
     LoginComponent,
     RegisterComponent,
-    ProfileComponent
+    ProfileComponent,
+    HomeComponent,
+    GetPostComponent,
+    HeaderComponent
   ],
   imports: [
     BrowserModule,
@@ -30,7 +42,13 @@ import { GatewayService } from './gateway.service';
     AppRoutingModule,
     FormsModule,
     ReactiveFormsModule,
-    BrowserAnimationsModule
+    BrowserAnimationsModule,
+    MatToolbarModule,
+    MatInputModule,
+    MatListModule,
+    MatIconModule,
+    MatTableModule,
+    MatButtonModule,
   ],
   providers: [
     httpInterceptorProviders,
