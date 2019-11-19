@@ -23,6 +23,8 @@ import {MatListModule} from '@angular/material/list';
 import {MatIconModule} from '@angular/material/icon';
 import {MatTableModule} from '@angular/material/table';
 import {MatButtonModule} from '@angular/material/button';
+import {MatMenuModule} from '@angular/material/menu';
+import {MatPaginatorModule} from '@angular/material/paginator';
 
 @NgModule({
   declarations: [
@@ -49,6 +51,8 @@ import {MatButtonModule} from '@angular/material/button';
     MatIconModule,
     MatTableModule,
     MatButtonModule,
+    MatMenuModule,
+    MatPaginatorModule,
   ],
   providers: [
     httpInterceptorProviders,

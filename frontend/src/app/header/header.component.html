@@ -2,8 +2,26 @@
     <button mat-flat-button [routerLink]="['home']">
         Discussion Board
     </button>
+
+    <button mat-flat-button [routerLink]="['posts']">
+        Posts
+    </button>
+    
+    <div *ngIf="signedIn; else elseBlock">
+        <button mat-flat-button [routerLink]="['profile']">
+            Profile
+        </button>
+    </div>
+    <ng-template #elseBlock>
+        <button mat-flat-button [routerLink]="['login']">
+            Login
+        </button>
+    </ng-template>
+
+
     <span class="example-spacer"></span>
-    <mat-form-field class="example-full-width">
-        <input matInput value="Search">
+
+    <mat-form-field>
+        <input matInput formControlName="search" placeholder="Search">
     </mat-form-field>
 </mat-toolbar>

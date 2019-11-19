@@ -1,22 +1,16 @@
 <h3>New Post</h3>
 
-<form [formGroup]="createForm" 
-    (ngSubmit)="obSubmit(createForm.value)">
+<form [formGroup]="createForm" (ngSubmit)="obSubmit(createForm.value)">
 
-    <div>
-        <label for="title">
-          Title
-        </label>
-        <input id="title" type="text" formControlName="title">
-      </div>
-    
-      <div>
-        <label for="body">
-          Body
-        </label>
-        <input id="body" type="text" formControlName="body">
-      </div>
+  <mat-form-field class="full-width">
+    <mat-label>Title</mat-label>
+    <textarea matInput formControlName="title" placeholder="Title"></textarea>
+  </mat-form-field>
+  <br>
+  <mat-form-field class="full-width">
+    <mat-label>Body</mat-label>
+    <textarea matInput formControlName="body" placeholder="Body"></textarea>
+  </mat-form-field>
 
-    <button class="button" type="submit">Create</button>
-  
+  <button mat-raised-button color="primary" type="submit">Create</button>
 </form>

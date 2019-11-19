@@ -37,8 +37,8 @@ export class GatewayService {
 
   constructor(private http: HttpClient) { }
 
-  getPosts(): Observable<Post[]> {
-    return this.http.get<Post[]>(this.gatewayAddr + '/posts')
+  getPosts(page: number): Observable<Post[]> {
+    return this.http.get<Post[]>(this.gatewayAddr + `/posts/${page}`)
       .pipe(
         retry(3),
         catchError(this.handleError)
@@ -217,12 +217,26 @@ export class GatewayService {
   }
 
   validJWT(): boolean {
-    let statusCode
+    const userID = this.getUserID()
+    return userID != 0
+  }
+
+  getUserID(): number {
+    let statusCode: number
     this.http.get(this.gatewayAddr + '/login', { observe: 'response' })
-      .subscribe(resp => {
-        statusCode = resp.status
-      })
-    return statusCode == 400
+      .subscribe(
+        resp => {
+          if (resp.status == 200) {
+            return 0
+          } else {
+            return resp.body['UserID']
+          }
+        },
+        error => {
+          return 0
+        }
+      )
+    return 0
   }
 
   private handleError(error: HttpErrorResponse) {
