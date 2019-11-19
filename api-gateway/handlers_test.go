@@ -16,6 +16,8 @@ import (
 type statusCodeOpts struct {
 	WithoutJWTStatusCode int
 	WithJWTStatusCode    int
+	HasEmptyResponseBefore bool
+	HasEmptyResponseAfter bool
 }
 
 func getNewRestAPI(t *testing.T) *RestAPI {
@@ -27,12 +29,12 @@ func getNewRestAPI(t *testing.T) *RestAPI {
 }
 
 func testJWTNotRequired(t *testing.T, method, route string) {
-	opts := statusCodeOpts{http.StatusInternalServerError, http.StatusInternalServerError}
+	opts := statusCodeOpts{http.StatusInternalServerError, http.StatusInternalServerError, true, true}
 	testJWTStatusCode(t, method, route, opts)
 }
 
 func testJWTRequired(t *testing.T, method, route string) {
-	opts := statusCodeOpts{http.StatusUnauthorized, http.StatusInternalServerError}
+	opts := statusCodeOpts{http.StatusUnauthorized, http.StatusInternalServerError, true, true}
 	testJWTStatusCode(t, method, route, opts)
 }
 
@@ -46,7 +48,11 @@ func testJWTStatusCode(t *testing.T, method, route string, opts statusCodeOpts) 
 	api.engine.ServeHTTP(w, req)
 
 	assert.Equal(t, withoutJWT, w.Code)
-	assert.Equal(t, "{}", w.Body.String())
+	if opts.HasEmptyResponseBefore {
+		assert.Equal(t, "{}", w.Body.String())
+	} else {
+		assert.NotEqual(t, "{}", w.Body.String())
+	}
 
 	//do again with jwt
 	w = httptest.NewRecorder()
@@ -57,12 +63,16 @@ func testJWTStatusCode(t *testing.T, method, route string, opts statusCodeOpts) 
 	api.engine.ServeHTTP(w, req)
 
 	assert.Equal(t, withJWT, w.Code)
-	assert.Equal(t, "{}", w.Body.String())
+	if opts.HasEmptyResponseAfter {
+		assert.Equal(t, "{}", w.Body.String())
+	} else {
+		assert.NotEqual(t, "{}", w.Body.String())
+	}
 }
 
 func TestJWTNotRequired(t *testing.T) {
 	testJWTNotRequired(t, "GET", "/post/1")
-	testJWTNotRequired(t, "GET", "/posts")
+	testJWTNotRequired(t, "GET", "/posts/1")
 	testJWTNotRequired(t, "GET", "/search?term=hello&page=1")
 	testJWTNotRequired(t, "GET", "/profile/1")
 
@@ -81,9 +91,9 @@ func TestJWTRequired(t *testing.T) {
 }
 
 func TestJWTCustom(t *testing.T) {
-	testJWTStatusCode(t, "GET", "/register", statusCodeOpts{http.StatusOK, http.StatusBadRequest})
-	testJWTStatusCode(t, "POST", "/register", statusCodeOpts{http.StatusInternalServerError, http.StatusBadRequest})
-	testJWTStatusCode(t, "GET", "/login", statusCodeOpts{http.StatusOK, http.StatusBadRequest})
-	testJWTStatusCode(t, "POST", "/login", statusCodeOpts{http.StatusInternalServerError, http.StatusBadRequest})
-	testJWTStatusCode(t, "POST", "/profile/update", statusCodeOpts{http.StatusUnauthorized, http.StatusBadRequest})
+	testJWTStatusCode(t, "GET", "/register", statusCodeOpts{http.StatusOK, http.StatusBadRequest, true, false})
+	testJWTStatusCode(t, "POST", "/register", statusCodeOpts{http.StatusInternalServerError, http.StatusBadRequest, true, true})
+	testJWTStatusCode(t, "GET", "/login", statusCodeOpts{http.StatusOK, http.StatusBadRequest, true, false})
+	testJWTStatusCode(t, "POST", "/login", statusCodeOpts{http.StatusInternalServerError, http.StatusBadRequest, true, true})
+	testJWTStatusCode(t, "POST", "/profile/update", statusCodeOpts{http.StatusUnauthorized, http.StatusBadRequest, true, true})
 }

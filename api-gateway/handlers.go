@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"strconv"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -28,8 +29,14 @@ func GetPost(ctx *gin.Context) {
 }
 
 func GetPosts(ctx *gin.Context) {
+	pageParam := ctx.Param("page")
+	page, err := strconv.Atoi(pageParam)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{})
+		return
+	}
 	resp, err := get(fmt.Sprintf("%s/posts?from=%v&total=%v&user=%v&sort=%v",
-		PostsReadServiceAddr(), 0, 10, "", ""))
+		PostsReadServiceAddr(), page * 10 - 10, 10, "", ""))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -270,8 +277,9 @@ func Search(ctx *gin.Context) {
 }
 
 func RegisterGET(ctx *gin.Context) {
-	if _, err := getUserID(ctx); err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
+	userID, err := getUserID(ctx)
+	if err == nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"UserID": userID})
 		return
 	}
 
@@ -298,8 +306,9 @@ func RegisterPOST(ctx *gin.Context) {
 }
 
 func LoginGET(ctx *gin.Context) {
-	if _, err := getUserID(ctx); err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
+	userID, err := getUserID(ctx)
+	if err == nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"UserID": userID})
 		return
 	}
 

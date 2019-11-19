@@ -1,22 +1,22 @@
 GET /post/:postid
 return: {
-    ID        uint
-	User      string
+	ID        uint `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
+	UserID    uint
 	Title     string
 	Body      string
 	Likes     int
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Comments  []{
-            ID        uint
-            PostID    uint
-            ParentID  uint
-            User      string
-            Body      string
-            CreatedAt time.Time
-            Likes     int
-        }
-}	
+		ID        uint `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
+		PostID    uint
+		ParentID  uint `gorm:"DEFAULT:0"`
+		UserID    uint
+		Body      string
+		CreatedAt time.Time
+		Likes     int
+	}
+}
 
 GET /posts
 Query:
@@ -25,14 +25,14 @@ From   uint   `form:"from"`
 UserID uint   `form:"userid"`
 Sort   string `form:"sort"`
 return: []{
-    ID        uint
-	User      string
+	ID        uint `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
+	UserID    uint
 	Title     string
 	Body      string empty
 	Likes     int
 	CreatedAt time.Time
 	UpdatedAt time.Time
-    Comments []{} empty
+    Comments []{}
 }
 
 POST /posts/multiple

@@ -18,8 +18,9 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	gin.SetMode(gin.ReleaseMode)
 	api.engine = engine
 	api.engine.Use(gin.Recovery())
-	api.engine.Use(log.RequestMiddleware())
-	api.setRoutes()
+	// api.engine.Use(log.RequestMiddleware())
+	// api.setRoutes()
+	api.setMockRoutes()
 	common.AddMonitorHandler(api.engine)
 
 	return api, nil
@@ -30,7 +31,7 @@ func (a *RestAPI) setRoutes() {
 		GetPost(ctx)
 	})
 
-	a.engine.GET("/posts", func(ctx *gin.Context) {
+	a.engine.GET("/posts/:page", func(ctx *gin.Context) {
 		GetPosts(ctx)
 	})
 
@@ -96,6 +97,80 @@ func (a *RestAPI) setRoutes() {
 
 	a.engine.POST("/profile/update", func(ctx *gin.Context) {
 		UpdateProfile(ctx)
+	})
+}
+
+func (a *RestAPI) setMockRoutes() {
+	a.engine.GET("/post/:postid", func(ctx *gin.Context) {
+		GetPostMock(ctx)
+	})
+
+	a.engine.GET("/posts/:page", func(ctx *gin.Context) {
+		GetPostsMock(ctx)
+	})
+
+	a.engine.POST("/post", func(ctx *gin.Context) {
+		CreatePostMock(ctx)
+	})
+
+	a.engine.DELETE("/post/:postid", func(ctx *gin.Context) {
+		DeletePostMock(ctx)
+	})
+
+	a.engine.POST("/post/like", func(ctx *gin.Context) {
+		LikePostMock(ctx)
+	})
+
+	a.engine.POST("/post/unlike", func(ctx *gin.Context) {
+		UnlikePostMock(ctx)
+	})
+
+	a.engine.POST("/comment", func(ctx *gin.Context) {
+		AddCommentMock(ctx)
+	})
+
+	a.engine.POST("/comment/like", func(ctx *gin.Context) {
+		LikeCommentMock(ctx)
+	})
+
+	a.engine.POST("/comment/unlike", func(ctx *gin.Context) {
+		UnlikeCommentMock(ctx)
+	})
+
+	a.engine.POST("/comment/clear", func(ctx *gin.Context) {
+		ClearCommentMock(ctx)
+	})
+
+	a.engine.GET("/search", func(ctx *gin.Context) {
+		SearchMock(ctx)
+	})
+
+	a.engine.GET("/register", func(ctx *gin.Context) {
+		RegisterGETMock(ctx)
+	})
+
+	a.engine.POST("/register", func(ctx *gin.Context) {
+		RegisterPOSTMock(ctx)
+	})
+
+	a.engine.GET("/login", func(ctx *gin.Context) {
+		LoginGETMock(ctx)
+	})
+
+	a.engine.POST("/login", func(ctx *gin.Context) {
+		LoginPOSTMock(ctx)
+	})
+
+	a.engine.POST("/changepassword", func(ctx *gin.Context) {
+		ChangePasswordMock(ctx)
+	})
+
+	a.engine.GET("/profile/:userid", func(ctx *gin.Context) {
+		GetProfileMock(ctx)
+	})
+
+	a.engine.POST("/profile/update", func(ctx *gin.Context) {
+		UpdateProfileMock(ctx)
 	})
 }
 
