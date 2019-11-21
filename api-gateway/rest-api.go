@@ -15,10 +15,12 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api := &RestAPI{}
 
 	engine := gin.New()
-	gin.SetMode(gin.ReleaseMode)
+	// gin.SetMode(gin.ReleaseMode)
 	api.engine = engine
+	api.engine.Use(corsMiddleware())
 	api.engine.Use(gin.Recovery())
-	// api.engine.Use(log.RequestMiddleware())
+	api.engine.Use(log.RequestMiddleware())
+	
 	// api.setRoutes()
 	api.setMockRoutes()
 	common.AddMonitorHandler(api.engine)
@@ -105,7 +107,7 @@ func (a *RestAPI) setMockRoutes() {
 		GetPostMock(ctx)
 	})
 
-	a.engine.GET("/posts/:page", func(ctx *gin.Context) {
+	a.engine.GET("/posts", func(ctx *gin.Context) {
 		GetPostsMock(ctx)
 	})
 
@@ -172,6 +174,22 @@ func (a *RestAPI) setMockRoutes() {
 	a.engine.POST("/profile/update", func(ctx *gin.Context) {
 		UpdateProfileMock(ctx)
 	})
+}
+
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
 }
 
 func (a *RestAPI) Run(addr string) error {

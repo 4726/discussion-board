@@ -72,7 +72,8 @@ func testJWTStatusCode(t *testing.T, method, route string, opts statusCodeOpts) 
 
 func TestJWTNotRequired(t *testing.T) {
 	testJWTNotRequired(t, "GET", "/post/1")
-	testJWTNotRequired(t, "GET", "/posts/1")
+	testJWTNotRequired(t, "GET", "/posts?page=1")
+	testJWTNotRequired(t, "GET", "/posts?page=1&userid=1")
 	testJWTNotRequired(t, "GET", "/search?term=hello&page=1")
 	testJWTNotRequired(t, "GET", "/profile/1")
 

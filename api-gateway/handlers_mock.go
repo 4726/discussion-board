@@ -55,9 +55,11 @@ func GetPostMock(ctx *gin.Context) {
 }
 
 func GetPostsMock(ctx *gin.Context) {
-	pageParam := ctx.Param("page")
-	_, err := strconv.Atoi(pageParam)
-	if err != nil {
+	query := struct {
+		Page  uint   `form:"page" binding:"required"`
+		UserID uint   `form:"userid"`
+	}{}
+	if err := ctx.BindQuery(&query); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}

@@ -30,15 +30,19 @@ export class PostsComponent implements OnInit {
     this.route.paramMap.subscribe((params: ParamMap) => {
       const pageParam = this.route.snapshot.paramMap.get('page')
       this.page = +pageParam
-      // this.prodInit()
-      this.testInit()
+      this.prodInit()
+      // this.testInit()
     })    
   }
 
   prodInit() {
+    this.posts = []
     this.gatewayService.getPosts(this.page)
       .subscribe(
-        (data: [Post]) => this.posts = {...data},
+        (data: Post[]) => {
+          this.posts = data
+          this.dataSource.data = this.posts
+        },
         error => this.error = error
       );
   }
@@ -102,6 +106,6 @@ export class PostsComponent implements OnInit {
   }
 
   onRowClick(postID: number) {
-    this.router.navigate([`posts/${postID}`])
+    this.router.navigate([`post/${postID}`])
   }
 }

@@ -11,7 +11,7 @@ export interface Post {
   Likes: number;
   CreatedAt: string;
   UpdatedAt: string;
-  Comments: PostComment;
+  Comments: PostComment[];
 }
 
 export interface PostComment {
@@ -34,12 +34,12 @@ export interface Profile {
 
 @Injectable()
 export class GatewayService {
-  gatewayAddr = '127.0.0.1:14000'
+  gatewayAddr = 'http://100.115.92.200:14000'
 
   constructor(private http: HttpClient) { }
 
   getPosts(page: number, userID: number = 0): Observable<Post[]> {
-    return this.http.get<Post[]>(this.gatewayAddr + `/posts?page=${page}&userID=${userID}`)
+    return this.http.get<Post[]>(this.gatewayAddr + `/posts?page=${page}&userid=${userID}`)
       .pipe(
         retry(3),
         catchError(this.handleError)

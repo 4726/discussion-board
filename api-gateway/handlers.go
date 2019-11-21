@@ -30,7 +30,7 @@ func GetPost(ctx *gin.Context) {
 
 func GetPosts(ctx *gin.Context) {
 	query := struct {
-		Page  uint   `form:"total" binding:"required"`
+		Page  uint   `form:"page" binding:"required"`
 		UserID uint   `form:"userid"`
 	}{}
 	if err := ctx.BindQuery(&query); err != nil {
@@ -369,7 +369,7 @@ func GetProfile(ctx *gin.Context) {
 		return
 	}
 
-	if strconv.Itoa(userID) == userIDParam {
+	if strconv.Itoa(int(userID)) == userIDParam {
 		isMine = true
 	}
 
