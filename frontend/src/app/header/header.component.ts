@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { GatewayService } from '../gateway.service';
+import { FormBuilder } from '@angular/forms';
 
 @Component({
   selector: 'app-header',
@@ -9,13 +10,19 @@ import { GatewayService } from '../gateway.service';
   providers: [GatewayService]
 })
 export class HeaderComponent implements OnInit {
+  searchForm;
   signedIn: boolean;
   userID: number;
 
   constructor(
     private router: Router,
     private gatewayService: GatewayService,
-  ) { }
+    private formBuilder: FormBuilder,
+  ) { 
+    this.searchForm = this.formBuilder.group({
+      term: ''
+    });
+  }
 
   ngOnInit() {
     this.testInit()
@@ -41,4 +48,7 @@ export class HeaderComponent implements OnInit {
     }
   }
 
+  onSearch(formData) {
+    this.router.navigate(['search'], {queryParams: {term: formData.term, page: '1'}})
+  }
 }

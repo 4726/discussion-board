@@ -3,7 +3,7 @@
         Discussion Board
     </button>
 
-    <button mat-flat-button [routerLink]="['posts']">
+    <button mat-flat-button [routerLink]="['posts/1']">
         Posts
     </button>
     
@@ -21,7 +21,15 @@
 
     <span class="example-spacer"></span>
 
-    <mat-form-field>
-        <input matInput formControlName="search" placeholder="Search">
-    </mat-form-field>
+    <form [formGroup]="searchForm" 
+    (ngSubmit)="onSearch(searchForm.value)">
+
+    <div>
+        <input id="term" type="text" formControlName="term">
+      </div>
+
+    <button mat-flat-button class="button" type="submit">Search</button>
+  
+</form>
+
 </mat-toolbar>

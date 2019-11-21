@@ -1,20 +1,20 @@
 import { Component, OnInit } from '@angular/core';
-import { GatewayService, Post, PostComment } from '../gateway.service';
-import { Router, ActivatedRoute, ParamMap } from '@angular/router';
+import { GatewayService, Post } from '../gateway.service';
+import { ActivatedRoute, Router, ParamMap } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
 
 @Component({
-  selector: 'app-posts',
-  templateUrl: './posts.component.html',
-  styleUrls: ['./posts.component.scss'],
+  selector: 'app-search',
+  templateUrl: './search.component.html',
+  styleUrls: ['./search.component.scss'],
   providers: [GatewayService]
 })
-
-export class PostsComponent implements OnInit {
+export class SearchComponent implements OnInit {
   posts: Post[] = [];
   error: string;
   displayedColumns: string[] = ['title', 'userid', 'likes', 'updatedat']//html
   page: number = 1;
+  term: string = '';
   hasPrevPage: boolean = true;
   dataSource: MatTableDataSource<Post>;
 
@@ -27,20 +27,17 @@ export class PostsComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.route.paramMap.subscribe((params: ParamMap) => {
-      const pageParam = this.route.snapshot.paramMap.get('page')
+    this.route.queryParams.subscribe(params => {
+      const pageParam = params['page']
       this.page = +pageParam
+      this.term = params['term']
       // this.prodInit()
       this.testInit()
-    })    
+    })  
   }
 
   prodInit() {
-    this.gatewayService.getPosts(this.page)
-      .subscribe(
-        (data: [Post]) => this.posts = {...data},
-        error => this.error = error
-      );
+    this.gatewayService.search(this.term, this.page)
   }
 
   testInit() {
@@ -90,18 +87,15 @@ export class PostsComponent implements OnInit {
   }
 
   nextPage() {
-    this.router.navigate([`posts/${this.page + 1}`])
+    this.router.navigate(['search'], {queryParams: {term: this.term, page: this.page + 1}})
   }
 
   prevPage() {
     if (this.page == 1) {
-      this.router.navigate([`posts/1`])
+      this.router.navigate(['search'], {queryParams: {term: this.term, page: 1}})
     } else {
-      this.router.navigate([`posts/${this.page - 1}`])
+      this.router.navigate(['search'], {queryParams: {term: this.term, page: this.page - 1}})
     }
   }
 
-  onRowClick(postID: number) {
-    this.router.navigate([`posts/${postID}`])
-  }
 }
