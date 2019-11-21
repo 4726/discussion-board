@@ -22,8 +22,8 @@ export class UserPostsComponent implements OnInit {
     private gatewayService: GatewayService,
     private router: Router,
     private route: ActivatedRoute,
-    ) {
-      this.dataSource = new MatTableDataSource(this.posts);
+  ) {
+    this.dataSource = new MatTableDataSource(this.posts);
   }
 
   ngOnInit() {
@@ -34,7 +34,7 @@ export class UserPostsComponent implements OnInit {
       this.userID = +userIDParam
       // this.prodInit()
       this.testInit()
-    })  
+    })
   }
 
   prodInit() {
@@ -50,16 +50,16 @@ export class UserPostsComponent implements OnInit {
       p.Title = 'hello world'
       p.Likes = 1
       p.UpdatedAt = '1 hour ago'
-  
+
       this.posts.push(p)
-  
+
       const p2 = {} as Post
       p2.ID = 124
       p2.UserID = this.userID
       p2.Title = 'my title'
       p2.Likes = 20
       p2.UpdatedAt = '5 hours ago'
-  
+
       this.posts.push(p2)
 
       this.hasPrevPage = false
@@ -70,16 +70,16 @@ export class UserPostsComponent implements OnInit {
       p.Title = 'testing'
       p.Likes = 13
       p.UpdatedAt = '1 day ago'
-  
+
       this.posts.push(p)
-  
+
       const p2 = {} as Post
       p2.ID = 333
       p2.UserID = this.userID
       p2.Title = 'good'
       p2.Likes = 200
       p2.UpdatedAt = '5 days ago'
-  
+
       this.posts.push(p2)
 
       this.hasPrevPage = true

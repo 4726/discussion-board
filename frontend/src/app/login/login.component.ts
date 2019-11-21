@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { GatewayService } from '../gateway.service';
 import { Router } from '@angular/router';
-import { FormBuilder } from '@angular/forms';
+import { FormBuilder, FormGroup } from '@angular/forms';
 
 @Component({
   selector: 'app-login',
@@ -11,7 +11,7 @@ import { FormBuilder } from '@angular/forms';
 })
 
 export class LoginComponent implements OnInit {
-  loginForm;
+  loginForm: FormGroup;
   error: string
 
   constructor(

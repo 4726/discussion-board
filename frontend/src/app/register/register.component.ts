@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { GatewayService } from '../gateway.service';
 import { Router } from '@angular/router';
-import { FormBuilder } from '@angular/forms';
+import { FormBuilder, FormGroup } from '@angular/forms';
 
 @Component({
   selector: 'app-register',
@@ -10,7 +10,7 @@ import { FormBuilder } from '@angular/forms';
   providers: [GatewayService]
 })
 export class RegisterComponent implements OnInit {
-  registerForm;
+  registerForm: FormGroup;
   error: string;
 
   constructor(

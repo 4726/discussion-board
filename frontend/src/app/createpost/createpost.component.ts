@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { GatewayService } from '../gateway.service';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, FormGroup } from '@angular/forms';
 
 @Component({
   selector: 'app-post',
@@ -10,7 +10,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
   providers: [GatewayService]
 })
 export class CreatePostComponent implements OnInit {
-  createForm;
+  createForm: FormGroup;
   error: string
 
   constructor(

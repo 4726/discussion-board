@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { GatewayService } from '../gateway.service';
-import { FormBuilder } from '@angular/forms';
+import { FormBuilder, FormGroup } from '@angular/forms';
 
 @Component({
   selector: 'app-header',
@@ -10,7 +10,7 @@ import { FormBuilder } from '@angular/forms';
   providers: [GatewayService]
 })
 export class HeaderComponent implements OnInit {
-  searchForm;
+  searchForm: FormGroup;
   signedIn: boolean;
   userID: number;
 
