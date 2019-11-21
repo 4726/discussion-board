@@ -29,14 +29,17 @@ func GetPost(ctx *gin.Context) {
 }
 
 func GetPosts(ctx *gin.Context) {
-	pageParam := ctx.Param("page")
-	page, err := strconv.Atoi(pageParam)
-	if err != nil {
+	query := struct {
+		Page  uint   `form:"total" binding:"required"`
+		UserID uint   `form:"userid"`
+	}{}
+	if err := ctx.BindQuery(&query); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
+
 	resp, err := get(fmt.Sprintf("%s/posts?from=%v&total=%v&user=%v&sort=%v",
-		PostsReadServiceAddr(), page * 10 - 10, 10, "", ""))
+		PostsReadServiceAddr(), query.Page * 10 - 10, 10, query.UserID, ""))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -356,12 +359,22 @@ func ChangePassword(ctx *gin.Context) {
 }
 
 func GetProfile(ctx *gin.Context) {
+	isMine := false
+	userID, _ := getUserID(ctx)
+
 	userIDParam := ctx.Param("userid")
 	resp, err := get(UserServiceAddr() + "/" + userIDParam)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
+
+	if strconv.Itoa(userID) == userIDParam {
+		isMine = true
+	}
+
+	resp.Data["IsMine"] = isMine
+
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 

@@ -26,6 +26,8 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatPaginatorModule} from '@angular/material/paginator';
 import { SearchComponent } from './search/search.component';
+import {MatCardModule} from '@angular/material/card';
+import { UserPostsComponent } from './user-posts/user-posts.component';
 
 @NgModule({
   declarations: [
@@ -38,7 +40,8 @@ import { SearchComponent } from './search/search.component';
     HomeComponent,
     GetPostComponent,
     HeaderComponent,
-    SearchComponent
+    SearchComponent,
+    UserPostsComponent
   ],
   imports: [
     BrowserModule,
@@ -55,6 +58,7 @@ import { SearchComponent } from './search/search.component';
     MatButtonModule,
     MatMenuModule,
     MatPaginatorModule,
+    MatCardModule,
   ],
   providers: [
     httpInterceptorProviders,

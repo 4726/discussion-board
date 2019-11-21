@@ -8,7 +8,7 @@
     </button>
     
     <div *ngIf="signedIn; else elseBlock">
-        <button mat-flat-button [routerLink]="['profile']">
+        <button mat-flat-button (click)="onProfileClick()">
             Profile
         </button>
     </div>

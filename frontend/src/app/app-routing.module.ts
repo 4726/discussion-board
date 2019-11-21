@@ -9,6 +9,8 @@ import { HomeComponent } from './home/home.component';
 import { PostsComponent } from './posts/posts.component';
 import { GetPostComponent } from './get-post/get-post.component';
 import { SearchComponent } from './search/search.component';
+import { ProfileComponent } from './profile/profile.component';
+import { UserPostsComponent } from './user-posts/user-posts.component';
 
 const routes: Routes = [
   {path: 'post/create', component: CreatePostComponent, canActivate: [AuthGuard]},
@@ -17,7 +19,9 @@ const routes: Routes = [
   {path: 'home', component: HomeComponent},
   {path: 'posts/:page', component: PostsComponent},
   {path: 'post/:postID', component: GetPostComponent},
-  {path: 'search', component: SearchComponent}
+  {path: 'search', component: SearchComponent},
+  {path: 'profile/:userid', component: ProfileComponent},
+  {path: 'profile/:userid/posts/:page', component: UserPostsComponent}
 ];
 
 @NgModule({

@@ -51,4 +51,8 @@ export class HeaderComponent implements OnInit {
   onSearch(formData) {
     this.router.navigate(['search'], {queryParams: {term: formData.term, page: '1'}})
   }
+
+  onProfileClick() {
+    this.router.navigate([`profile/${this.userID}`])
+  }
 }

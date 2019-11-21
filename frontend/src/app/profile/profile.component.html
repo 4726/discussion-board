@@ -1,1 +1,15 @@
-<p>profile works!</p>
+<mat-card class="card">
+    <mat-card-title>{{profile?.Username}}</mat-card-title>
+
+    <mat-card-content>
+        {{profile?.Bio}}
+    </mat-card-content>
+    <div *ngIf="isMine">
+        <mat-card-actions>
+            <button mat-raised-button color="primary" (click)="onEditProfile()">Edit Profile</button>
+        </mat-card-actions>
+    </div>
+    <mat-card-actions>
+        <button mat-raised-button color="primary" (click)="onViewPosts()">View Posts</button>
+    </mat-card-actions>
+</mat-card>

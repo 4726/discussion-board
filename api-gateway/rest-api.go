@@ -31,7 +31,7 @@ func (a *RestAPI) setRoutes() {
 		GetPost(ctx)
 	})
 
-	a.engine.GET("/posts/:page", func(ctx *gin.Context) {
+	a.engine.GET("/posts", func(ctx *gin.Context) {
 		GetPosts(ctx)
 	})
 

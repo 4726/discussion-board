@@ -28,7 +28,8 @@ export interface Profile {
   UserID:   number;
 	Username: string;
 	Bio:     string;
-	AvatarID: string;
+  AvatarID: string;
+  IsMine: boolean;
 }
 
 @Injectable()
@@ -37,8 +38,8 @@ export class GatewayService {
 
   constructor(private http: HttpClient) { }
 
-  getPosts(page: number): Observable<Post[]> {
-    return this.http.get<Post[]>(this.gatewayAddr + `/posts/${page}`)
+  getPosts(page: number, userID: number = 0): Observable<Post[]> {
+    return this.http.get<Post[]>(this.gatewayAddr + `/posts?page=${page}&userID=${userID}`)
       .pipe(
         retry(3),
         catchError(this.handleError)
@@ -125,7 +126,7 @@ export class GatewayService {
       )
   }
 
-  addComment(postID: number, body: string, parentID = 0) {
+  addComment(postID: number, body: string, parentID: number = 0) {
     const postData = {
       postID: postID,
       body: body,
