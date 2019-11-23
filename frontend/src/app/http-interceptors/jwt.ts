@@ -12,11 +12,14 @@ export class JWTInterceptor implements HttpInterceptor {
 
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
         const token = localStorage.getItem("jwt")
-
-        const updatedReq = req.clone({
-            setHeaders: {Authorization: `Bearer ${token}`}
-        });
-        return next.handle(updatedReq);
+        console.log('token: ' + token)
+        if (token != null) {
+            const updatedReq = req.clone({
+                setHeaders: {Authorization: `Bearer ${token}`}
+            });
+            return next.handle(updatedReq)
+        }
+        return next.handle(req);
     }
 }
 

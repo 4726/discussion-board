@@ -31,8 +31,8 @@ export class SearchComponent implements OnInit {
       const pageParam = params['page']
       this.page = +pageParam
       this.term = params['term']
-      // this.prodInit()
-      this.testInit()
+      this.prodInit()
+      // this.testInit()
     })  
   }
 

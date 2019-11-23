@@ -28,6 +28,7 @@ import {MatPaginatorModule} from '@angular/material/paginator';
 import { SearchComponent } from './search/search.component';
 import {MatCardModule} from '@angular/material/card';
 import { UserPostsComponent } from './user-posts/user-posts.component';
+import { AuthGuard } from './auth.guard';
 
 @NgModule({
   declarations: [
@@ -62,7 +63,9 @@ import { UserPostsComponent } from './user-posts/user-posts.component';
   ],
   providers: [
     httpInterceptorProviders,
-    NoAuthGuard
+    NoAuthGuard,
+    AuthGuard,
+    GatewayService
   ],
   bootstrap: [AppComponent]
 })

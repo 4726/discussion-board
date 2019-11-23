@@ -24,8 +24,8 @@ export class ProfileComponent implements OnInit {
     this.route.paramMap.subscribe((params: ParamMap) => {
       const userIDParam = this.route.snapshot.paramMap.get('userid')
       this.userID = +userIDParam
-      // this.prodInit()
-      this.testInit()
+      this.prodInit()
+      // this.testInit()
     })    
   }
 

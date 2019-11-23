@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError, retry } from 'rxjs/operators';
+import { Observable, throwError, of } from 'rxjs';
+import { catchError, retry, map } from 'rxjs/operators';
 
 export interface Post {
   ID: number;
@@ -25,9 +25,9 @@ export interface PostComment {
 }
 
 export interface Profile {
-  UserID:   number;
-	Username: string;
-	Bio:     string;
+  UserID: number;
+  Username: string;
+  Bio: string;
   AvatarID: string;
   IsMine: boolean;
 }
@@ -72,12 +72,14 @@ export class GatewayService {
       password: password,
     }
 
-    const resp = this.http.post(this.gatewayAddr + '/login', postData, {})
+    return this.http.post(this.gatewayAddr + '/login', postData, {})
       .pipe(
+        map(
+          res => res['jwt']
+        ),
         retry(3),
         catchError(this.handleError)
       )
-    return resp['jwt']
   }
 
   register(username: string, password: string): Observable<string> {
@@ -86,12 +88,15 @@ export class GatewayService {
       password: password,
     }
 
-    const resp = this.http.post(this.gatewayAddr + '/register', postData, {})
+
+    return this.http.post(this.gatewayAddr + '/register', postData, {})
       .pipe(
+        map(
+          res => res['jwt']
+        ),
         retry(3),
         catchError(this.handleError)
       )
-    return resp['jwt']
   }
 
   deletePost(postID: number) {
@@ -134,10 +139,10 @@ export class GatewayService {
     }
 
     this.http.post(this.gatewayAddr + '/comment/create', postData, {})
-    .pipe(
-      retry(3),
-      catchError(this.handleError)
-    )
+      .pipe(
+        retry(3),
+        catchError(this.handleError)
+      )
   }
 
   likeComment(commentID: number) {
@@ -217,27 +222,30 @@ export class GatewayService {
       )
   }
 
-  validJWT(): boolean {
-    const userID = this.getUserID()
-    return userID != 0
+  validJWT(): Observable<boolean> {
+    return this.getUserID()
+      .pipe(
+        map(
+          resp => {
+            return true
+          }
+        ),
+        catchError((error) => {
+          return of(false)
+        })
+      )
   }
 
-  getUserID(): number {
-    let statusCode: number
-    this.http.get(this.gatewayAddr + '/login', { observe: 'response' })
-      .subscribe(
-        resp => {
-          if (resp.status == 200) {
-            return 0
-          } else {
-            return resp.body['UserID']
+  getUserID(): Observable<number> {
+    return this.http.get(this.gatewayAddr + '/userid')
+      .pipe(
+        map(
+          resp => {
+            console.log(resp)
+            return resp['UserID']
           }
-        },
-        error => {
-          return 0
-        }
+        )
       )
-    return 0
   }
 
   private handleError(error: HttpErrorResponse) {

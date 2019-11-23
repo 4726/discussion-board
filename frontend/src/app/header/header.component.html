@@ -11,10 +11,17 @@
         <button mat-flat-button (click)="onProfileClick()">
             Profile
         </button>
+
+        <button mat-flat-button (click)="onLogoutClick()">
+            Logout
+        </button>
     </div>
     <ng-template #elseBlock>
-        <button mat-flat-button [routerLink]="['login']">
+        <button mat-flat-button (click)="onLoginClick()">
             Login
+        </button>
+        <button mat-flat-button (click)="onRegisterClick()">
+            Register
         </button>
     </ng-template>
 

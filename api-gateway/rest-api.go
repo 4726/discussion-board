@@ -100,6 +100,10 @@ func (a *RestAPI) setRoutes() {
 	a.engine.POST("/profile/update", func(ctx *gin.Context) {
 		UpdateProfile(ctx)
 	})
+
+	a.engine.GET("/userid", func(ctx *gin.Context) {
+		// UserID(ctx)
+	})
 }
 
 func (a *RestAPI) setMockRoutes() {
@@ -173,6 +177,10 @@ func (a *RestAPI) setMockRoutes() {
 
 	a.engine.POST("/profile/update", func(ctx *gin.Context) {
 		UpdateProfileMock(ctx)
+	})
+
+	a.engine.GET("/userid", func(ctx *gin.Context) {
+		UserIDMock(ctx)
 	})
 }
 

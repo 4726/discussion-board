@@ -20,7 +20,8 @@ export class RegisterComponent implements OnInit {
     ){
       this.registerForm = this.formBuilder.group({
         username: '',
-        password: ''
+        password: '',
+        password2: '',
       });
     }
 
@@ -34,12 +35,16 @@ export class RegisterComponent implements OnInit {
     }
     this.gatewayService.register(postData.username, postData.password)
       .subscribe(
-        (data: string) => {
-          localStorage.setItem('jwt', data);
+        jwt => {
+          localStorage.setItem('jwt', jwt);
           this.router.navigate(['/home']);
         },
-        error => this.error = error
-      );
+        err => {
+
+        }
+      )
+    
+    
   }
 
 }

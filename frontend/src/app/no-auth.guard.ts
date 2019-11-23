@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { CanActivate, ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree, Router } from '@angular/router';
-import { Observable } from 'rxjs';
-// import { GatewayService } from './gateway.service';
+import { Observable, of } from 'rxjs';
+import { GatewayService } from './gateway.service';
+import { catchError, map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -11,21 +12,24 @@ import { Observable } from 'rxjs';
 export class NoAuthGuard implements CanActivate {
 
   constructor(
-    // private gatewayService: GatewayService,
+    private gatewayService: GatewayService,
     private router: Router,
   ){}
 
   canActivate(
     next: ActivatedRouteSnapshot,
     state: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
-    // const loggedIn = this.gatewayService.validJWT()
-    const loggedIn = true
-    if (loggedIn) {
-      this.router.navigate(['home']);
-      return false
-    } else {
-      return true
-    }
+      return this.gatewayService.validJWT()
+        .pipe(
+          map(valid => {
+            if (valid) {
+              this.router.navigate(['home'])
+              return false
+            } else {
+              return true
+            }
+          })
+        )
   }
   
 }

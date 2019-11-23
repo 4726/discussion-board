@@ -277,3 +277,13 @@ func UpdateProfileMock(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{})
 }
+
+func UserIDMock(ctx *gin.Context) {
+	userID, err := getUserID(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"UserID": userID})
+	return
+}

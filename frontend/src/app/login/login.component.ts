@@ -30,13 +30,15 @@ export class LoginComponent implements OnInit {
 
   onSubmit(postData) {
     this.gatewayService.login(postData.username, postData.password)
-      .subscribe(
-        (data: string) => {
-          localStorage.setItem('jwt', data);
-          this.router.navigate(['/home']);
-        },
-        error => this.error = error
-      );
+    .subscribe(
+      res => {
+        localStorage.setItem('jwt', res);
+        this.router.navigate(['/home']);
+      },
+      err => {
+        this.router.navigate(['/home']);
+      }
+    )
   }
 
 }

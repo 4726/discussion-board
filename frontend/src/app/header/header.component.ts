@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { GatewayService } from '../gateway.service';
 import { FormBuilder, FormGroup } from '@angular/forms';
 
@@ -25,17 +25,28 @@ export class HeaderComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.testInit()
+    // this.testInit()
+    this.prodInit()
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        this.prodInit()
+      }
+    })
   }
 
   prodInit() {
-    const userID = this.gatewayService.getUserID()
-    if (userID != 0) {
-      this.signedIn = true
-      this.userID = userID
-    } else {
-      this.signedIn = false
-    }
+    this.gatewayService.getUserID()
+      .subscribe(
+        res => {
+          console.log('signed in')
+          this.signedIn = true
+          this.userID = res
+        },
+        err => {
+          console.log('not signed in')
+          this.signedIn = false
+        }
+    )
   }
 
   testInit() {
@@ -54,5 +65,19 @@ export class HeaderComponent implements OnInit {
 
   onProfileClick() {
     this.router.navigate([`profile/${this.userID}`])
+  }
+
+  onLoginClick() {
+    this.router.navigate(['login'])
+  }
+
+  onRegisterClick() {
+    this.router.navigate(['register'])
+  }
+
+  onLogoutClick() {
+    localStorage.removeItem('jwt');
+    this.signedIn = false
+    this.router.navigate(['home'])
   }
 }
