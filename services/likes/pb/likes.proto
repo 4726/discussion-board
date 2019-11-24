@@ -1,0 +1,46 @@
+syntax = "proto2";
+
+service Likes {
+ rpc LikePost(IDUserID) returns (Total) {}
+ rpc UnlikePost(IDUserID) returns (Total) {}
+ rpc LikeComment(IDUserID) returns (Total) {}
+ rpc UnlikeComment(IDUserID) returns (Total) {}  
+ rpc GetPostLikes(IDs) returns (TotalLikes) {}
+ rpc GetCommentLikes(IDs) returns (TotalLikes) {}
+ rpc PostsHaveLike(IDsUserID) returns (HaveLikes) {}
+ rpc CommentsHaveLike(IDsUserID) returns (HaveLikes) {}
+}
+
+message IDUserID {
+    required uint64 id = 1;
+    required uint64 user_id = 2;
+}
+
+message Total {
+    required uint64 total = 1;
+}
+
+message IDs {
+    repeated uint64 id = 1 [packed=true];
+}
+
+message TotalLikes {
+    message IDLikes {
+        required uint64 id = 1;
+        required uint64 total = 2;
+    }
+    repeated IDLikes id_likes = 1;
+}
+
+message IDsUserID {
+    repeated uint64 id = 1;
+    required uint64 user_id = 2;
+}
+
+message HaveLikes {
+    message HaveLike {
+        required uint64 id = 1;
+        required bool has_like = 2;
+    }
+    repeated HaveLike have_likes = 1;
+}
