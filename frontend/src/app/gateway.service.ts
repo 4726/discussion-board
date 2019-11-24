@@ -12,6 +12,7 @@ export interface Post {
   CreatedAt: string;
   UpdatedAt: string;
   Comments: PostComment[];
+  HasLike: boolean;
 }
 
 export interface PostComment {
@@ -22,6 +23,7 @@ export interface PostComment {
   Body: string;
   CreatedAt: string;
   Likes: number;
+  HasLike: boolean;
 }
 
 export interface Profile {

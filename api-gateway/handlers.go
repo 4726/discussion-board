@@ -25,6 +25,7 @@ func GetPost(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
+
 	ctx.JSON(resp.StatusCode, resp.Data)
 }
 

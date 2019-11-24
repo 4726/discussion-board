@@ -315,13 +315,13 @@ func TestGetMultiplePostLikes(t *testing.T) {
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
-func TestGetMultipleCommentLikesInvalidForm(t *testing.T) {
+func TestHasMultiplePostLikesInvalidForm(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
 	pLikes, cLikes := fillDBTestData(t, api)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/comment/likes", nil)
+	req, _ := http.NewRequest("POST", "/post/haslike", nil)
 	api.engine.ServeHTTP(w, req)
 
 	expected := ErrorResponse{"invalid form"}
@@ -334,21 +334,110 @@ func TestGetMultipleCommentLikesInvalidForm(t *testing.T) {
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
-func TestGetMultipleCommentLikes(t *testing.T) {
+func TestHasMultiplePostLikesNoUserID(t *testing.T) {
 	api := getCleanAPIForTesting(t)
 
 	pLikes, cLikes := fillDBTestData(t, api)
 
-	form := IDsForm{[]uint{2, 3}}
+	form := gin.H{"IDs": []uint{1, 2, 3}, "UserID": 0}
 	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/comment/likes", buffer)
+	req, _ := http.NewRequest("POST", "/post/haslike", buffer)
 	api.engine.ServeHTTP(w, req)
 
-	expected := []IDLikes{}
-	expected = append(expected, IDLikes{2, 0})
-	expected = append(expected, IDLikes{3, 1})
+	expected := ErrorResponse{"invalid form"}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestHasMultiplePostLikes(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	pLikes, cLikes := fillDBTestData(t, api)
+
+	form := gin.H{"IDs": []uint{1, 2, 3}, "UserID": 1}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/post/haslike", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	expected := []HasLike{}
+	expected = append(expected, HasLike{1, true})
+	expected = append(expected, HasLike{2, false})
+	expected = append(expected, HasLike{3, false})
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestHasMultipleCommentLikesInvalidForm(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	pLikes, cLikes := fillDBTestData(t, api)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/comment/haslike", nil)
+	api.engine.ServeHTTP(w, req)
+
+	expected := ErrorResponse{"invalid form"}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestHasMultipleCommentLikesNoUserID(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	pLikes, cLikes := fillDBTestData(t, api)
+
+	form := gin.H{"IDs": []uint{1, 2, 3}, "UserID": 0}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/comment/haslike", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	expected := ErrorResponse{"invalid form"}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+
+	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestHasMultipleCommentLikes(t *testing.T) {
+	api := getCleanAPIForTesting(t)
+
+	pLikes, cLikes := fillDBTestData(t, api)
+
+	form := gin.H{"IDs": []uint{1, 2, 3}, "UserID": 2}
+	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/comment/haslike", buffer)
+	api.engine.ServeHTTP(w, req)
+
+	expected := []HasLike{}
+	expected = append(expected, HasLike{1, true})
+	expected = append(expected, HasLike{2, false})
+	expected = append(expected, HasLike{3, true})
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())

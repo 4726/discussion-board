@@ -22,6 +22,7 @@ func GetPostMock(ctx *gin.Context) {
 	data["Likes"] = 10
 	data["CreatedAt"] = time.Now().Truncate(time.Hour * 5)
 	data["UpdatedAt"] = time.Now().Truncate(time.Hour)
+	data["HasLike"] = true
 
 	comment1 := map[string]interface{}{}
 	comment1["ID"] = 1
@@ -31,6 +32,7 @@ func GetPostMock(ctx *gin.Context) {
 	comment1["Body"] = "good"
 	comment1["CreatedAt"] = data["CreatedAt"].(time.Time).Add(time.Minute * 10)
 	comment1["Likes"] = 0
+	comment1["HasLike"] = false
 
 	comment2 := map[string]interface{}{}
 	comment2["ID"] = 2
@@ -40,6 +42,7 @@ func GetPostMock(ctx *gin.Context) {
 	comment2["Body"] = "great"
 	comment2["CreatedAt"] = data["CreatedAt"].(time.Time).Add(time.Hour)
 	comment2["Likes"] = 1
+	comment2["HasLike"] = true
 
 	comment3 := map[string]interface{}{}
 	comment3["ID"] = 3
@@ -49,6 +52,7 @@ func GetPostMock(ctx *gin.Context) {
 	comment3["Body"] = "thank you"
 	comment3["CreatedAt"] = data["UpdatedAt"]
 	comment3["Likes"] = 0
+	comment3["HasLike"] = false
 
 	data["Comments"] = []map[string]interface{}{comment1, comment2, comment3}
 	ctx.JSON(http.StatusOK, data)

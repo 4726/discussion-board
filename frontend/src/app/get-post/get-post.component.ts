@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { GatewayService, Post, PostComment } from '../gateway.service';
-import { ActivatedRoute } from "@angular/router";
+import { ActivatedRoute, ParamMap } from "@angular/router";
 
 @Component({
   selector: 'app-get-post',
@@ -18,15 +18,13 @@ export class GetPostComponent implements OnInit {
   ) { }
 
   ngOnInit() {
-    const param = this.route.snapshot.paramMap.get('postID')
-    if (!param) {
-      this.getPost(+param);
-    } else {
-      //404 page
-    }
+    this.route.paramMap.subscribe((params: ParamMap) => {
+      const param = this.route.snapshot.paramMap.get('postID')
+      this.setPost(+param);
+    })
   }
 
-  getPost(postID: number) {
+  setPost(postID: number) {
     this.gatewayService.getPost(postID)
       .subscribe(
         (data: Post) => this.post = data,
@@ -34,4 +32,19 @@ export class GetPostComponent implements OnInit {
       );
   }
 
+  onLikePost() {
+
+  }
+
+  onUnlikePost() {
+
+  }
+
+  onLikeComment() {
+
+  }
+
+  onUnlikeComment() {
+
+  }
 }

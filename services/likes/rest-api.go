@@ -64,6 +64,14 @@ func (a *RestAPI) setRoutes() {
 	a.engine.GET("/comment/likes", func(ctx *gin.Context) {
 		GetMultipleCommentLikes(a.db, ctx)
 	})
+
+	a.engine.POST("/post/haslike", func(ctx *gin.Context) {
+		HasMultiplePostLikes(a.db, ctx)
+	})
+
+	a.engine.POST("/comment/haslike", func(ctx *gin.Context) {
+		HasMultipleCommentLikes(a.db, ctx)
+	})
 }
 
 func (a *RestAPI) Run(addr string) error {

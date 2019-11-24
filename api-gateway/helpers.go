@@ -15,8 +15,25 @@ type Resp struct {
 	StatusCode int
 }
 
+type RespArray struct {
+	Data       []interface{}
+	StatusCode int
+}
+
+
 func parseJSON(body io.ReadCloser) (map[string]interface{}, error) {
 	data := map[string]interface{}{}
+
+	b, err := ioutil.ReadAll(body)
+	if err != nil {
+		return data, err
+	}
+	err = json.Unmarshal(b, &data)
+	return data, err
+}
+
+func parseJSONArray(body io.ReadCloser) ([]interface{}, error) {
+	data := []interface{}{}
 
 	b, err := ioutil.ReadAll(body)
 	if err != nil {
@@ -63,6 +80,30 @@ func post(addr string, data interface{}) (Resp, error) {
 	}
 
 	return Resp{respData, resp.StatusCode}, nil
+}
+
+func postArray(addr string, data interface{}) (RespArray, error) {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return RespArray{[]interface{}{}, 0}, err
+	}
+
+	resp, err := http.Post(addr, "application/json", bytes.NewBuffer(b))
+	if err != nil {
+		return RespArray{[]interface{}{}, 0}, err
+	}
+	defer resp.Body.Close()
+
+	respData, err := parseJSONArray(resp.Body)
+	if err != nil {
+		return RespArray{respData, resp.StatusCode}, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return RespArray{respData, resp.StatusCode}, nil
+	}
+
+	return RespArray{respData, resp.StatusCode}, nil
 }
 
 func postProxy(addr string, body io.ReadCloser) (Resp, error) {

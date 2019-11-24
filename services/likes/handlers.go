@@ -29,6 +29,11 @@ type IDLikes struct {
 	Likes int
 }
 
+type HasLike struct {
+	ID uint
+	HasLike bool
+}
+
 //should be fine without transaction
 func LikePost(db *gorm.DB, ctx *gin.Context) {
 	form := &PostLikeForm{}
@@ -194,4 +199,68 @@ func GetMultipleCommentLikes(db *gorm.DB, ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, counts)
+}
+
+func HasMultiplePostLikes(db *gorm.DB, ctx *gin.Context) {
+	form := struct{
+		IDs []uint 
+		UserID uint `binding:"required"`
+	}{}
+	if err := ctx.BindJSON(&form); err != nil {
+		ctx.Set(logInfoKey, err)
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
+		return
+	}
+
+	likes := []HasLike{}
+
+	for _, v := range form.IDs {
+		like := PostLike{}
+
+		if err := db.Where("post_id =? AND user_id = ?", v, form.UserID).Find(&like).Error; err != nil {
+			if gorm.IsRecordNotFoundError(err) {
+				likes = append(likes, HasLike{v, false})
+				continue
+			}
+			ctx.Set(logInfoKey, err)
+			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
+			return
+		}
+
+		likes = append(likes, HasLike{v, true})
+	}
+
+	ctx.JSON(http.StatusOK, likes)
+}
+
+func HasMultipleCommentLikes(db *gorm.DB, ctx *gin.Context) {
+	form := struct{
+		IDs []uint
+		UserID uint `binding:"required"`
+	}{}
+	if err := ctx.BindJSON(&form); err != nil {
+		ctx.Set(logInfoKey, err)
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
+		return
+	}
+
+	likes := []HasLike{}
+
+	for _, v := range form.IDs {
+		like := CommentLike{}
+
+		if err := db.Where("comment_id =? AND user_id = ?", v, form.UserID).Find(&like).Error; err != nil {
+			if gorm.IsRecordNotFoundError(err) {
+				likes = append(likes, HasLike{v, false})
+				continue
+			}
+			ctx.Set(logInfoKey, err)
+			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
+			return
+		}
+
+		likes = append(likes, HasLike{v, true})
+	}
+
+	ctx.JSON(http.StatusOK, likes)
 }

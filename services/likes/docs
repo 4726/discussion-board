@@ -25,3 +25,19 @@ return: []{ID uint, Likes int}
 GET /comment/likes
 IDs []uint
 return: []{ID uint, Likes int}
+
+POST /post/haslike
+IDs []uint
+UserID uint `binding:"required"`
+return: []{
+    ID uint
+	HasLike bool
+}
+
+POST /comment/haslike
+IDs []uint
+UserID uint `binding:"required"`
+return: []{
+    ID uint
+	HasLike bool
+}
