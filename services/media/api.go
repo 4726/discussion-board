@@ -2,61 +2,47 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
+	"github.com/4726/discussion-board/services/media/pb"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/minio/minio-go/v6"
-	"github.com/4726/discussion-board/services/common"
+	"google.golang.org/grpc"
+	"net"
 )
 
 const (
 	bucketExistsErrMsg = "Your previous request to create the named bucket succeeded and you already own it."
-	logInfoKey         = "log info"
 )
 
 var bucketName string
 
-type RestAPI struct {
-	mc     *minio.Client
-	engine *gin.Engine
+type Api struct {
+	mc   *minio.Client
+	grpc *grpc.Server
 }
 
-func NewRestAPI(cfg Config) (*RestAPI, error) {
-	api := &RestAPI{}
-
-	err := api.initMinio(cfg)
+func NewApi(cfg Config) (*Api, error) {
+	mc, err := initMinio(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	gin.SetMode(gin.ReleaseMode)
-	engine := gin.New()
-	api.engine = engine
-	api.engine.Use(gin.Recovery())
-	api.setRoutes()
-	common.AddMonitorHandler(api.engine)
-	api.engine.Use(log.RequestMiddleware())
+	server := grpc.NewServer()
+	handlers := &Handlers{mc}
+	pb.RegisterMediaServer(server, handlers)
 
-	return api, nil
+	return &Api{mc, server}, nil
 }
 
-func (a *RestAPI) setRoutes() {
-	a.engine.POST("/upload", func(ctx *gin.Context) {
-		Upload(a.mc, ctx)
-	})
+func (a *Api) Run(addr string) error {
+	lis, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
 
-	a.engine.POST("/remove/:name", func(ctx *gin.Context) {
-		Remove(a.mc, ctx)
-	})
-
-	a.engine.GET("/info", func(ctx *gin.Context) {
-		Info(a.mc, ctx)
-	})
+	return a.grpc.Serve(lis)
 }
 
-func (a *RestAPI) Run(addr string) error {
-	return a.engine.Run(addr)
-}
-
-func (a *RestAPI) initMinio(cfg Config) error {
+func initMinio(cfg Config) (*minio.Client, error) {
 	bucketName = cfg.BucketName
 	endpoint := cfg.Endpoint
 	accessKeyID := cfg.AccessKeyID
@@ -65,12 +51,12 @@ func (a *RestAPI) initMinio(cfg Config) error {
 
 	client, err := minio.New(endpoint, accessKeyID, secretAccessKey, useSSL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err = client.MakeBucket(bucketName, "us-east-1"); err != nil {
 		if err.Error() != bucketExistsErrMsg {
-			return err
+			return nil, err
 		}
 	}
 
@@ -90,8 +76,7 @@ func (a *RestAPI) initMinio(cfg Config) error {
 	  }`, resource)
 
 	if err = client.SetBucketPolicy(bucketName, policy); err != nil {
-		return err
+		return nil, err
 	}
-	a.mc = client
-	return nil
+	return client, nil
 }

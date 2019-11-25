@@ -1,83 +1,43 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
+	"github.com/4726/discussion-board/services/media/pb"
+	"github.com/golang/protobuf/proto"
 	"github.com/minio/minio-go/v6"
 	"github.com/segmentio/ksuid"
-	"net/http"
 )
 
-type ErrorResponse struct {
-	Error string
+type Handlers struct {
+	mc *minio.Client
 }
 
-func Upload(mc *minio.Client, ctx *gin.Context) {
-	fileHeader, err := ctx.FormFile("media")
-	if err != nil {
-		ctx.Set(logInfoKey, err)
-		if err.Error() == "missing form body" {
-			ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
-			return
-		}
-		if err.Error() == "http: no such file" {
-			ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-
-	contentTypes, ok := fileHeader.Header["Content-Type"]
-	if !ok {
-		ctx.Set(logInfoKey, "no Content-Type in header")
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-	if len(contentTypes) == 0 {
-		ctx.Set(logInfoKey, "no Content-Type value set")
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-	contentType := contentTypes[0]
-
-	file, err := fileHeader.Open()
-	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-	defer file.Close()
-
+func (h *Handlers) Upload(ctx context.Context, in *pb.UploadRequest) (*pb.Name, error) {
+	buffer := bytes.NewBuffer(in.Media)
 	guid, err := ksuid.NewRandom() //not guaranteed unique
 	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 	name := guid.String()
-	opts := minio.PutObjectOptions{ContentType: contentType}
-	_, err = mc.PutObject(bucketName, name, file, fileHeader.Size, opts)
+	opts := minio.PutObjectOptions{ContentType: "text/plain"}
+	_, err = h.mc.PutObject(bucketName, name, buffer, int64(len(in.Media)), opts)
 	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"Name": name})
+	return &pb.Name{Name: proto.String(name)}, nil
 }
 
-func Remove(mc *minio.Client, ctx *gin.Context) {
-	name := ctx.Param("name")
-	if err := mc.RemoveObject(bucketName, name); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+func (h *Handlers) Remove(ctx context.Context, in *pb.Name) (*pb.RemoveResponse, error) {
+	if err := h.mc.RemoveObject(bucketName, *in.Name); err != nil {
+		return nil, err
 	}
-	ctx.JSON(http.StatusOK, struct{}{})
+	return &pb.RemoveResponse{}, nil
 }
 
-func Info(mc *minio.Client, ctx *gin.Context) {
-	endpoint := fmt.Sprintf("%s/%s/", mc.EndpointURL().String(), bucketName)
-	ctx.JSON(http.StatusOK, gin.H{"StoreAddress": endpoint})
+func (h *Handlers) Info(ctx context.Context, in *pb.InfoRequest) (*pb.InfoResponse, error) {
+	addr := fmt.Sprintf("%s/%s/", h.mc.EndpointURL().String(), bucketName)
+	return &pb.InfoResponse{StoreAddress: proto.String(addr)}, nil
 }
