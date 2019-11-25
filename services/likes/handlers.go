@@ -1,266 +1,157 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
+	"github.com/4726/discussion-board/services/likes/pb"
+	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/gorm"
-	"net/http"
 	"time"
 )
 
-type PostLikeForm struct {
-	PostID uint `binding:"required"`
-	UserID uint `binding:"required"`
-}
-type CommentLikeForm struct {
-	CommentID uint `binding:"required"`
-	UserID    uint `binding:"required"`
+type GRPCHandlers struct {
+	db *gorm.DB
 }
 
-type IDsForm struct {
-	IDs []uint
+func (h *GRPCHandlers) LikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+	like := PostLike{*idu.Id, *idu.UserId, time.Now()}
+
+	if err := h.db.FirstOrCreate(&PostLike{}, &like).Error; err != nil {
+		return nil, err
+	}
+
+	var count uint64
+
+	if err := h.db.Where("post_id = ?", like.PostID).Find(&PostLike{}).Count(&count).Error; err != nil {
+		return nil, err
+	}
+
+	return &pb.Total{Total: &count}, nil
 }
 
-type ErrorResponse struct {
-	Error string
+func (h *GRPCHandlers) UnlikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+	like := PostLike{PostID: *idu.Id, UserID: *idu.UserId}
+
+	if err := h.db.Delete(&like).Error; err != nil {
+		return nil, err
+	}
+
+	var count uint64
+
+	if err := h.db.Where("post_id = ?", like.PostID).Find(&PostLike{}).Count(&count).Error; err != nil {
+		return nil, err
+	}
+
+	return &pb.Total{Total: &count}, nil
 }
 
-type IDLikes struct {
-	ID    uint
-	Likes int
+func (h *GRPCHandlers) LikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+	like := CommentLike{*idu.Id, *idu.UserId, time.Now()}
+
+	if err := h.db.FirstOrCreate(&CommentLike{}, &like).Error; err != nil {
+		return nil, err
+	}
+
+	var count uint64
+
+	if err := h.db.Where("comment_id = ?", like.CommentID).Find(&CommentLike{}).Count(&count).Error; err != nil {
+		return nil, err
+	}
+
+	return &pb.Total{Total: &count}, nil
 }
 
-type HasLike struct {
-	ID uint
-	HasLike bool
+func (h *GRPCHandlers) UnlikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+	like := CommentLike{CommentID: *idu.Id, UserID: *idu.UserId}
+
+	if err := h.db.Delete(&like).Error; err != nil {
+		return nil, err
+	}
+
+	var count uint64
+
+	if err := h.db.Where("comment_id = ?", like.CommentID).Find(&CommentLike{}).Count(&count).Error; err != nil {
+		return nil, err
+	}
+
+	return &pb.Total{Total: &count}, nil
 }
 
-//should be fine without transaction
-func LikePost(db *gorm.DB, ctx *gin.Context) {
-	form := &PostLikeForm{}
-	if err := ctx.BindJSON(form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
-		return
-	}
+func (h *GRPCHandlers) GetPostLikes(ctx context.Context, ids *pb.IDs) (*pb.TotalLikes, error) {
+	likes := []*pb.TotalLikes_IDLikes{}
 
-	like := PostLike{form.PostID, form.UserID, time.Now()}
+	for _, v := range ids.Id {
+		var count uint64
 
-	if err := db.FirstOrCreate(&PostLike{}, &like).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-
-	var count int
-
-	if err := db.Where("post_id = ?", like.PostID).Find(&PostLike{}).Count(&count).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"total": count})
-}
-
-func UnlikePost(db *gorm.DB, ctx *gin.Context) {
-	form := &PostLikeForm{}
-	if err := ctx.BindJSON(form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
-		return
-	}
-
-	like := PostLike{PostID: form.PostID, UserID: form.UserID}
-
-	if err := db.Delete(&like).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-
-	var count int
-
-	if err := db.Where("post_id = ?", like.PostID).Find(&PostLike{}).Count(&count).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"total": count})
-}
-
-func LikeComment(db *gorm.DB, ctx *gin.Context) {
-	form := &CommentLikeForm{}
-	if err := ctx.BindJSON(form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
-		return
-	}
-
-	like := CommentLike{form.CommentID, form.UserID, time.Now()}
-
-	if err := db.FirstOrCreate(&CommentLike{}, &like).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-
-	var count int
-
-	if err := db.Where("comment_id = ?", like.CommentID).Find(&CommentLike{}).Count(&count).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"total": count})
-}
-
-func UnlikeComment(db *gorm.DB, ctx *gin.Context) {
-	form := &CommentLikeForm{}
-	if err := ctx.BindJSON(form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
-		return
-	}
-
-	like := CommentLike{CommentID: form.CommentID, UserID: form.UserID}
-
-	if err := db.Delete(&like).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-
-	var count int
-
-	if err := db.Where("comment_id = ?", like.CommentID).Find(&CommentLike{}).Count(&count).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"total": count})
-}
-
-func GetMultiplePostLikes(db *gorm.DB, ctx *gin.Context) {
-	form := &IDsForm{}
-	if err := ctx.BindJSON(form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
-		return
-	}
-
-	counts := []IDLikes{}
-
-	for _, v := range form.IDs {
-		var count int
-
-		if err := db.Where("post_id = ?", v).Find(&PostLike{}).Count(&count).Error; err != nil {
+		if err := h.db.Where("post_id = ?", v).Find(&PostLike{}).Count(&count).Error; err != nil {
 			if gorm.IsRecordNotFoundError(err) {
-				counts = append(counts, IDLikes{v, 0})
+				likes = append(likes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(v), Total: proto.Uint64(0)})
 				continue
 			}
-			ctx.Set(logInfoKey, err)
-			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-			return
+			return nil, err
 		}
 
-		counts = append(counts, IDLikes{v, count})
+		likes = append(likes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(v), Total: &count})
 	}
 
-	ctx.JSON(http.StatusOK, counts)
+	return &pb.TotalLikes{IdLikes: likes}, nil
 }
 
-func GetMultipleCommentLikes(db *gorm.DB, ctx *gin.Context) {
-	form := &IDsForm{}
-	if err := ctx.BindJSON(form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
-		return
-	}
+func (h *GRPCHandlers) GetCommentLikes(ctx context.Context, ids *pb.IDs) (*pb.TotalLikes, error) {
+	likes := []*pb.TotalLikes_IDLikes{}
 
-	counts := []IDLikes{}
+	for _, v := range ids.Id {
+		var count uint64
 
-	for _, v := range form.IDs {
-		var count int
-
-		if err := db.Where("comment_id = ?", v).Find(&CommentLike{}).Count(&count).Error; err != nil {
+		if err := h.db.Where("comment_id = ?", v).Find(&CommentLike{}).Count(&count).Error; err != nil {
 			if gorm.IsRecordNotFoundError(err) {
-				counts = append(counts, IDLikes{v, 0})
+				likes = append(likes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(v), Total: proto.Uint64(0)})
 				continue
 			}
-			ctx.Set(logInfoKey, err)
-			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-			return
+			return nil, err
 		}
 
-		counts = append(counts, IDLikes{v, count})
+		likes = append(likes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(v), Total: &count})
 	}
 
-	ctx.JSON(http.StatusOK, counts)
+	return &pb.TotalLikes{IdLikes: likes}, nil
 }
 
-func HasMultiplePostLikes(db *gorm.DB, ctx *gin.Context) {
-	form := struct{
-		IDs []uint 
-		UserID uint `binding:"required"`
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
-		return
-	}
+func (h *GRPCHandlers) PostsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*pb.HaveLikes, error) {
+	likes := []*pb.HaveLikes_HaveLike{}
 
-	likes := []HasLike{}
-
-	for _, v := range form.IDs {
+	for _, v := range idu.Id {
 		like := PostLike{}
 
-		if err := db.Where("post_id =? AND user_id = ?", v, form.UserID).Find(&like).Error; err != nil {
+		if err := h.db.Where("post_id = ? AND user_id = ?", v, *idu.UserId).Find(&like).Error; err != nil {
 			if gorm.IsRecordNotFoundError(err) {
-				likes = append(likes, HasLike{v, false})
+				likes = append(likes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(v), HasLike: proto.Bool(false)})
 				continue
 			}
-			ctx.Set(logInfoKey, err)
-			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-			return
+			return nil, err
 		}
 
-		likes = append(likes, HasLike{v, true})
+		likes = append(likes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(v), HasLike: proto.Bool(true)})
 	}
 
-	ctx.JSON(http.StatusOK, likes)
+	return &pb.HaveLikes{HaveLikes: likes}, nil
 }
 
-func HasMultipleCommentLikes(db *gorm.DB, ctx *gin.Context) {
-	form := struct{
-		IDs []uint
-		UserID uint `binding:"required"`
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid form"})
-		return
-	}
+func (h *GRPCHandlers) CommentsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*pb.HaveLikes, error) {
+	likes := []*pb.HaveLikes_HaveLike{}
 
-	likes := []HasLike{}
-
-	for _, v := range form.IDs {
+	for _, v := range idu.Id {
 		like := CommentLike{}
 
-		if err := db.Where("comment_id =? AND user_id = ?", v, form.UserID).Find(&like).Error; err != nil {
+		if err := h.db.Where("comment_id = ? AND user_id = ?", v, *idu.UserId).Find(&like).Error; err != nil {
 			if gorm.IsRecordNotFoundError(err) {
-				likes = append(likes, HasLike{v, false})
+				likes = append(likes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(v), HasLike: proto.Bool(false)})
 				continue
 			}
-			ctx.Set(logInfoKey, err)
-			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-			return
+			return nil, err
 		}
 
-		likes = append(likes, HasLike{v, true})
+		likes = append(likes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(v), HasLike: proto.Bool(true)})
 	}
 
-	ctx.JSON(http.StatusOK, likes)
+	return &pb.HaveLikes{HaveLikes: likes}, nil
 }

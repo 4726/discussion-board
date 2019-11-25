@@ -1,27 +1,38 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"github.com/gin-gonic/gin"
+	"context"
+	"fmt"
+	"github.com/4726/discussion-board/services/likes/pb"
+	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
+	"google.golang.org/grpc"
 	"os"
 	"testing"
 	"time"
 )
 
-func TestMain(m *testing.M) {
-	log.SetOutput(ioutil.Discard)
-	os.Exit(m.Run())
-}
+var testGRPCApi *GRPCApi
+var testAddr string
 
-func assertJSON(t testing.TB, obj interface{}) string {
-	b, err := json.Marshal(obj)
-	assert.NoError(t, err)
-	return string(b)
+func TestMain(m *testing.M) {
+	cfg, err := ConfigFromJSON("config_test.json")
+	if err != nil {
+		panic(err)
+	}
+	api, err := NewGRPCApi(cfg)
+	if err != nil {
+		panic(err)
+	}
+	testGRPCApi = api
+	addr := fmt.Sprintf(":%v", cfg.ListenPort)
+	testAddr = addr
+	go api.Run(addr)
+	time.Sleep(time.Second * 3)
+
+	i := m.Run()
+	//close server
+	os.Exit(i)
 }
 
 func assertPostLikesEqual(t testing.TB, expected, actual PostLike) {
@@ -50,399 +61,319 @@ func assertCommentsLikesEqual(t testing.TB, expected, actual []CommentLike) {
 	}
 }
 
-func addPostLike(t testing.TB, api *RestAPI, postID, userID uint) PostLike {
-	like := PostLike{postID, userID, time.Now()}
-
-	err := api.db.Save(&like).Error
-	assert.NoError(t, err)
-	return like
+func cleanDB(t testing.TB) {
+	testGRPCApi.handlers.db.Exec("TRUNCATE post_likes;")
+	testGRPCApi.handlers.db.Exec("TRUNCATE comment_likes;")
 }
 
-func addCommentLike(t testing.TB, api *RestAPI, commentID, userID uint) CommentLike {
-	like := CommentLike{commentID, userID, time.Now()}
-
-	err := api.db.Save(&like).Error
-	assert.NoError(t, err)
-	return like
-}
-
-func fillDBTestData(t testing.TB, api *RestAPI) ([]PostLike, []CommentLike) {
-	p1 := addPostLike(t, api, 1, 1)
-	p2 := addPostLike(t, api, 1, 2)
-	c1 := addCommentLike(t, api, 1, 1)
-	c2 := addCommentLike(t, api, 1, 2)
-	c3 := addCommentLike(t, api, 3, 2)
+func fillDBTestData(t testing.TB) ([]PostLike, []CommentLike) {
+	p1 := addPostLike(t, 1, 1)
+	p2 := addPostLike(t, 1, 2)
+	c1 := addCommentLike(t, 1, 1)
+	c2 := addCommentLike(t, 1, 2)
+	c3 := addCommentLike(t, 3, 2)
 
 	return []PostLike{p1, p2}, []CommentLike{c1, c2, c3}
 }
 
-func queryDBTest(t testing.TB, api *RestAPI) ([]PostLike, []CommentLike) {
+func addPostLike(t testing.TB, postID, userID uint64) PostLike {
+	like := PostLike{postID, userID, time.Now()}
+
+	err := testGRPCApi.handlers.db.Save(&like).Error
+	assert.NoError(t, err)
+	return like
+}
+
+func addCommentLike(t testing.TB, commentID, userID uint64) CommentLike {
+	like := CommentLike{commentID, userID, time.Now()}
+
+	err := testGRPCApi.handlers.db.Save(&like).Error
+	assert.NoError(t, err)
+	return like
+}
+
+func queryDBTest(t testing.TB) ([]PostLike, []CommentLike) {
 	postLikes := []PostLike{}
 	commentLikes := []CommentLike{}
-	assert.NoError(t, api.db.Find(&postLikes).Error)
-	assert.NoError(t, api.db.Find(&commentLikes).Error)
+	assert.NoError(t, testGRPCApi.handlers.db.Find(&postLikes).Error)
+	assert.NoError(t, testGRPCApi.handlers.db.Find(&commentLikes).Error)
 	return postLikes, commentLikes
 }
 
-func getCleanAPIForTesting(t testing.TB) *RestAPI {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE post_likes;")
-	api.db.Exec("TRUNCATE comment_likes;")
-
-	return api
-}
-
-func TestLikePostInvalidForm(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	pLikes, cLikes := fillDBTestData(t, api)
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/post/like", nil)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid form"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
 func TestLikePostNoPostID(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	form := PostLikeForm{0, 3}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/post/like", buffer)
-	api.engine.ServeHTTP(w, req)
+	pLikes, cLikes := fillDBTestData(t)
 
-	expected := ErrorResponse{"invalid form"}
+	req := &pb.IDUserID{UserId: proto.Uint64(3)}
+	_, err = c.LikePost(context.TODO(), req)
+	assert.Error(t, err)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
 func TestLikePostNoUserID(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	form := PostLikeForm{1, 0}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/post/like", buffer)
-	api.engine.ServeHTTP(w, req)
+	pLikes, cLikes := fillDBTestData(t)
 
-	expected := ErrorResponse{"invalid form"}
+	req := &pb.IDUserID{Id: proto.Uint64(3)}
+	_, err = c.LikePost(context.TODO(), req)
+	assert.Error(t, err)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
 func TestLikePost(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	form := PostLikeForm{1, 3}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/post/like", buffer)
-	api.engine.ServeHTTP(w, req)
+	pLikes, cLikes := fillDBTestData(t)
 
-	expected := gin.H{"total": 3}
+	req := &pb.IDUserID{Id: proto.Uint64(1), UserId: proto.Uint64(3)}
+	resp, err := c.LikePost(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.Total{Total: proto.Uint64(3)}
+	assert.Equal(t, expected, resp)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assert.WithinDuration(t, pLikesAfter[2].CreatedAt, time.Now(), time.Second*10)
 	pLikesAfter[2].CreatedAt = time.Time{}
-	expectedPLikes := append(pLikes, PostLike{form.PostID, form.UserID, time.Time{}})
+	expectedPLikes := append(pLikes, PostLike{*req.Id, *req.UserId, time.Time{}})
 	assertPostsLikesEqual(t, expectedPLikes, pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
-func TestLikeCommentInvalidForm(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	pLikes, cLikes := fillDBTestData(t, api)
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/comment/like", nil)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid form"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
 func TestLikeCommentNoCommentID(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	form := CommentLikeForm{0, 3}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/comment/like", buffer)
-	api.engine.ServeHTTP(w, req)
+	pLikes, cLikes := fillDBTestData(t)
 
-	expected := ErrorResponse{"invalid form"}
+	req := &pb.IDUserID{UserId: proto.Uint64(3)}
+	_, err = c.LikeComment(context.TODO(), req)
+	assert.Error(t, err)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
 func TestLikeCommentNoUserID(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	form := CommentLikeForm{3, 0}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/comment/like", buffer)
-	api.engine.ServeHTTP(w, req)
+	pLikes, cLikes := fillDBTestData(t)
 
-	expected := ErrorResponse{"invalid form"}
+	req := &pb.IDUserID{Id: proto.Uint64(3)}
+	_, err = c.LikeComment(context.TODO(), req)
+	assert.Error(t, err)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
 func TestLikeComment(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	form := CommentLikeForm{1, 3}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/comment/like", buffer)
-	api.engine.ServeHTTP(w, req)
+	pLikes, cLikes := fillDBTestData(t)
 
-	expected := gin.H{"total": 3}
+	req := &pb.IDUserID{Id: proto.Uint64(1), UserId: proto.Uint64(3)}
+	resp, err := c.LikeComment(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.Total{Total: proto.Uint64(3)}
+	assert.Equal(t, expected, resp)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
 	assert.WithinDuration(t, cLikesAfter[3].CreatedAt, time.Now(), time.Second*10)
 	cLikesAfter[3].CreatedAt = time.Time{}
-	expectedCLikes := append(cLikes, CommentLike{form.CommentID, form.UserID, time.Time{}})
+	expectedCLikes := append(cLikes, CommentLike{*req.Id, *req.UserId, time.Time{}})
 	assertCommentsLikesEqual(t, expectedCLikes, cLikesAfter)
 }
 
-func TestGetMultiplePostLikesInvalidForm(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	pLikes, cLikes := fillDBTestData(t, api)
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/post/likes", nil)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid form"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
 func TestGetMultiplePostLikes(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	form := IDsForm{[]uint{1, 2, 3}}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/post/likes", buffer)
-	api.engine.ServeHTTP(w, req)
+	pLikes, cLikes := fillDBTestData(t)
 
-	expected := []IDLikes{}
-	expected = append(expected, IDLikes{1, 2})
-	expected = append(expected, IDLikes{2, 0})
-	expected = append(expected, IDLikes{3, 0})
+	idLikes := []*pb.TotalLikes_IDLikes{}
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(1), Total: proto.Uint64(2)})
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(2), Total: proto.Uint64(0)})
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(3), Total: proto.Uint64(0)})
+	expected := &pb.TotalLikes{IdLikes: idLikes}
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+	req := &pb.IDs{Id: []uint64{1, 2, 3}}
+	resp, err := c.GetPostLikes(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, resp)
 
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
-func TestHasMultiplePostLikesInvalidForm(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+func TestGetMultipleCommentLikes(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/post/haslike", nil)
-	api.engine.ServeHTTP(w, req)
+	cleanDB(t)
 
-	expected := ErrorResponse{"invalid form"}
+	pLikes, cLikes := fillDBTestData(t)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+	idLikes := []*pb.TotalLikes_IDLikes{}
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(1), Total: proto.Uint64(2)})
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(2), Total: proto.Uint64(0)})
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(3), Total: proto.Uint64(1)})
+	expected := &pb.TotalLikes{IdLikes: idLikes}
 
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	req := &pb.IDs{Id: []uint64{1, 2, 3}}
+	resp, err := c.GetCommentLikes(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, resp)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
 func TestHasMultiplePostLikesNoUserID(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	form := gin.H{"IDs": []uint{1, 2, 3}, "UserID": 0}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/post/haslike", buffer)
-	api.engine.ServeHTTP(w, req)
+	pLikes, cLikes := fillDBTestData(t)
 
-	expected := ErrorResponse{"invalid form"}
+	req := &pb.IDsUserID{Id: []uint64{1}}
+	_, err = c.PostsHaveLike(context.TODO(), req)
+	assert.Error(t, err)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
 func TestHasMultiplePostLikes(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	form := gin.H{"IDs": []uint{1, 2, 3}, "UserID": 1}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/post/haslike", buffer)
-	api.engine.ServeHTTP(w, req)
+	pLikes, cLikes := fillDBTestData(t)
 
-	expected := []HasLike{}
-	expected = append(expected, HasLike{1, true})
-	expected = append(expected, HasLike{2, false})
-	expected = append(expected, HasLike{3, false})
+	haveLikes := []*pb.HaveLikes_HaveLike{}
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(1), HasLike: proto.Bool(true)})
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(2), HasLike: proto.Bool(false)})
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(3), HasLike: proto.Bool(false)})
+	expected := &pb.HaveLikes{HaveLikes: haveLikes}
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+	req := &pb.IDsUserID{Id: []uint64{1, 2, 3}, UserId: proto.Uint64(1)}
+	resp, err := c.PostsHaveLike(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, resp)
 
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
-func TestHasMultipleCommentLikesInvalidForm(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	pLikes, cLikes := fillDBTestData(t, api)
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/comment/haslike", nil)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid form"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
 func TestHasMultipleCommentLikesNoUserID(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	form := gin.H{"IDs": []uint{1, 2, 3}, "UserID": 0}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/comment/haslike", buffer)
-	api.engine.ServeHTTP(w, req)
+	pLikes, cLikes := fillDBTestData(t)
 
-	expected := ErrorResponse{"invalid form"}
+	req := &pb.IDsUserID{Id: []uint64{1}}
+	_, err = c.CommentsHaveLike(context.TODO(), req)
+	assert.Error(t, err)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
 func TestHasMultipleCommentLikes(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	pLikes, cLikes := fillDBTestData(t, api)
+	c := pb.NewLikesClient(conn)
 
-	form := gin.H{"IDs": []uint{1, 2, 3}, "UserID": 2}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/comment/haslike", buffer)
-	api.engine.ServeHTTP(w, req)
+	pLikes, cLikes := fillDBTestData(t)
 
-	expected := []HasLike{}
-	expected = append(expected, HasLike{1, true})
-	expected = append(expected, HasLike{2, false})
-	expected = append(expected, HasLike{3, true})
+	haveLikes := []*pb.HaveLikes_HaveLike{}
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(1), HasLike: proto.Bool(true)})
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(2), HasLike: proto.Bool(false)})
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(3), HasLike: proto.Bool(true)})
+	expected := &pb.HaveLikes{HaveLikes: haveLikes}
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+	req := &pb.IDsUserID{Id: []uint64{1, 2, 3}, UserId: proto.Uint64(2)}
+	resp, err := c.CommentsHaveLike(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, resp)
 
-	pLikesAfter, cLikesAfter := queryDBTest(t, api)
+	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
