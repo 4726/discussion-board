@@ -1,0 +1,23 @@
+syntax = "proto2";
+
+service Media {
+    rpc Upload(UploadRequest) returns (Name) {}
+    rpc Remove(Name) returns (RemoveResponse) {}
+    rpc Info(InfoRequest) returns (InfoResponse) {}
+}
+
+message UploadRequest {
+    required bytes media = 1;
+}
+
+message Name {
+    required string name = 1;
+}
+
+message RemoveResponse {}
+
+message InfoRequest {}
+
+message InfoResponse {
+    required string StoreAddress = 1;
+}
