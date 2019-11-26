@@ -5,21 +5,21 @@ import (
 )
 
 type Comment struct {
-	ID        uint `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
-	PostID    uint
-	ParentID  uint `gorm:"DEFAULT:0"`
-	UserID    uint
+	ID        uint64 `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
+	PostID    uint64
+	ParentID  uint64 `gorm:"DEFAULT:0"`
+	UserID    uint64
 	Body      string
 	CreatedAt time.Time
-	Likes     int
+	Likes     int64
 }
 
 type Post struct {
-	ID        uint `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
-	UserID    uint
+	ID        uint64 `gorm:"AUTO_INCREMENT;NOT NULL;PRIMARY_KEY"`
+	UserID    uint64
 	Title     string
 	Body      string
-	Likes     int
+	Likes     int64
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Comments  []Comment

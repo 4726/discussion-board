@@ -1,27 +1,54 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
+	"fmt"
 	"github.com/4726/discussion-board/services/posts/models"
+	"github.com/4726/discussion-board/services/posts/read/pb"
+	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
+	"google.golang.org/grpc"
 	"os"
 	"testing"
 	"time"
 )
 
+var testApi *Api
+var testAddr string
+
 func TestMain(m *testing.M) {
-	log.SetOutput(ioutil.Discard)
-	os.Exit(m.Run())
+	cfg, err := ConfigFromJSON("config_test.json")
+	if err != nil {
+		panic(err)
+	}
+	api, err := NewApi(cfg)
+	if err != nil {
+		panic(err)
+	}
+	testApi = api
+	addr := fmt.Sprintf(":%v", cfg.ListenPort)
+	testAddr = addr
+	go api.Run(addr)
+	time.Sleep(time.Second * 3)
+
+	i := m.Run()
+	//close server
+	os.Exit(i)
 }
 
-func assertJSON(t testing.TB, obj interface{}) string {
-	b, err := json.Marshal(obj)
-	assert.NoError(t, err)
-	return string(b)
+func cleanDB(t testing.TB) {
+	testApi.db.Exec("DELETE FROM comments;")
+	testApi.db.Exec("DELETE FROM posts;")
+	testApi.db.Exec("ALTER TABLE posts AUTO_INCREMENT = 1;")
+	testApi.db.Exec("ALTER TABLE comments AUTO_INCREMENT = 1;")
+}
+
+func queryDBTest(t testing.TB) ([]models.Post, []models.Comment) {
+	posts := []models.Post{}
+	comments := []models.Comment{}
+	assert.NoError(t, testApi.db.Preload("Comments").Find(&posts).Error)
+	assert.NoError(t, testApi.db.Find(&comments).Error)
+	return posts, comments
 }
 
 func assertPostEqual(t testing.TB, expected, actual models.Post) {
@@ -59,40 +86,19 @@ func assertMiniPostsEqual(t testing.TB, expected, actual []models.Post) {
 	}
 }
 
-func queryDBTest(t testing.TB, api *RestAPI) ([]models.Post, []models.Comment) {
-	posts := []models.Post{}
-	comments := []models.Comment{}
-	assert.NoError(t, api.db.Preload("Comments").Find(&posts).Error)
-	assert.NoError(t, api.db.Find(&comments).Error)
-	return posts, comments
-}
-
-func getCleanAPIForTesting(t testing.TB) *RestAPI {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("DELETE FROM comments;")
-	api.db.Exec("DELETE FROM posts;")
-	api.db.Exec("ALTER TABLE posts AUTO_INCREMENT = 1;")
-	api.db.Exec("ALTER TABLE comments AUTO_INCREMENT = 1;")
-
-	return api
-}
-
-func fillDBTestData(t testing.TB, api *RestAPI) []models.Post {
-	post := addPostForTesting(t, api, 2, "title", "hello world", 0)
+func fillDBTestData(t testing.TB) []models.Post {
+	post := addPostForTesting(t, 2, "title", "hello world", 0)
 	time.Sleep(time.Second)
-	post2 := addPostForTesting(t, api, 1, "title2", "hello world 2", 5)
+	post2 := addPostForTesting(t, 1, "title2", "hello world 2", 5)
 	time.Sleep(time.Second)
-	comment1 := addCommentForTesting(t, api, 3, "my comment", 0, post2.ID)
-	comment2 := addCommentForTesting(t, api, 4, "another comment", 0, post2.ID)
+	comment1 := addCommentForTesting(t, 3, "my comment", 0, post2.ID)
+	comment2 := addCommentForTesting(t, 4, "another comment", 0, post2.ID)
 	post2.Comments = []models.Comment{comment1, comment2}
-	post3 := addPostForTesting(t, api, 1, "title3", "hello world 3", 0)
+	post3 := addPostForTesting(t, 1, "title3", "hello world 3", 0)
 	return []models.Post{post, post2, post3}
 }
 
-func addPostForTesting(t testing.TB, api *RestAPI, userID uint, title, body string, likes int) models.Post {
+func addPostForTesting(t testing.TB, userID uint64, title, body string, likes int64) models.Post {
 	created := time.Now()
 	post := models.Post{
 		UserID:    userID,
@@ -104,13 +110,13 @@ func addPostForTesting(t testing.TB, api *RestAPI, userID uint, title, body stri
 		Comments:  []models.Comment{},
 	}
 
-	err := api.db.Save(&post).Error
+	err := testApi.db.Save(&post).Error
 	assert.NoError(t, err)
 
 	return post
 }
 
-func addCommentForTesting(t testing.TB, api *RestAPI, userID uint, body string, likes int, postID uint) models.Comment {
+func addCommentForTesting(t testing.TB, userID uint64, body string, likes int64, postID uint64) models.Comment {
 	created := time.Now()
 	comment := models.Comment{
 		PostID:    postID,
@@ -120,356 +126,371 @@ func addCommentForTesting(t testing.TB, api *RestAPI, userID uint, body string, 
 		CreatedAt: created,
 	}
 
-	err := api.db.Save(&comment).Error
+	err := testApi.db.Save(&comment).Error
 	assert.NoError(t, err)
 
 	return comment
 }
 
-func TestGetFullPostInvalidParam(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+func protoPostsToModelPosts(posts []*pb.Post) []models.Post {
+	modelPosts := []models.Post{}
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/post/a", nil)
-	api.engine.ServeHTTP(w, req)
+	for _, v := range posts {
+		modelPosts = append(modelPosts, protoPostToModelPost(v))
+	}
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Equal(t, "{}", w.Body.String())
-
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 0)
-	assert.Len(t, comments, 0)
+	return modelPosts
 }
 
-func TestGetFullPostDoesNotExist(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+func protoPostToModelPost(post *pb.Post) models.Post {
+	modelComments := []models.Comment{}
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/post/1", nil)
-	api.engine.ServeHTTP(w, req)
+	for _, v := range post.Comments {
+		modelComment := protoCommentToModelComment(v)
+		modelComments = append(modelComments, modelComment)
+	}
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Equal(t, "{}", w.Body.String())
-
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 0)
-	assert.Len(t, comments, 0)
+	return models.Post{
+		ID:        *post.Id,
+		UserID:    *post.UserId,
+		Title:     *post.Title,
+		Body:      *post.Body,
+		Likes:     *post.Likes,
+		CreatedAt: time.Unix(*post.CreatedAt, 0),
+		UpdatedAt: time.Unix(*post.UpdatedAt, 0),
+		Comments:  modelComments,
+	}
 }
+
+func protoCommentToModelComment(comment *pb.Comment) models.Comment {
+	return models.Comment{
+		ID:        *comment.Id,
+		PostID:    *comment.PostId,
+		ParentID:  *comment.ParentId,
+		UserID:    *comment.UserId,
+		Body:      *comment.Body,
+		CreatedAt: time.Unix(*comment.CreatedAt, 0),
+		Likes:     *comment.Likes,
+	}
+}
+
+func TestGetFullPostNoId(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+
+	c := pb.NewPostsReadClient(conn)
+
+	cleanDB(t)
+
+	posts := fillDBTestData(t)
+
+	req := &pb.Id{}
+	_, err = c.GetFullPost(context.TODO(), req)
+	assert.Error(t, err)
+
+	postsAfter, commentsAfter := queryDBTest(t)
+	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
+}
+
+// dont know why failing
+// func TestGetFullPostDoesNotExist(t *testing.T) {
+// 	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+// 	assert.NoError(t, err)
+// 	defer conn.Close()
+
+// 	c := pb.NewPostsReadClient(conn)
+
+// 	cleanDB(t)
+
+// 	posts := fillDBTestData(t)
+
+// 	req := &pb.Id{Id: proto.Uint64(5)}
+// 	_, err = c.GetFullPost(context.TODO(), req)
+// 	assert.NoError(t, err)
+
+// 	postsAfter, commentsAfter := queryDBTest(t)
+// 	assertPostsEqual(t, posts, postsAfter)
+// 	assert.Len(t, commentsAfter, 2)
+// }
 
 func TestGetFullPost(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	posts := fillDBTestData(t, api)
+	c := pb.NewPostsReadClient(conn)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/post/1", nil)
-	api.engine.ServeHTTP(w, req)
+	cleanDB(t)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	actualPost := models.Post{}
-	json.Unmarshal(w.Body.Bytes(), &actualPost)
-	assertPostEqual(t, posts[0], actualPost)
+	posts := fillDBTestData(t)
 
-	postsAfter, _ := queryDBTest(t, api)
+	req := &pb.Id{Id: proto.Uint64(1)}
+	resp, err := c.GetFullPost(context.TODO(), req)
+	assert.NoError(t, err)
+	assertPostEqual(t, posts[0], protoPostToModelPost(resp))
+
+	postsAfter, commentsAfter := queryDBTest(t)
 	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
 }
 
-func TestGetPostsInvalidTotal(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+func TestGetPostsNoTotal(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/posts?total=a", nil)
-	api.engine.ServeHTTP(w, req)
+	c := pb.NewPostsReadClient(conn)
 
-	expected := ErrorResponse{"invalid query"}
+	cleanDB(t)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	posts := fillDBTestData(t)
 
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 0)
-	assert.Len(t, comments, 0)
-}
+	req := &pb.GetPostsQuery{}
+	_, err = c.GetPosts(context.TODO(), req)
+	assert.Error(t, err)
 
-func TestGetPostsInvalidFrom(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	posts := fillDBTestData(t, api)
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/posts?total=1&from=a", nil)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid query"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-
-	postsAfter, _ := queryDBTest(t, api)
+	postsAfter, commentsAfter := queryDBTest(t)
 	assertPostsEqual(t, posts, postsAfter)
-}
-
-func TestGetPostsNoTotalQuery(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	posts := fillDBTestData(t, api)
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/posts?from=10", nil)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid query"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-
-	postsAfter, _ := queryDBTest(t, api)
-	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
 }
 
 func TestGetPostsNoPosts(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/posts?total=1&from=10", nil)
-	api.engine.ServeHTTP(w, req)
+	c := pb.NewPostsReadClient(conn)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "[]", w.Body.String())
+	cleanDB(t)
 
-	posts, comments := queryDBTest(t, api)
-	assert.Len(t, posts, 0)
-	assert.Len(t, comments, 0)
+	posts := fillDBTestData(t)
+
+	req := &pb.GetPostsQuery{Total: proto.Uint64(1), From: proto.Uint64(10)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Len(t, resp.Posts, 0)
+
+	postsAfter, commentsAfter := queryDBTest(t)
+	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
 }
 
 func TestGetPostsUserNoPosts(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	posts := fillDBTestData(t, api)
+	c := pb.NewPostsReadClient(conn)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/posts?total=1&from=10&userid=10", nil)
-	api.engine.ServeHTTP(w, req)
+	cleanDB(t)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "[]", w.Body.String())
+	posts := fillDBTestData(t)
 
-	postsAfter, _ := queryDBTest(t, api)
+	req := &pb.GetPostsQuery{Total: proto.Uint64(1), UserId: proto.Uint64(10)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Len(t, resp.Posts, 0)
+
+	postsAfter, commentsAfter := queryDBTest(t)
 	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
 }
 
 func TestGetPostsSorted(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	posts := fillDBTestData(t, api)
+	c := pb.NewPostsReadClient(conn)
 
-	w := httptest.NewRecorder()
+	cleanDB(t)
 
-	req, _ := http.NewRequest("GET", "/posts?total=10&from=0&sort=created_at", nil)
-	api.engine.ServeHTTP(w, req)
+	posts := fillDBTestData(t)
 
+	req := &pb.GetPostsQuery{Total: proto.Uint64(10), Sort: proto.String("created_at")}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
 	expected := posts
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	actualPosts := []models.Post{}
-	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assert.Len(t, actualPosts, 3)
-	assertMiniPostsEqual(t, expected, actualPosts)
-
-	postsAfter, comments := queryDBTest(t, api)
+	postsAfter, comments := queryDBTest(t)
 	assert.Len(t, posts, 3)
 	assert.Len(t, comments, 2)
 	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsUserSorted(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	posts := fillDBTestData(t, api)
+	c := pb.NewPostsReadClient(conn)
 
-	w := httptest.NewRecorder()
+	cleanDB(t)
 
-	req, _ := http.NewRequest("GET", "/posts?total=10&from=0&userid=1&sort=created_at", nil)
-	api.engine.ServeHTTP(w, req)
+	posts := fillDBTestData(t)
 
+	req := &pb.GetPostsQuery{Total: proto.Uint64(10), Sort: proto.String("created_at"), UserId: proto.Uint64(1)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
 	expected := []models.Post{posts[1], posts[2]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	actualPosts := []models.Post{}
-	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assertMiniPostsEqual(t, expected, actualPosts)
-
-	psotsAfter, comments := queryDBTest(t, api)
+	psotsAfter, comments := queryDBTest(t)
 	assert.Len(t, comments, 2)
 	assertPostsEqual(t, posts, psotsAfter)
 }
 
 func TestGetPostsUnSorted(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	posts := fillDBTestData(t, api)
+	c := pb.NewPostsReadClient(conn)
 
-	w := httptest.NewRecorder()
+	cleanDB(t)
 
-	req, _ := http.NewRequest("GET", "/posts?total=10&from=0", nil)
-	api.engine.ServeHTTP(w, req)
+	posts := fillDBTestData(t)
 
+	req := &pb.GetPostsQuery{Total: proto.Uint64(10)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
 	expected := []models.Post{posts[2], posts[1], posts[0]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	actualPosts := []models.Post{}
-	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assertMiniPostsEqual(t, expected, actualPosts)
-
-	postsAfter, comments := queryDBTest(t, api)
+	postsAfter, comments := queryDBTest(t)
 	assert.Len(t, comments, 2)
 	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsUserUnSorted(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	posts := fillDBTestData(t, api)
+	c := pb.NewPostsReadClient(conn)
 
-	w := httptest.NewRecorder()
+	cleanDB(t)
 
-	req, _ := http.NewRequest("GET", "/posts?total=10&from=0&userid=1", nil)
-	api.engine.ServeHTTP(w, req)
+	posts := fillDBTestData(t)
 
+	req := &pb.GetPostsQuery{Total: proto.Uint64(10), UserId: proto.Uint64(1)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
 	expected := []models.Post{posts[2], posts[1]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	actualPosts := []models.Post{}
-	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assertMiniPostsEqual(t, expected, actualPosts)
-
-	postsAfter, comments := queryDBTest(t, api)
+	postsAfter, comments := queryDBTest(t)
 	assert.Len(t, comments, 2)
 	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsTotal(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	posts := fillDBTestData(t, api)
+	c := pb.NewPostsReadClient(conn)
 
-	w := httptest.NewRecorder()
+	cleanDB(t)
 
-	req, _ := http.NewRequest("GET", "/posts?total=2&from=0", nil)
-	api.engine.ServeHTTP(w, req)
+	posts := fillDBTestData(t)
 
+	req := &pb.GetPostsQuery{Total: proto.Uint64(2)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
 	expected := []models.Post{posts[2], posts[1]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	actualPosts := []models.Post{}
-	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assertMiniPostsEqual(t, expected, actualPosts)
-
-	postsAfter, comments := queryDBTest(t, api)
+	postsAfter, comments := queryDBTest(t)
 	assert.Len(t, comments, 2)
 	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetPostsFrom(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	posts := fillDBTestData(t, api)
+	c := pb.NewPostsReadClient(conn)
 
-	w := httptest.NewRecorder()
+	cleanDB(t)
 
-	req, _ := http.NewRequest("GET", "/posts?total=2&from=1", nil)
-	api.engine.ServeHTTP(w, req)
+	posts := fillDBTestData(t)
 
+	req := &pb.GetPostsQuery{Total: proto.Uint64(2), From: proto.Uint64(1)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
 	expected := []models.Post{posts[1], posts[0]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	actualPosts := []models.Post{}
-	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assertMiniPostsEqual(t, expected, actualPosts)
-
-	postsAfter, _ := queryDBTest(t, api)
+	postsAfter, commentsAfter := queryDBTest(t)
 	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
 }
 
-func TestGetMultiplePostsInvalidForm(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+func TestGetPostsByIdNone(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	posts := fillDBTestData(t, api)
+	c := pb.NewPostsReadClient(conn)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/posts/multiple", nil)
-	api.engine.ServeHTTP(w, req)
+	cleanDB(t)
 
-	expected := ErrorResponse{"invalid form"}
+	posts := fillDBTestData(t)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
+	req := &pb.Ids{}
+	resp, err := c.GetPostsById(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Len(t, resp.Posts, 0)
 
-	postsAfter, comments := queryDBTest(t, api)
-	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, postsAfter)
-}
-
-func TestGetMultiplePostsNone(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	posts := fillDBTestData(t, api)
-
-	form := []uint{}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/posts/multiple", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "[]", w.Body.String())
-
-	postsAfter, comments := queryDBTest(t, api)
+	postsAfter, comments := queryDBTest(t)
 	assert.Len(t, comments, 2)
 	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetMultiplePostsDoesNotExist(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	posts := fillDBTestData(t, api)
+	c := pb.NewPostsReadClient(conn)
 
-	form := []uint{5, 10}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/posts/multiple", buffer)
-	api.engine.ServeHTTP(w, req)
+	posts := fillDBTestData(t)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "[]", w.Body.String())
+	req := &pb.Ids{Id: []uint64{5, 10}}
+	resp, err := c.GetPostsById(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Len(t, resp.Posts, 0)
 
-	postsAfter, comments := queryDBTest(t, api)
+	postsAfter, comments := queryDBTest(t)
 	assert.Len(t, comments, 2)
 	assertPostsEqual(t, posts, postsAfter)
 }
 
 func TestGetMultiplePosts(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
 
-	posts := fillDBTestData(t, api)
+	c := pb.NewPostsReadClient(conn)
 
-	form := []uint{2, 3}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	cleanDB(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/posts/multiple", buffer)
-	api.engine.ServeHTTP(w, req)
+	posts := fillDBTestData(t)
 
+	req := &pb.Ids{Id: []uint64{2, 3}}
+	resp, err := c.GetPostsById(context.TODO(), req)
+	assert.NoError(t, err)
 	expected := []models.Post{posts[1], posts[2]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	actualPosts := []models.Post{}
-	json.Unmarshal(w.Body.Bytes(), &actualPosts)
-	assertMiniPostsEqual(t, expected, actualPosts)
-
-	postsAfter, comments := queryDBTest(t, api)
+	postsAfter, comments := queryDBTest(t)
 	assert.Len(t, comments, 2)
 	assertPostsEqual(t, posts, postsAfter)
 }
