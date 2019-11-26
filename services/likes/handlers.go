@@ -13,7 +13,7 @@ type GRPCHandlers struct {
 }
 
 func (h *GRPCHandlers) LikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
-	like := PostLike{*idu.Id, *idu.UserId, time.Now()}
+	like := PostLike{idu.GetId(), idu.GetUserId(), time.Now()}
 
 	if err := h.db.FirstOrCreate(&PostLike{}, &like).Error; err != nil {
 		return nil, err
@@ -29,7 +29,7 @@ func (h *GRPCHandlers) LikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Tota
 }
 
 func (h *GRPCHandlers) UnlikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
-	like := PostLike{PostID: *idu.Id, UserID: *idu.UserId}
+	like := PostLike{PostID: idu.GetId(), UserID: idu.GetUserId()}
 
 	if err := h.db.Delete(&like).Error; err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (h *GRPCHandlers) UnlikePost(ctx context.Context, idu *pb.IDUserID) (*pb.To
 }
 
 func (h *GRPCHandlers) LikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
-	like := CommentLike{*idu.Id, *idu.UserId, time.Now()}
+	like := CommentLike{idu.GetId(), idu.GetUserId(), time.Now()}
 
 	if err := h.db.FirstOrCreate(&CommentLike{}, &like).Error; err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (h *GRPCHandlers) LikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.T
 }
 
 func (h *GRPCHandlers) UnlikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
-	like := CommentLike{CommentID: *idu.Id, UserID: *idu.UserId}
+	like := CommentLike{CommentID: idu.GetId(), UserID: idu.GetUserId()}
 
 	if err := h.db.Delete(&like).Error; err != nil {
 		return nil, err
@@ -122,7 +122,7 @@ func (h *GRPCHandlers) PostsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*p
 	for _, v := range idu.Id {
 		like := PostLike{}
 
-		if err := h.db.Where("post_id = ? AND user_id = ?", v, *idu.UserId).Find(&like).Error; err != nil {
+		if err := h.db.Where("post_id = ? AND user_id = ?", v, idu.GetUserId()).Find(&like).Error; err != nil {
 			if gorm.IsRecordNotFoundError(err) {
 				likes = append(likes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(v), HasLike: proto.Bool(false)})
 				continue
@@ -142,7 +142,7 @@ func (h *GRPCHandlers) CommentsHaveLike(ctx context.Context, idu *pb.IDsUserID) 
 	for _, v := range idu.Id {
 		like := CommentLike{}
 
-		if err := h.db.Where("comment_id = ? AND user_id = ?", v, *idu.UserId).Find(&like).Error; err != nil {
+		if err := h.db.Where("comment_id = ? AND user_id = ?", v, idu.GetUserId()).Find(&like).Error; err != nil {
 			if gorm.IsRecordNotFoundError(err) {
 				likes = append(likes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(v), HasLike: proto.Bool(false)})
 				continue

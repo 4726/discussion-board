@@ -31,7 +31,7 @@ func (h *Handlers) Upload(ctx context.Context, in *pb.UploadRequest) (*pb.Name, 
 }
 
 func (h *Handlers) Remove(ctx context.Context, in *pb.Name) (*pb.RemoveResponse, error) {
-	if err := h.mc.RemoveObject(bucketName, *in.Name); err != nil {
+	if err := h.mc.RemoveObject(bucketName, in.GetName()); err != nil {
 		return nil, err
 	}
 	return &pb.RemoveResponse{}, nil
