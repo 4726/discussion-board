@@ -7,7 +7,7 @@ service PostsRead {
 }
 
 message Id {
-    required Id uint64 = 1;
+    required uint64 Id = 1;
 }
 
 message Post {
@@ -27,7 +27,7 @@ message Comment {
     optional uint64 parent_id = 3;
     required uint64 user_id = 4;
     required string body = 5;
-    required uint64 created_at = 6;
+    required int64 created_at = 6;
     optional int64 Likes = 7;
 }
 
