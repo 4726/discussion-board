@@ -463,30 +463,30 @@ func init() { proto.RegisterFile("posts-write.proto", fileDescriptor_e0f896a35be
 
 var fileDescriptor_e0f896a35be189e2 = []byte{
 	// 383 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x51, 0x4d, 0x4f, 0xea, 0x40,
-	0x14, 0x2d, 0x85, 0x07, 0xf4, 0x3e, 0x1e, 0x3c, 0x2e, 0xe5, 0x23, 0x7d, 0x79, 0x09, 0x4e, 0x62,
-	0xc2, 0xc6, 0x89, 0xba, 0x31, 0x31, 0x71, 0x85, 0x2e, 0x48, 0x34, 0x21, 0xe5, 0x07, 0x98, 0x6a,
-	0xef, 0xa2, 0xb1, 0xd0, 0xda, 0x19, 0x62, 0xfc, 0x89, 0xfe, 0x2b, 0x33, 0x1d, 0xe8, 0x87, 0xd4,
-	0x8f, 0x5d, 0xef, 0x99, 0xdb, 0x73, 0xce, 0x3d, 0x07, 0xfa, 0x71, 0x24, 0xa4, 0x38, 0x79, 0x49,
-	0x02, 0x49, 0x3c, 0x4e, 0x22, 0x19, 0xb1, 0x25, 0xfc, 0x5e, 0x46, 0x42, 0xba, 0xf4, 0xbc, 0x25,
-	0x21, 0xd1, 0x86, 0x5f, 0x32, 0x90, 0x21, 0x4d, 0x6a, 0x53, 0x73, 0x66, 0xb9, 0x7a, 0x40, 0x84,
-	0xc6, 0x43, 0xe4, 0xbf, 0x4e, 0xcc, 0x14, 0x4c, 0xbf, 0x71, 0x0c, 0xad, 0xad, 0xa0, 0xe4, 0x3e,
-	0xf0, 0x27, 0xf5, 0xa9, 0x39, 0x6b, 0xb8, 0x4d, 0x35, 0x2e, 0x7c, 0x76, 0x04, 0x4d, 0xc5, 0xb8,
-	0xf0, 0xd5, 0x8a, 0x12, 0x54, 0x2b, 0x35, 0xbd, 0x12, 0xa7, 0x0f, 0xec, 0x06, 0xfa, 0xd7, 0x14,
-	0x92, 0xa4, 0xa2, 0xf4, 0x67, 0xdb, 0x45, 0x25, 0x73, 0x5a, 0x2b, 0x28, 0xd9, 0x80, 0x45, 0x1a,
-	0x11, 0x47, 0x1b, 0x41, 0xec, 0x14, 0xda, 0x2b, 0x92, 0xb7, 0xc1, 0x13, 0x09, 0xec, 0x82, 0x99,
-	0xd1, 0x99, 0x81, 0xaf, 0xce, 0x0b, 0xd5, 0x43, 0x7a, 0x49, 0xdd, 0xd5, 0x03, 0x43, 0xf8, 0xbb,
-	0xff, 0x23, 0x63, 0x11, 0xd0, 0x9d, 0x47, 0xeb, 0x35, 0x6d, 0xbe, 0xf7, 0xf7, 0x0f, 0xac, 0xd8,
-	0x4b, 0x68, 0x23, 0x73, 0x87, 0x6d, 0x0d, 0x94, 0xcd, 0x97, 0x62, 0xca, 0x32, 0x6d, 0xe4, 0x99,
-	0xb2, 0x31, 0x0c, 0xe7, 0x09, 0x79, 0x92, 0x32, 0xe9, 0x9d, 0x9b, 0x3b, 0x18, 0xcc, 0x43, 0xf2,
-	0x92, 0x0f, 0x96, 0xfe, 0x03, 0x3c, 0x6a, 0x24, 0x77, 0x65, 0xed, 0x90, 0xaf, 0x82, 0x1b, 0x81,
-	0x5d, 0xa6, 0xd3, 0x32, 0xe7, 0x6f, 0x26, 0x58, 0x2a, 0x4b, 0xe1, 0x92, 0xe7, 0xe3, 0x31, 0x80,
-	0x76, 0xa3, 0x20, 0xec, 0xf0, 0x42, 0x59, 0x4e, 0x8b, 0xeb, 0x8e, 0x99, 0x81, 0x17, 0x00, 0x79,
-	0x0b, 0x88, 0xfc, 0xa0, 0x59, 0x67, 0xc0, 0x2b, 0x6a, 0x32, 0x90, 0x43, 0x67, 0x45, 0x52, 0x81,
-	0xba, 0x2c, 0x8b, 0xef, 0x5b, 0x70, 0xfa, 0xfc, 0xa0, 0x10, 0x03, 0x2f, 0xe1, 0x4f, 0x29, 0x1d,
-	0xec, 0xf1, 0x72, 0x1e, 0xce, 0x88, 0x57, 0xc7, 0x67, 0xe0, 0x15, 0x74, 0x8a, 0x17, 0xa3, 0xcd,
-	0x2b, 0xf2, 0x74, 0x86, 0xbc, 0x2a, 0x16, 0x66, 0xe0, 0x19, 0xf4, 0x56, 0x24, 0x77, 0xf8, 0x8f,
-	0xdc, 0xbe, 0x07, 0x00, 0x00, 0xff, 0xff, 0xee, 0x1c, 0x24, 0x3c, 0x6c, 0x03, 0x00, 0x00,
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x52, 0x4d, 0x4f, 0xea, 0x40,
+	0x14, 0x2d, 0x85, 0x07, 0xf4, 0x3e, 0x1e, 0x3c, 0x2e, 0xe5, 0x23, 0x35, 0x26, 0x38, 0x89, 0x09,
+	0x1b, 0x27, 0xea, 0xc6, 0xc4, 0xc4, 0x15, 0xba, 0x20, 0xd1, 0x84, 0x94, 0x85, 0x4b, 0x83, 0xf6,
+	0x2e, 0x1a, 0x0b, 0xad, 0x9d, 0x21, 0xc6, 0xbf, 0xe8, 0xaf, 0x32, 0xd3, 0x81, 0x7e, 0x48, 0xfd,
+	0xd8, 0x71, 0xcf, 0x5c, 0xce, 0x39, 0xf7, 0x9c, 0x42, 0x37, 0x0a, 0x85, 0x14, 0x27, 0xaf, 0xb1,
+	0x2f, 0x89, 0x47, 0x71, 0x28, 0x43, 0x36, 0x87, 0xbf, 0xf3, 0x50, 0x48, 0x97, 0x5e, 0x36, 0x24,
+	0x24, 0xda, 0xf0, 0x47, 0xfa, 0x32, 0xa0, 0x51, 0x65, 0x6c, 0x4e, 0x2c, 0x57, 0x0f, 0x88, 0x50,
+	0x7b, 0x0c, 0xbd, 0xb7, 0x91, 0x99, 0x80, 0xc9, 0x6f, 0x1c, 0x42, 0x63, 0x23, 0x28, 0x7e, 0xf0,
+	0xbd, 0x51, 0x75, 0x6c, 0x4e, 0x6a, 0x6e, 0x5d, 0x8d, 0x33, 0x8f, 0x1d, 0x41, 0x5d, 0x31, 0xce,
+	0x3c, 0xb5, 0xa2, 0x04, 0xd5, 0x4a, 0x45, 0xaf, 0x44, 0xc9, 0x03, 0xbb, 0x81, 0xee, 0x35, 0x05,
+	0x24, 0x29, 0x2f, 0xfd, 0xd5, 0x76, 0x5e, 0xc9, 0x1c, 0x57, 0x72, 0x4a, 0x36, 0x60, 0x9e, 0x46,
+	0x44, 0xe1, 0x5a, 0x10, 0x3b, 0x85, 0xe6, 0x82, 0xe4, 0xad, 0xff, 0x4c, 0x02, 0xdb, 0x60, 0xa6,
+	0x74, 0xa6, 0xef, 0xa9, 0xf3, 0x02, 0xf5, 0x90, 0x5c, 0x52, 0x75, 0xf5, 0xc0, 0x10, 0xfe, 0xef,
+	0xfe, 0x91, 0xb2, 0x08, 0x68, 0x4f, 0xc3, 0xd5, 0x8a, 0xd6, 0x3f, 0xfb, 0x3b, 0x00, 0x2b, 0x5a,
+	0xc6, 0xb4, 0x96, 0x99, 0xc3, 0xa6, 0x06, 0x8a, 0xe6, 0x0b, 0x31, 0xa5, 0x99, 0xd6, 0xb2, 0x4c,
+	0xd9, 0x10, 0xfa, 0xd3, 0x98, 0x96, 0x92, 0x52, 0xe9, 0xad, 0x9b, 0x3b, 0xe8, 0x4d, 0x03, 0x5a,
+	0xc6, 0x9f, 0x2c, 0x1d, 0x02, 0x3c, 0x69, 0x24, 0x73, 0x65, 0x6d, 0x91, 0xef, 0x82, 0x1b, 0x80,
+	0x5d, 0xa4, 0xd3, 0x32, 0xe7, 0xef, 0x26, 0x80, 0xca, 0x52, 0xdc, 0xab, 0x2f, 0x04, 0x8f, 0x01,
+	0xb4, 0x1d, 0x85, 0x61, 0x8b, 0xe7, 0xda, 0x72, 0x1a, 0x5c, 0x97, 0xcc, 0x0c, 0xbc, 0x00, 0xc8,
+	0x6a, 0x40, 0xe4, 0x7b, 0xd5, 0x3a, 0x3d, 0x5e, 0xd2, 0x93, 0x81, 0x1c, 0x5a, 0x0b, 0x92, 0x0a,
+	0xd4, 0x6d, 0x59, 0x7c, 0x57, 0x83, 0xd3, 0xe5, 0x7b, 0x8d, 0x18, 0x78, 0x09, 0xff, 0x0a, 0xf1,
+	0x60, 0x87, 0x17, 0x03, 0x71, 0x06, 0xbc, 0x3c, 0x3f, 0x03, 0xaf, 0xa0, 0x95, 0x3f, 0x19, 0x6d,
+	0x5e, 0x12, 0xa8, 0xd3, 0xe7, 0x65, 0xb9, 0x30, 0x03, 0xcf, 0xa0, 0xb3, 0x20, 0xb9, 0xc5, 0x7f,
+	0xe5, 0xf6, 0x23, 0x00, 0x00, 0xff, 0xff, 0xdc, 0x34, 0xb1, 0xf1, 0x6d, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -497,10 +497,10 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// PostsReadClient is the client API for PostsRead service.
+// PostsWriteClient is the client API for PostsWrite service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type PostsReadClient interface {
+type PostsWriteClient interface {
 	CreatePost(ctx context.Context, in *PostRequest, opts ...grpc.CallOption) (*PostId, error)
 	DeletePost(ctx context.Context, in *DeletePostRequest, opts ...grpc.CallOption) (*DeletePostResponse, error)
 	SetPostLikes(ctx context.Context, in *SetLikes, opts ...grpc.CallOption) (*SetLikesResponse, error)
@@ -509,70 +509,70 @@ type PostsReadClient interface {
 	SetCommentLikes(ctx context.Context, in *SetLikes, opts ...grpc.CallOption) (*SetLikesResponse, error)
 }
 
-type postsReadClient struct {
+type postsWriteClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewPostsReadClient(cc *grpc.ClientConn) PostsReadClient {
-	return &postsReadClient{cc}
+func NewPostsWriteClient(cc *grpc.ClientConn) PostsWriteClient {
+	return &postsWriteClient{cc}
 }
 
-func (c *postsReadClient) CreatePost(ctx context.Context, in *PostRequest, opts ...grpc.CallOption) (*PostId, error) {
+func (c *postsWriteClient) CreatePost(ctx context.Context, in *PostRequest, opts ...grpc.CallOption) (*PostId, error) {
 	out := new(PostId)
-	err := c.cc.Invoke(ctx, "/PostsRead/CreatePost", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/PostsWrite/CreatePost", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *postsReadClient) DeletePost(ctx context.Context, in *DeletePostRequest, opts ...grpc.CallOption) (*DeletePostResponse, error) {
+func (c *postsWriteClient) DeletePost(ctx context.Context, in *DeletePostRequest, opts ...grpc.CallOption) (*DeletePostResponse, error) {
 	out := new(DeletePostResponse)
-	err := c.cc.Invoke(ctx, "/PostsRead/DeletePost", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/PostsWrite/DeletePost", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *postsReadClient) SetPostLikes(ctx context.Context, in *SetLikes, opts ...grpc.CallOption) (*SetLikesResponse, error) {
+func (c *postsWriteClient) SetPostLikes(ctx context.Context, in *SetLikes, opts ...grpc.CallOption) (*SetLikesResponse, error) {
 	out := new(SetLikesResponse)
-	err := c.cc.Invoke(ctx, "/PostsRead/SetPostLikes", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/PostsWrite/SetPostLikes", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *postsReadClient) CreateComment(ctx context.Context, in *CommentRequest, opts ...grpc.CallOption) (*CreateCommentResponse, error) {
+func (c *postsWriteClient) CreateComment(ctx context.Context, in *CommentRequest, opts ...grpc.CallOption) (*CreateCommentResponse, error) {
 	out := new(CreateCommentResponse)
-	err := c.cc.Invoke(ctx, "/PostsRead/CreateComment", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/PostsWrite/CreateComment", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *postsReadClient) ClearComment(ctx context.Context, in *ClearCommentRequest, opts ...grpc.CallOption) (*ClearCommentResponse, error) {
+func (c *postsWriteClient) ClearComment(ctx context.Context, in *ClearCommentRequest, opts ...grpc.CallOption) (*ClearCommentResponse, error) {
 	out := new(ClearCommentResponse)
-	err := c.cc.Invoke(ctx, "/PostsRead/ClearComment", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/PostsWrite/ClearComment", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *postsReadClient) SetCommentLikes(ctx context.Context, in *SetLikes, opts ...grpc.CallOption) (*SetLikesResponse, error) {
+func (c *postsWriteClient) SetCommentLikes(ctx context.Context, in *SetLikes, opts ...grpc.CallOption) (*SetLikesResponse, error) {
 	out := new(SetLikesResponse)
-	err := c.cc.Invoke(ctx, "/PostsRead/SetCommentLikes", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/PostsWrite/SetCommentLikes", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// PostsReadServer is the server API for PostsRead service.
-type PostsReadServer interface {
+// PostsWriteServer is the server API for PostsWrite service.
+type PostsWriteServer interface {
 	CreatePost(context.Context, *PostRequest) (*PostId, error)
 	DeletePost(context.Context, *DeletePostRequest) (*DeletePostResponse, error)
 	SetPostLikes(context.Context, *SetLikes) (*SetLikesResponse, error)
@@ -581,168 +581,168 @@ type PostsReadServer interface {
 	SetCommentLikes(context.Context, *SetLikes) (*SetLikesResponse, error)
 }
 
-// UnimplementedPostsReadServer can be embedded to have forward compatible implementations.
-type UnimplementedPostsReadServer struct {
+// UnimplementedPostsWriteServer can be embedded to have forward compatible implementations.
+type UnimplementedPostsWriteServer struct {
 }
 
-func (*UnimplementedPostsReadServer) CreatePost(ctx context.Context, req *PostRequest) (*PostId, error) {
+func (*UnimplementedPostsWriteServer) CreatePost(ctx context.Context, req *PostRequest) (*PostId, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreatePost not implemented")
 }
-func (*UnimplementedPostsReadServer) DeletePost(ctx context.Context, req *DeletePostRequest) (*DeletePostResponse, error) {
+func (*UnimplementedPostsWriteServer) DeletePost(ctx context.Context, req *DeletePostRequest) (*DeletePostResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeletePost not implemented")
 }
-func (*UnimplementedPostsReadServer) SetPostLikes(ctx context.Context, req *SetLikes) (*SetLikesResponse, error) {
+func (*UnimplementedPostsWriteServer) SetPostLikes(ctx context.Context, req *SetLikes) (*SetLikesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetPostLikes not implemented")
 }
-func (*UnimplementedPostsReadServer) CreateComment(ctx context.Context, req *CommentRequest) (*CreateCommentResponse, error) {
+func (*UnimplementedPostsWriteServer) CreateComment(ctx context.Context, req *CommentRequest) (*CreateCommentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateComment not implemented")
 }
-func (*UnimplementedPostsReadServer) ClearComment(ctx context.Context, req *ClearCommentRequest) (*ClearCommentResponse, error) {
+func (*UnimplementedPostsWriteServer) ClearComment(ctx context.Context, req *ClearCommentRequest) (*ClearCommentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ClearComment not implemented")
 }
-func (*UnimplementedPostsReadServer) SetCommentLikes(ctx context.Context, req *SetLikes) (*SetLikesResponse, error) {
+func (*UnimplementedPostsWriteServer) SetCommentLikes(ctx context.Context, req *SetLikes) (*SetLikesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetCommentLikes not implemented")
 }
 
-func RegisterPostsReadServer(s *grpc.Server, srv PostsReadServer) {
-	s.RegisterService(&_PostsRead_serviceDesc, srv)
+func RegisterPostsWriteServer(s *grpc.Server, srv PostsWriteServer) {
+	s.RegisterService(&_PostsWrite_serviceDesc, srv)
 }
 
-func _PostsRead_CreatePost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PostsWrite_CreatePost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PostRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PostsReadServer).CreatePost(ctx, in)
+		return srv.(PostsWriteServer).CreatePost(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/PostsRead/CreatePost",
+		FullMethod: "/PostsWrite/CreatePost",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostsReadServer).CreatePost(ctx, req.(*PostRequest))
+		return srv.(PostsWriteServer).CreatePost(ctx, req.(*PostRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostsRead_DeletePost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PostsWrite_DeletePost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeletePostRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PostsReadServer).DeletePost(ctx, in)
+		return srv.(PostsWriteServer).DeletePost(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/PostsRead/DeletePost",
+		FullMethod: "/PostsWrite/DeletePost",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostsReadServer).DeletePost(ctx, req.(*DeletePostRequest))
+		return srv.(PostsWriteServer).DeletePost(ctx, req.(*DeletePostRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostsRead_SetPostLikes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PostsWrite_SetPostLikes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetLikes)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PostsReadServer).SetPostLikes(ctx, in)
+		return srv.(PostsWriteServer).SetPostLikes(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/PostsRead/SetPostLikes",
+		FullMethod: "/PostsWrite/SetPostLikes",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostsReadServer).SetPostLikes(ctx, req.(*SetLikes))
+		return srv.(PostsWriteServer).SetPostLikes(ctx, req.(*SetLikes))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostsRead_CreateComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PostsWrite_CreateComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CommentRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PostsReadServer).CreateComment(ctx, in)
+		return srv.(PostsWriteServer).CreateComment(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/PostsRead/CreateComment",
+		FullMethod: "/PostsWrite/CreateComment",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostsReadServer).CreateComment(ctx, req.(*CommentRequest))
+		return srv.(PostsWriteServer).CreateComment(ctx, req.(*CommentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostsRead_ClearComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PostsWrite_ClearComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ClearCommentRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PostsReadServer).ClearComment(ctx, in)
+		return srv.(PostsWriteServer).ClearComment(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/PostsRead/ClearComment",
+		FullMethod: "/PostsWrite/ClearComment",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostsReadServer).ClearComment(ctx, req.(*ClearCommentRequest))
+		return srv.(PostsWriteServer).ClearComment(ctx, req.(*ClearCommentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostsRead_SetCommentLikes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PostsWrite_SetCommentLikes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetLikes)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PostsReadServer).SetCommentLikes(ctx, in)
+		return srv.(PostsWriteServer).SetCommentLikes(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/PostsRead/SetCommentLikes",
+		FullMethod: "/PostsWrite/SetCommentLikes",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostsReadServer).SetCommentLikes(ctx, req.(*SetLikes))
+		return srv.(PostsWriteServer).SetCommentLikes(ctx, req.(*SetLikes))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _PostsRead_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "PostsRead",
-	HandlerType: (*PostsReadServer)(nil),
+var _PostsWrite_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "PostsWrite",
+	HandlerType: (*PostsWriteServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "CreatePost",
-			Handler:    _PostsRead_CreatePost_Handler,
+			Handler:    _PostsWrite_CreatePost_Handler,
 		},
 		{
 			MethodName: "DeletePost",
-			Handler:    _PostsRead_DeletePost_Handler,
+			Handler:    _PostsWrite_DeletePost_Handler,
 		},
 		{
 			MethodName: "SetPostLikes",
-			Handler:    _PostsRead_SetPostLikes_Handler,
+			Handler:    _PostsWrite_SetPostLikes_Handler,
 		},
 		{
 			MethodName: "CreateComment",
-			Handler:    _PostsRead_CreateComment_Handler,
+			Handler:    _PostsWrite_CreateComment_Handler,
 		},
 		{
 			MethodName: "ClearComment",
-			Handler:    _PostsRead_ClearComment_Handler,
+			Handler:    _PostsWrite_ClearComment_Handler,
 		},
 		{
 			MethodName: "SetCommentLikes",
-			Handler:    _PostsRead_SetCommentLikes_Handler,
+			Handler:    _PostsWrite_SetCommentLikes_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
