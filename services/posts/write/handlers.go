@@ -1,199 +1,118 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/4726/discussion-board/services/posts/models"
-	"github.com/gin-gonic/gin"
+	"github.com/4726/discussion-board/services/posts/write/pb"
+	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/gorm"
-	"net/http"
 	"time"
 )
 
-type ErrorResponse struct {
-	Error string
-}
-
 var (
-	InvalidJSONBodyResponse = ErrorResponse{"invalid body"}
-	PostDoesNotExist        = fmt.Errorf("post does not exist")
+	PostDoesNotExist = fmt.Errorf("post does not exist")
 )
 
-func CreatePost(db *gorm.DB, ctx *gin.Context) {
-	form := struct {
-		Title  string `binding:"required"`
-		Body   string `binding:"required"`
-		UserID uint   `binding:"required"`
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
-	}
+type Handlers struct {
+	db *gorm.DB
+}
 
+func (h *Handlers) CreatePost(ctx context.Context, in *pb.PostRequest) (*pb.PostId, error) {
 	created := time.Now()
 	post := models.Post{
-		UserID:    form.UserID,
-		Title:     form.Title,
-		Body:      form.Body,
+		UserID:    in.GetUserId(),
+		Title:     in.GetTitle(),
+		Body:      in.GetBody(),
 		Likes:     0,
 		CreatedAt: created,
 		UpdatedAt: created,
 	}
 
-	if err := db.Save(&post).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+	if err := h.db.Save(&post).Error; err != nil {
+		return nil, err
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"postID": post.ID})
+	return &pb.PostId{PostId: proto.Uint64(post.ID)}, nil
 }
 
-func DeletePost(db *gorm.DB, ctx *gin.Context) {
-	form := struct {
-		PostID uint `binding:"required"`
-		UserID uint
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
-	}
+func (h *Handlers) DeletePost(ctx context.Context, in *pb.DeletePostRequest) (*pb.DeletePostResponse, error) {
+	post := models.Post{ID: in.GetPostId()}
 
-	post := models.Post{ID: form.PostID}
-
-	if form.UserID != 0 {
-		if err := db.Where("user_id = ?", form.UserID).Delete(&post).Error; err != nil {
-			ctx.Set(logInfoKey, err)
-			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
+	if in.GetUserId() != 0 {
+		if err := h.db.Where("user_id = ?", in.GetUserId()).Delete(&post).Error; err != nil {
+			return nil, err
 		} else {
-			ctx.JSON(http.StatusOK, gin.H{})
-			return
+			return &pb.DeletePostResponse{}, nil
 		}
 	}
 
-	if err := db.Delete(&post).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+	if err := h.db.Delete(&post).Error; err != nil {
+		return nil, err
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	return &pb.DeletePostResponse{}, nil
 }
 
-func UpdatePostLikes(db *gorm.DB, ctx *gin.Context) {
-	form := struct {
-		PostID uint `binding:"required"`
-		Likes  int
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
-	}
-
-	post := models.Post{ID: form.PostID}
+func (h *Handlers) SetPostLikes(ctx context.Context, in *pb.SetLikes) (*pb.SetLikesResponse, error) {
+	post := models.Post{ID: in.GetId()}
 
 	//uses UpdateColumn() instead of Update() because Update()
 	//automatically updates the UpdatedAt field
-	if err := db.Model(&post).UpdateColumn("Likes", form.Likes).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+	if err := h.db.Model(&post).UpdateColumn("Likes", in.GetLikes()).Error; err != nil {
+		return nil, err
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	return &pb.SetLikesResponse{}, nil
 }
 
-func CreateComment(db *gorm.DB, ctx *gin.Context) {
-	form := struct {
-		PostID   uint `binding:"required"`
-		ParentID uint
-		UserID   uint   `binding:"required"`
-		Body     string `binding:"required"`
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
-	}
-
+func (h *Handlers) CreateComment(ctx context.Context, in *pb.CommentRequest) (*pb.CreateCommentResponse, error) {
 	created := time.Now()
 	comment := models.Comment{
-		PostID:    form.PostID,
-		ParentID:  form.ParentID,
-		UserID:    form.UserID,
-		Body:      form.Body,
+		PostID:    in.GetPostId(),
+		ParentID:  in.GetParentId(),
+		UserID:    in.GetUserId(),
+		Body:      in.GetBody(),
 		CreatedAt: created,
 		Likes:     0,
 	}
 
-	if err := addCommentToDB(db, &comment); err != nil {
+	if err := addCommentToDB(h.db, &comment); err != nil {
 		if err == PostDoesNotExist {
-			ctx.Set(logInfoKey, err)
-			ctx.JSON(http.StatusBadRequest, ErrorResponse{"post does not exist"})
-			return
+			return nil, err
 		}
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	return &pb.CreateCommentResponse{}, nil
 }
 
-func ClearComment(db *gorm.DB, ctx *gin.Context) {
-	form := struct {
-		CommentID uint `binding:"required"`
-		UserID    uint
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
-	}
+func (h *Handlers) ClearComment(ctx context.Context, in *pb.ClearCommentRequest) (*pb.ClearCommentResponse, error) {
+	comment := models.Comment{ID: in.GetCommentId()}
 
-	comment := models.Comment{ID: form.CommentID}
-
-	if form.UserID != 0 {
-		if err := db.Model(&comment).Where("user_id = ?", form.UserID).UpdateColumn("Body", "").Error; err != nil {
-			ctx.Set(logInfoKey, err)
-			ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
+	if in.GetUserId() != 0 {
+		if err := h.db.Model(&comment).Where("user_id = ?", in.GetUserId()).UpdateColumn("Body", "").Error; err != nil {
+			return nil, err
 		} else {
-			ctx.JSON(http.StatusOK, gin.H{})
+			return &pb.ClearCommentResponse{}, nil
 		}
-		return
 	}
 
-	if err := db.Model(&comment).UpdateColumn("Body", "").Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+	if err := h.db.Model(&comment).UpdateColumn("Body", "").Error; err != nil {
+		return nil, err
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	return &pb.ClearCommentResponse{}, nil
 }
 
-func UpdateCommentLikes(db *gorm.DB, ctx *gin.Context) {
-	form := struct {
-		CommentID uint `binding:"required"`
-		Likes     int
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
+func (h *Handlers) SetCommentLikes(ctx context.Context, in *pb.SetLikes) (*pb.SetLikesResponse, error) {
+	comment := models.Comment{ID: in.GetId()}
+
+	if err := h.db.Model(&comment).Update("Likes", in.GetLikes()).Error; err != nil {
+		return nil, err
 	}
 
-	comment := models.Comment{ID: form.CommentID}
-
-	if err := db.Model(&comment).Update("Likes", form.Likes).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{})
+	return &pb.SetLikesResponse{}, nil
 }
 
 func addCommentToDB(db *gorm.DB, comment *models.Comment) error {
