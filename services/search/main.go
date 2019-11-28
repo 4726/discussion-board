@@ -18,7 +18,7 @@ func main() {
 		return
 	}
 
-	api, err := NewRestAPI(cfg.ESIndex, cfg.ESAddr)
+	api, err := NewApi(cfg)
 	if err != nil {
 		log.Entry().Fatal(err)
 	}

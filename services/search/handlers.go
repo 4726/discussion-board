@@ -1,116 +1,56 @@
 package main
 
 import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
+	"context"
+	"github.com/4726/discussion-board/services/search/pb"
 )
 
-type ErrorResponse struct {
-	Error string
+type Handlers struct {
+	esc *ESClient
 }
 
-var (
-	InvalidJSONBodyResponse = ErrorResponse{"invalid body"}
-)
-
-func Index(esc *ESClient, ctx *gin.Context) {
-	form := struct {
-		Title     string `binding:"required"`
-		Body      string `binding:"required"`
-		UserID    uint   `binding:"required"`
-		Id        uint   `binding:"required"`
-		Timestamp int64
-		Likes     int
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
+func (h *Handlers) Index(ctx context.Context, in *pb.Post) (*pb.IndexResponse, error) {
+	post := Post{
+		in.GetTitle(), 
+		in.GetBody(), 
+		in.GetId(), 
+		in.GetUserId(), 
+		in.GetTimestamp(), 
+		in.GetLikes(),
 	}
 
-	post := Post{form.Title, form.Body, form.Id, int(form.UserID), form.Timestamp, form.Likes}
-
-	if err := esc.Index(post); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+	if err := h.esc.Index(post); err != nil {
+		return nil, err
 	}
-	ctx.JSON(http.StatusOK, struct{}{})
+	return &pb.IndexResponse{}, nil
 }
 
-func Search(esc *ESClient, ctx *gin.Context) {
-	query := struct {
-		Term  string `form:"term" binding:"required"`
-		From  uint   `form:"from"`
-		Total uint   `form:"total" binding:"required"`
-	}{}
-
-	err := ctx.BindQuery(&query)
+func (h *Handlers) Search(ctx context.Context, in *pb.SearchQuery) (*pb.SearchResult, error) {
+	res, err := h.esc.Search(in.GetTerm(), in.GetFrom(), in.GetTotal())
 	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid query"})
-		return
+		return nil, err
 	}
-
-	res, err := esc.Search(query.Term, int(query.From), int(query.Total))
-	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusOK, res)
+	return &pb.SearchResult{Id: res}, nil
 }
 
-func UpdateLikes(esc *ESClient, ctx *gin.Context) {
-	form := struct {
-		Id    uint `binding:"required"`
-		Likes int
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
+func (h *Handlers) SetLikes(ctx context.Context, in *pb.Likes) (*pb.LikesResponse, error) {
+	if err := h.esc.UpdateLikes(in.GetId(), in.GetLikes()); err != nil {
+		return nil, err
 	}
-	if err := esc.UpdateLikes(form.Id, form.Likes); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-	ctx.JSON(http.StatusOK, struct{}{})
+	return &pb.LikesResponse{}, nil
 }
 
-func Delete(esc *ESClient, ctx *gin.Context) {
-	form := struct {
-		Id uint `binding:"required"`
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
+func (h *Handlers) DeletePost(ctx context.Context, in *pb.Id) (*pb.DeletePostResponse, error) {
+	if err := h.esc.Delete(in.GetId()); err != nil {
+		return nil, err
 	}
-	if err := esc.Delete(form.Id); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-	ctx.JSON(http.StatusOK, struct{}{})
+
+	return &pb.DeletePostResponse{}, nil
 }
 
-func UpdateLastUpdate(esc *ESClient, ctx *gin.Context) {
-	form := struct {
-		Id         uint `binding:"required"`
-		LastUpdate int64
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
+func (h *Handlers) SetTimestamp(ctx context.Context, in *pb.Timestamp) (*pb.SetTimestampResponse, error) {
+	if err := h.esc.UpdateLastUpdate(in.GetId(), in.GetTimestamp()); err != nil {
+		return nil, err
 	}
-	if err := esc.UpdateLastUpdate(form.Id, form.LastUpdate); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
-	}
-	ctx.JSON(http.StatusOK, struct{}{})
+	return &pb.SetTimestampResponse{}, nil
 }
