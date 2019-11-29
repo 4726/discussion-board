@@ -1,524 +1,507 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
+	"fmt"
+	"github.com/4726/discussion-board/services/user/pb"
+	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
+	"google.golang.org/grpc"
 	"os"
 	"testing"
 	"time"
 )
 
-type LoginForm struct {
-	Username, Password string
-}
-
-type CreateAccountForm struct {
-	Username, Password string
-}
-
-type UpdateProfileForm struct {
-	UserID        uint
-	Bio, AvatarID string
-}
-
-type ChangePasswordForm struct {
-	UserID           uint
-	OldPass, NewPass string
-}
+var testApi *Api
+var testAddr string
 
 func TestMain(m *testing.M) {
-	log.SetOutput(ioutil.Discard)
-	os.Exit(m.Run())
-}
-
-func assertJSON(t testing.TB, obj interface{}) string {
-	b, err := json.Marshal(obj)
-	assert.NoError(t, err)
-	return string(b)
-}
-
-func createAccountForTesting(t testing.TB, username, password string) ([]Auth, []Profile) {
 	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
+	if err != nil {
+		panic(err)
+	}
+	api, err := NewApi(cfg)
+	if err != nil {
+		panic(err)
+	}
+	testApi = api
+	addr := fmt.Sprintf(":%v", cfg.ListenPort)
+	testAddr = addr
+	go api.Run(addr)
+	time.Sleep(time.Second * 3)
 
-	form := CreateAccountForm{username, password}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/account", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := map[string]interface{}{"userid": 1}
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	auths, profiles := queryDBTest(t, api)
-	assert.Len(t, auths, 1)
-	assert.Len(t, profiles, 1)
-	auth := auths[0]
-	profile := profiles[0]
-	assert.Equal(t, uint(1), auth.UserID)
-	assert.Equal(t, "username", auth.Username)
-	assert.NotEqual(t, "password", auth.Password)
-	assert.Equal(t, auth.CreatedAt, auth.UpdatedAt)
-	assert.WithinDuration(t, time.Now(), auth.CreatedAt, time.Minute)
-	assert.Equal(t, initialBio, profile.Bio)
-	assert.Equal(t, initialAvatarID, profile.AvatarID)
-	assert.Equal(t, profile.UserID, auth.UserID)
-	assert.Equal(t, profile.Username, auth.Username)
-
-	return auths, profiles
+	i := m.Run()
+	//close server
+	os.Exit(i)
 }
 
-func queryDBTest(t testing.TB, api *RestAPI) ([]Auth, []Profile) {
+func cleanDB(t testing.TB) {
+	testApi.db.Exec("TRUNCATE auths;")
+	testApi.db.Exec("TRUNCATE profiles;")
+}
+
+func fillDBTestData(t testing.TB) ([]Auth, []Profile) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+
+	req := &pb.LoginCredentials{Username: proto.String("aaaaaa"), Password: proto.String("12345678")}
+	_, err = c.CreateAccount(context.TODO(), req)
+	assert.NoError(t, err)
+	req = &pb.LoginCredentials{Username: proto.String("bbbbbb"), Password: proto.String("12345678")}
+	_, err = c.CreateAccount(context.TODO(), req)
+	assert.NoError(t, err)
+	req = &pb.LoginCredentials{Username: proto.String("cccccc"), Password: proto.String("12345678")}
+	_, err = c.CreateAccount(context.TODO(), req)
+	assert.NoError(t, err)
+
+	return queryDBTest(t)
+}
+
+func queryDBTest(t testing.TB) ([]Auth, []Profile) {
 	auths := []Auth{}
 	profiles := []Profile{}
-	assert.NoError(t, api.db.Find(&auths).Error)
-	assert.NoError(t, api.db.Find(&profiles).Error)
+	assert.NoError(t, testApi.db.Find(&auths).Error)
+	assert.NoError(t, testApi.db.Find(&profiles).Error)
 	return auths, profiles
-}
-
-func getCleanAPIForTesting(t testing.TB) *RestAPI {
-	cfg, err := ConfigFromJSON("config_test.json")
-	assert.NoError(t, err)
-	api, err := NewRestAPI(cfg)
-	assert.NoError(t, err)
-	api.db.Exec("TRUNCATE auths;")
-	api.db.Exec("TRUNCATE profiles;")
-
-	return api
-}
-
-func testInvalidBody(t *testing.T, form interface{}, route string) {
-	api := getCleanAPIForTesting(t)
-
-	auths, profiles := createAccountForTesting(t, "username", "password")
-
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", route, buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := InvalidJSONBodyResponse
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, assertJSON(t, expected), w.Body.String())
-
-	authsAfter, profilesAfter := queryDBTest(t, api)
-	assert.Equal(t, auths, authsAfter)
-	assert.Equal(t, profiles, profilesAfter)
-}
-
-func TestGetProfileInvalidParam(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/profile/a", nil)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid userid param"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	auths, profiles := queryDBTest(t, api)
-	assert.Len(t, auths, 0)
-	assert.Len(t, profiles, 0)
 }
 
 func TestGetProfileDoesNotExist(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/profile/1", nil)
-	api.engine.ServeHTTP(w, req)
+	req := &pb.UserId{UserId: proto.Uint64(10)}
+	_, err = c.GetProfile(context.TODO(), req)
+	assert.Error(t, err)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Equal(t, "{}", w.Body.String())
-
-	auths, profiles := queryDBTest(t, api)
-	assert.Len(t, auths, 0)
-	assert.Len(t, profiles, 0)
-}
-
-func TestGetProfile(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	auths, profiles := createAccountForTesting(t, "username", "password")
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/profile/1", nil)
-	api.engine.ServeHTTP(w, req)
-
-	expected := Profile{
-		UserID:   1,
-		Username: "username",
-		Bio:      "",
-		AvatarID: "",
-	}
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	authsAfter, profilesAfter := queryDBTest(t, api)
+	authsAfter, profilesAfter := queryDBTest(t)
 	assert.Equal(t, auths, authsAfter)
 	assert.Equal(t, profiles, profilesAfter)
 }
 
-func TestValidLoginInvalidBody(t *testing.T) {
-	form := LoginForm{"", "password"}
-	testInvalidBody(t, form, "/login")
-	form = LoginForm{"username", ""}
-	testInvalidBody(t, form, "/login")
+func TestGetProfile(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.UserId{UserId: proto.Uint64(1)}
+	resp, err := c.GetProfile(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.Profile{
+		UserId:   proto.Uint64(1),
+		Username: proto.String("aaaaaa"),
+		Bio:      proto.String(""),
+		AvatarId: proto.String(""),
+	}
+	assert.Equal(t, resp, expected)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
+
+func TestLoginPasswordRequired(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.LoginCredentials{Username: proto.String("")}
+	_, err = c.Login(context.TODO(), req)
+	assert.Error(t, err)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
+
+func TestLoginUsernameRequired(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.LoginCredentials{Password: proto.String("")}
+	_, err = c.Login(context.TODO(), req)
+	assert.Error(t, err)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestValidLoginUsernameDoesNotExist(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
 
-	form := LoginForm{"username", "password"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	req := &pb.LoginCredentials{Username: proto.String("q"), Password: proto.String("")}
+	_, err = c.Login(context.TODO(), req)
+	assert.Error(t, err)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/login", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid login"}
-
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	auths, profiles := queryDBTest(t, api)
-	assert.Len(t, auths, 0)
-	assert.Len(t, profiles, 0)
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestValidLoginWrongPassword(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
 
-	auths, profiles := createAccountForTesting(t, "username", "password")
+	req := &pb.LoginCredentials{Username: proto.String("aaaaaa"), Password: proto.String("111111")}
+	_, err = c.Login(context.TODO(), req)
+	assert.Error(t, err)
 
-	form := LoginForm{"username", "passwor"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/login", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid login"}
-
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	authsAfter, profilesAfter := queryDBTest(t, api)
+	authsAfter, profilesAfter := queryDBTest(t)
 	assert.Equal(t, auths, authsAfter)
 	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestValidLogin(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
 
-	auths, profiles := createAccountForTesting(t, "username", "password")
+	req := &pb.LoginCredentials{Username: proto.String("aaaaaa"), Password: proto.String("12345678")}
+	resp, err := c.Login(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.UserId{UserId: proto.Uint64(1)}
+	assert.Equal(t, expected, resp)
 
-	form := LoginForm{"username", "password"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/login", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := map[string]interface{}{"userid": 1}
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	authsAfter, profilesAfter := queryDBTest(t, api)
+	authsAfter, profilesAfter := queryDBTest(t)
 	assert.Equal(t, auths, authsAfter)
 	assert.Equal(t, profiles, profilesAfter)
 }
 
-func TestCreateAccountInvalidBody(t *testing.T) {
-	form := CreateAccountForm{"", "password"}
-	testInvalidBody(t, form, "/account")
-	form = CreateAccountForm{"username", ""}
-	testInvalidBody(t, form, "/account")
+func TestCreateAccountPasswordRequired(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.LoginCredentials{Username: proto.String("")}
+	_, err = c.CreateAccount(context.TODO(), req)
+	assert.Error(t, err)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
+
+func TestCreateAccountUsernameRequired(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.LoginCredentials{Password: proto.String("")}
+	_, err = c.CreateAccount(context.TODO(), req)
+	assert.Error(t, err)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestCreateAccountInvalidUsername(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
 
-	form := CreateAccountForm{"us", "password"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	req := &pb.LoginCredentials{Username: proto.String("as"), Password: proto.String("1111111")}
+	_, err = c.CreateAccount(context.TODO(), req)
+	assert.Error(t, err)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/account", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid username"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	auths, profiles := queryDBTest(t, api)
-	assert.Len(t, auths, 0)
-	assert.Len(t, profiles, 0)
-
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestCreateAccountInvalidPassword(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
 
-	form := CreateAccountForm{"username", "passw"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	req := &pb.LoginCredentials{Username: proto.String("username"), Password: proto.String("passw")}
+	_, err = c.CreateAccount(context.TODO(), req)
+	assert.Error(t, err)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/account", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid password"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	auths, profiles := queryDBTest(t, api)
-	assert.Len(t, auths, 0)
-	assert.Len(t, profiles, 0)
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestCreateAccount(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
 
-	form := CreateAccountForm{"username", "password"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	req := &pb.LoginCredentials{Username: proto.String("username"), Password: proto.String("password")}
+	resp, err := c.CreateAccount(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.UserId{UserId: proto.Uint64(4)}
+	assert.Equal(t, expected, resp)
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/account", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := map[string]interface{}{"userid": 1}
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	form = CreateAccountForm{"username2", "password2"}
-	buffer = bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w = httptest.NewRecorder()
-	req, _ = http.NewRequest("POST", "/account", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected = map[string]interface{}{"userid": 2}
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter[:3])
+	assert.Equal(t, profiles, profilesAfter[:3])
+	assert.Equal(t, uint64(4), authsAfter[3].UserID)
+	assert.Equal(t, "username", authsAfter[3].Username)
+	assert.Equal(t, authsAfter[3].CreatedAt, authsAfter[3].UpdatedAt)
+	assert.WithinDuration(t, authsAfter[3].CreatedAt, time.Now(), time.Second*10)
+	assert.Equal(t, profilesAfter[3].UserID, authsAfter[3].UserID)
+	assert.Equal(t, profilesAfter[3].Username, authsAfter[3].Username)
+	assert.Equal(t, initialBio, profilesAfter[3].Bio)
+	assert.Equal(t, initialAvatarID, profilesAfter[3].AvatarID)
 }
 
-func TestUpdateProfileInvalidBody(t *testing.T) {
-	form := UpdateProfileForm{0, "a", "a"}
-	testInvalidBody(t, form, "/profile/update")
+func TestUpdateProfileUserIdRequired(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.UpdateProfileRequest{}
+	_, err = c.UpdateProfile(context.TODO(), req)
+	assert.Error(t, err)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestUpdateProfileNone(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
 
-	auths, profiles := createAccountForTesting(t, "username", "password")
+	req := &pb.UpdateProfileRequest{UserId: proto.Uint64(1)}
+	_, err = c.UpdateProfile(context.TODO(), req)
+	assert.NoError(t, err)
 
-	form := UpdateProfileForm{1, "", ""}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/profile/update", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "{}", w.Body.String())
-
-	authsAfter, profilesAfter := queryDBTest(t, api)
+	authsAfter, profilesAfter := queryDBTest(t)
 	assert.Equal(t, auths, authsAfter)
 	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestUpdateProfileBio(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
 
-	auths, profiles := createAccountForTesting(t, "username", "password")
+	req := &pb.UpdateProfileRequest{UserId: proto.Uint64(1), Bio: proto.String("hello world 啊")}
+	_, err = c.UpdateProfile(context.TODO(), req)
+	assert.NoError(t, err)
 
-	form := UpdateProfileForm{1, "hello world 啊", ""}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	profiles[0].Bio = "hello world 啊"
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/profile/update", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "{}", w.Body.String())
-
-	authsAfter, profilesAfter := queryDBTest(t, api)
-	profileAfter := profilesAfter[0]
-	profile := profiles[0]
-	assert.Len(t, profilesAfter, len(profiles))
-	assert.Equal(t, auths, authsAfter)
-	assert.Equal(t, profile.UserID, profileAfter.UserID)
-	assert.Equal(t, profile.Username, profileAfter.Username)
-	assert.Equal(t, profileAfter.Bio, "hello world 啊")
-	assert.Equal(t, profile.AvatarID, profileAfter.AvatarID)
-}
-
-func TestUpdateProfileAvatarID(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	auths, profiles := createAccountForTesting(t, "username", "password")
-
-	form := UpdateProfileForm{1, "", "a"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/profile/update", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "{}", w.Body.String())
-
-	authsAfter, profilesAfter := queryDBTest(t, api)
-	profileAfter := profilesAfter[0]
-	profile := profiles[0]
-	assert.Len(t, profilesAfter, len(profiles))
-	assert.Equal(t, auths, authsAfter)
-	assert.Equal(t, profile.UserID, profileAfter.UserID)
-	assert.Equal(t, profile.Username, profileAfter.Username)
-	assert.Equal(t, profile.Bio, profileAfter.Bio)
-	assert.Equal(t, profileAfter.AvatarID, "a")
-}
-
-func TestUpdateProfile(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	auths, profiles := createAccountForTesting(t, "username", "password")
-
-	form := UpdateProfileForm{1, "hello world", "a"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/profile/update", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "{}", w.Body.String())
-
-	authsAfter, profilesAfter := queryDBTest(t, api)
-	profileAfter := profilesAfter[0]
-	profile := profiles[0]
-	assert.Len(t, profilesAfter, len(profiles))
-	assert.Equal(t, auths, authsAfter)
-	assert.Equal(t, profile.UserID, profileAfter.UserID)
-	assert.Equal(t, profile.Username, profileAfter.Username)
-	assert.Equal(t, profileAfter.AvatarID, "a")
-	assert.Equal(t, profileAfter.Bio, "hello world")
-}
-
-func TestChangePasswordInvalidBody(t *testing.T) {
-	form := ChangePasswordForm{0, "password", "newpassword"}
-	testInvalidBody(t, form, "/password")
-	form = ChangePasswordForm{1, "", "newpassword"}
-	testInvalidBody(t, form, "/password")
-	form = ChangePasswordForm{1, "password", ""}
-	testInvalidBody(t, form, "/password")
-}
-
-func TestChangePasswordUserDoesNotExist(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	form := ChangePasswordForm{1, "password", "newpassword"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/password", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Equal(t, "{}", w.Body.String())
-
-	auths, profiles := queryDBTest(t, api)
-	assert.Len(t, auths, 0)
-	assert.Len(t, profiles, 0)
-}
-
-func TestChangePasswordInvalidOld(t *testing.T) {
-	api := getCleanAPIForTesting(t)
-
-	auths, profiles := createAccountForTesting(t, "username", "password")
-
-	form := ChangePasswordForm{1, "passwor", "newpassword"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/password", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid old password"}
-
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	authsAfter, profilesAfter := queryDBTest(t, api)
+	authsAfter, profilesAfter := queryDBTest(t)
 	assert.Equal(t, auths, authsAfter)
 	assert.Equal(t, profiles, profilesAfter)
 }
 
+func TestUpdateProfileAvatarID(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.UpdateProfileRequest{UserId: proto.Uint64(1), AvatarId: proto.String("a")}
+	_, err = c.UpdateProfile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	profiles[0].AvatarID = "a"
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
+
+func TestUpdateProfile(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.UpdateProfileRequest{UserId: proto.Uint64(1), Bio: proto.String("hello world"), AvatarId: proto.String("a")}
+	_, err = c.UpdateProfile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	profiles[0].Bio = "hello world"
+	profiles[0].AvatarID = "a"
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
+
+func TestChangePasswordUserIdRequired(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.ChangePasswordRequest{OldPass: proto.String("111111"), NewPass: proto.String("222222")}
+	_, err = c.ChangePassword(context.TODO(), req)
+	assert.Error(t, err)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
+
+func TestChangePasswordOldPassRequired(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.ChangePasswordRequest{UserId: proto.Uint64(1), NewPass: proto.String("222222")}
+	_, err = c.ChangePassword(context.TODO(), req)
+	assert.Error(t, err)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
+
+func TestChangePasswordNewPassRequired(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.ChangePasswordRequest{UserId: proto.Uint64(1), OldPass: proto.String("222222")}
+	_, err = c.ChangePassword(context.TODO(), req)
+	assert.Error(t, err)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
+
+func TestChangePasswordUserDoesNotExist(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.ChangePasswordRequest{UserId: proto.Uint64(10), OldPass: proto.String("222222"), NewPass: proto.String("111111")}
+	_, err = c.ChangePassword(context.TODO(), req)
+	assert.Error(t, err)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
+
+func TestChangePasswordInvalidOld(t *testing.T) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
+
+	req := &pb.ChangePasswordRequest{UserId: proto.Uint64(1), OldPass: proto.String("222222"), NewPass: proto.String("111111")}
+	_, err = c.ChangePassword(context.TODO(), req)
+	assert.Error(t, err)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
 func TestChangePasswordInvalidNew(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
 
-	auths, profiles := createAccountForTesting(t, "username", "password")
+	req := &pb.ChangePasswordRequest{UserId: proto.Uint64(1), OldPass: proto.String("12345678"), NewPass: proto.String("newpa")}
+	_, err = c.ChangePassword(context.TODO(), req)
+	assert.Error(t, err)
 
-	form := ChangePasswordForm{1, "password", "newpa"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/password", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	expected := ErrorResponse{"invalid new password"}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, assertJSON(t, expected), w.Body.String())
-
-	authsAfter, profilesAfter := queryDBTest(t, api)
+	authsAfter, profilesAfter := queryDBTest(t)
 	assert.Equal(t, auths, authsAfter)
 	assert.Equal(t, profiles, profilesAfter)
 }
 
 func TestChangePassword(t *testing.T) {
-	api := getCleanAPIForTesting(t)
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+	cleanDB(t)
+	auths, profiles := fillDBTestData(t)
 
-	auths, profiles := createAccountForTesting(t, "username", "password")
+	time.Sleep(time.Second)
 
-	form := ChangePasswordForm{1, "password", "newpassword"}
-	buffer := bytes.NewBuffer([]byte(assertJSON(t, form)))
+	req := &pb.ChangePasswordRequest{UserId: proto.Uint64(1), OldPass: proto.String("12345678"), NewPass: proto.String("newpassword")}
+	_, err = c.ChangePassword(context.TODO(), req)
+	assert.NoError(t, err)
 
-	time.Sleep(time.Second) //to test if updated_at field changes
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/password", buffer)
-	api.engine.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "{}", w.Body.String())
-
-	authsAfter, profilesAfter := queryDBTest(t, api)
-	auth := auths[0]
-	authAfter := authsAfter[0]
-	assert.Len(t, authsAfter, len(auths))
-	assert.NotEqual(t, auth.Password, authAfter.Password)
-	assert.NotEqual(t, auth.UpdatedAt, authAfter.UpdatedAt)
-	assert.WithinDuration(t, time.Now(), authAfter.UpdatedAt, time.Minute)
-	assert.Equal(t, auth.UserID, authAfter.UserID)
-	assert.Equal(t, auth.Username, authAfter.Username)
-	assert.Equal(t, auth.CreatedAt, authAfter.CreatedAt)
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths[1:], authsAfter[1:])
 	assert.Equal(t, profiles, profilesAfter)
+	assert.NotEqual(t, auths[0].UpdatedAt, authsAfter[0].UpdatedAt)
+	assert.WithinDuration(t, authsAfter[0].UpdatedAt, time.Now(), time.Second*5)
+	assert.NotEqual(t, auths[0].Password, authsAfter[0].Password)
 }

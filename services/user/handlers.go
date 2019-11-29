@@ -1,151 +1,96 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
+	"fmt"
+	"github.com/4726/discussion-board/services/user/pb"
+	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
-	"net/http"
 	"regexp"
-	"strconv"
 	"time"
-)
-
-type ErrorResponse struct {
-	Error string
-}
-
-var (
-	InvalidJSONBodyResponse = ErrorResponse{"invalid body"}
 )
 
 const (
 	initialBio, initialAvatarID = "", ""
 )
 
-func GetProfile(db *gorm.DB, ctx *gin.Context) {
-	useridS := ctx.Param("userid")
+type Handlers struct {
+	db *gorm.DB
+}
 
-	userid, err := strconv.Atoi(useridS)
-	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid userid param"})
-		return
-	}
-
+func (h *Handlers) GetProfile(ctx context.Context, in *pb.UserId) (*pb.Profile, error) {
 	profile := Profile{}
-	if err := db.First(&profile, userid).Error; err != nil {
-		ctx.Set(logInfoKey, err)
+	if err := h.db.First(&profile, in.GetUserId()).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			ctx.JSON(http.StatusNotFound, struct{}{})
-			return
+			return nil, fmt.Errorf("user does not exist")
 		}
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
-		return
+		return nil, err
 	}
 
-	ctx.JSON(http.StatusOK, profile)
+	return &pb.Profile{
+		UserId:   proto.Uint64(profile.UserID),
+		Username: proto.String(profile.Username),
+		Bio:      proto.String(profile.Bio),
+		AvatarId: proto.String(profile.AvatarID),
+	}, nil
 }
 
-func ValidLogin(db *gorm.DB, ctx *gin.Context) {
-	form := struct {
-		Username string `binding:"required"`
-		Password string `binding:"required"`
-	}{}
-	err := ctx.BindJSON(&form)
-	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
-	}
-
+func (h *Handlers) Login(ctx context.Context, in *pb.LoginCredentials) (*pb.UserId, error) {
 	auth := Auth{}
-	if err := db.Where("username = ?", form.Username).First(&auth).Error; err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			ctx.Set(logInfoKey, err)
-			ctx.JSON(http.StatusUnauthorized, ErrorResponse{"invalid login"})
-			return
-		}
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+	if err := h.db.Where("username = ?", in.GetUsername()).First(&auth).Error; err != nil {
+		return nil, err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(auth.Password), []byte(form.Password)); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusUnauthorized, ErrorResponse{"invalid login"})
-		return
+	if err := bcrypt.CompareHashAndPassword([]byte(auth.Password), []byte(in.GetPassword())); err != nil {
+		return nil, err
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"userid": auth.UserID})
+	return &pb.UserId{UserId: proto.Uint64(auth.UserID)}, nil
 }
 
-func CreateAccount(db *gorm.DB, ctx *gin.Context) {
-	form := struct {
-		Username string `binding:"required"`
-		Password string `binding:"required"`
-	}{}
-	err := ctx.BindJSON(&form)
+func (h *Handlers) CreateAccount(ctx context.Context, in *pb.LoginCredentials) (*pb.UserId, error) {
+	match, err := validUsername(in.GetUsername())
 	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
-	}
-
-	match, err := validUsername(form.Username)
-	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 	if !match {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid username"})
-		return
+		return nil, fmt.Errorf("invalid username")
 	}
 
-	match, err = validPassword(form.Password)
+	match, err = validPassword(in.GetPassword())
 	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 	if !match {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid password"})
-		return
+		return nil, fmt.Errorf("invalid password")
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(in.GetPassword()), bcrypt.DefaultCost)
 	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 
-	tx := db.Begin()
+	tx := h.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
 		}
 	}()
 	if err := tx.Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 
 	created := time.Now()
 	auth := Auth{
-		Username:  form.Username,
+		Username:  in.GetUsername(),
 		Password:  string(hash),
 		CreatedAt: created,
 		UpdatedAt: created,
 	}
 	if err := tx.Save(&auth).Error; err != nil {
 		tx.Rollback()
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 
 	profile := Profile{
@@ -156,114 +101,68 @@ func CreateAccount(db *gorm.DB, ctx *gin.Context) {
 	}
 	if err := tx.Create(&profile).Error; err != nil {
 		tx.Rollback()
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"userid": auth.UserID})
+	return &pb.UserId{UserId: proto.Uint64(auth.UserID)}, nil
 }
 
-func UpdateProfile(db *gorm.DB, ctx *gin.Context) {
-	form := struct {
-		UserID        uint `binding:"required"`
-		Bio, AvatarID string
-	}{}
-	err := ctx.BindJSON(&form)
-	if err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
-	}
-
+func (h *Handlers) UpdateProfile(ctx context.Context, in *pb.UpdateProfileRequest) (*pb.UpdateProfileResponse, error) {
 	updates := map[string]interface{}{}
-	if form.Bio != "" {
-		updates["Bio"] = form.Bio
-	}
-	if form.AvatarID != "" {
-		updates["AvatarID"] = form.AvatarID
+	updates["Bio"] = in.GetBio()
+	updates["AvatarID"] = in.GetAvatarId()
+
+	profile := Profile{UserID: in.GetUserId()}
+	if err := h.db.Model(&profile).Updates(updates).Error; err != nil {
+		return nil, err
 	}
 
-	profile := Profile{UserID: form.UserID}
-	if err := db.Model(&profile).Updates(updates).Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, struct{}{})
+	return &pb.UpdateProfileResponse{}, nil
 }
 
-func ChangePassword(db *gorm.DB, ctx *gin.Context) {
-	form := struct {
-		UserID  int    `binding:"required"`
-		OldPass string `binding:"required"`
-		NewPass string `binding:"required"`
-	}{}
-	if err := ctx.BindJSON(&form); err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, InvalidJSONBodyResponse)
-		return
-	}
-
-	tx := db.Begin()
+func (h *Handlers) ChangePassword(ctx context.Context, in *pb.ChangePasswordRequest) (*pb.ChangePasswordResponse, error) {
+	tx := h.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
 		}
 	}()
 	if err := tx.Error; err != nil {
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 
 	auth := Auth{}
-	if err := tx.First(&auth, form.UserID).Error; err != nil {
+	if err := tx.First(&auth, in.GetUserId()).Error; err != nil {
 		tx.Rollback()
 		if gorm.IsRecordNotFoundError(err) {
-			ctx.Set(logInfoKey, err)
-			ctx.JSON(http.StatusNotFound, struct{}{})
-			return
+			return nil, fmt.Errorf("user does not exist")
 		}
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(auth.Password), []byte(form.OldPass)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(auth.Password), []byte(in.GetOldPass())); err != nil {
 		tx.Rollback()
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusUnauthorized, ErrorResponse{"invalid old password"})
-		return
+		return nil, fmt.Errorf("invalid old password")
 	}
 
-	match, err := validPassword(form.NewPass)
+	match, err := validPassword(in.GetNewPass())
 	if err != nil {
 		tx.Rollback()
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 	if !match {
 		tx.Rollback()
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{"invalid new password"})
-		return
+		return nil, fmt.Errorf("invalid new password")
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(form.NewPass), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(in.GetNewPass()), bcrypt.DefaultCost)
 	if err != nil {
 		tx.Rollback()
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 
 	updates := map[string]interface{}{
@@ -273,18 +172,14 @@ func ChangePassword(db *gorm.DB, ctx *gin.Context) {
 
 	if err := tx.Model(&auth).Updates(updates).Error; err != nil {
 		tx.Rollback()
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		ctx.Set(logInfoKey, err)
-		ctx.JSON(http.StatusInternalServerError, ErrorResponse{"server error"})
-		return
+		return nil, err
 	}
 
-	ctx.JSON(http.StatusOK, struct{}{})
+	return &pb.ChangePasswordResponse{}, nil
 }
 
 func validUsername(s string) (bool, error) {
