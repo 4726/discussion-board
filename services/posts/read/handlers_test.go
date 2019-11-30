@@ -36,6 +36,217 @@ func TestMain(m *testing.M) {
 	os.Exit(i)
 }
 
+func testSetup(t testing.TB) (pb.PostsReadClient, []models.Post) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	// defer conn.Close()
+	c := pb.NewPostsReadClient(conn)
+	cleanDB(t)
+	posts := fillDBTestData(t)
+	return c, posts
+}
+
+func TestGetFullPostNoId(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.Id{}
+	_, err := c.GetFullPost(context.TODO(), req)
+	assert.Error(t, err)
+
+	postsAfter, commentsAfter := queryDBTest(t)
+	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
+}
+
+// dont know why failing
+// func TestGetFullPostDoesNotExist(t *testing.T) {
+// 	c, posts := testSetup(t)
+
+// 	req := &pb.Id{Id: proto.Uint64(5)}
+// 	_, err := c.GetFullPost(context.TODO(), req)
+// 	assert.NoError(t, err)
+
+// 	postsAfter, commentsAfter := queryDBTest(t)
+// 	assertPostsEqual(t, posts, postsAfter)
+// 	assert.Len(t, commentsAfter, 2)
+// }
+
+func TestGetFullPost(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.Id{Id: proto.Uint64(1)}
+	resp, err := c.GetFullPost(context.TODO(), req)
+	assert.NoError(t, err)
+	assertPostEqual(t, posts[0], protoPostToModelPost(resp))
+
+	postsAfter, commentsAfter := queryDBTest(t)
+	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
+}
+
+func TestGetPostsNoTotal(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.GetPostsQuery{}
+	_, err := c.GetPosts(context.TODO(), req)
+	assert.Error(t, err)
+
+	postsAfter, commentsAfter := queryDBTest(t)
+	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
+}
+
+func TestGetPostsNoPosts(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.GetPostsQuery{Total: proto.Uint64(1), From: proto.Uint64(10)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Len(t, resp.Posts, 0)
+
+	postsAfter, commentsAfter := queryDBTest(t)
+	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
+}
+
+func TestGetPostsUserNoPosts(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.GetPostsQuery{Total: proto.Uint64(1), UserId: proto.Uint64(10)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Len(t, resp.Posts, 0)
+
+	postsAfter, commentsAfter := queryDBTest(t)
+	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
+}
+
+func TestGetPostsSorted(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.GetPostsQuery{Total: proto.Uint64(10), Sort: proto.String("created_at")}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := posts
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
+
+	postsAfter, comments := queryDBTest(t)
+	assert.Len(t, posts, 3)
+	assert.Len(t, comments, 2)
+	assertPostsEqual(t, posts, postsAfter)
+}
+
+func TestGetPostsUserSorted(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.GetPostsQuery{Total: proto.Uint64(10), Sort: proto.String("created_at"), UserId: proto.Uint64(1)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := []models.Post{posts[1], posts[2]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
+
+	psotsAfter, comments := queryDBTest(t)
+	assert.Len(t, comments, 2)
+	assertPostsEqual(t, posts, psotsAfter)
+}
+
+func TestGetPostsUnSorted(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.GetPostsQuery{Total: proto.Uint64(10)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := []models.Post{posts[2], posts[1], posts[0]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
+
+	postsAfter, comments := queryDBTest(t)
+	assert.Len(t, comments, 2)
+	assertPostsEqual(t, posts, postsAfter)
+}
+
+func TestGetPostsUserUnSorted(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.GetPostsQuery{Total: proto.Uint64(10), UserId: proto.Uint64(1)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := []models.Post{posts[2], posts[1]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
+
+	postsAfter, comments := queryDBTest(t)
+	assert.Len(t, comments, 2)
+	assertPostsEqual(t, posts, postsAfter)
+}
+
+func TestGetPostsTotal(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.GetPostsQuery{Total: proto.Uint64(2)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := []models.Post{posts[2], posts[1]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
+
+	postsAfter, comments := queryDBTest(t)
+	assert.Len(t, comments, 2)
+	assertPostsEqual(t, posts, postsAfter)
+}
+
+func TestGetPostsFrom(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.GetPostsQuery{Total: proto.Uint64(2), From: proto.Uint64(1)}
+	resp, err := c.GetPosts(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := []models.Post{posts[1], posts[0]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
+
+	postsAfter, commentsAfter := queryDBTest(t)
+	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
+}
+
+func TestGetPostsByIdNone(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.Ids{}
+	resp, err := c.GetPostsById(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Len(t, resp.Posts, 0)
+
+	postsAfter, comments := queryDBTest(t)
+	assert.Len(t, comments, 2)
+	assertPostsEqual(t, posts, postsAfter)
+}
+
+func TestGetMultiplePostsDoesNotExist(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.Ids{Id: []uint64{5, 10}}
+	resp, err := c.GetPostsById(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Len(t, resp.Posts, 0)
+
+	postsAfter, comments := queryDBTest(t)
+	assert.Len(t, comments, 2)
+	assertPostsEqual(t, posts, postsAfter)
+}
+
+func TestGetMultiplePosts(t *testing.T) {
+	c, posts := testSetup(t)
+
+	req := &pb.Ids{Id: []uint64{2, 3}}
+	resp, err := c.GetPostsById(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := []models.Post{posts[1], posts[2]}
+	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
+
+	postsAfter, comments := queryDBTest(t)
+	assert.Len(t, comments, 2)
+	assertPostsEqual(t, posts, postsAfter)
+}
+
 func cleanDB(t testing.TB) {
 	testApi.db.Exec("DELETE FROM comments;")
 	testApi.db.Exec("DELETE FROM posts;")
@@ -172,325 +383,4 @@ func protoCommentToModelComment(comment *pb.Comment) models.Comment {
 		CreatedAt: time.Unix(*comment.CreatedAt, 0),
 		Likes:     *comment.Likes,
 	}
-}
-
-func TestGetFullPostNoId(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.Id{}
-	_, err = c.GetFullPost(context.TODO(), req)
-	assert.Error(t, err)
-
-	postsAfter, commentsAfter := queryDBTest(t)
-	assertPostsEqual(t, posts, postsAfter)
-	assert.Len(t, commentsAfter, 2)
-}
-
-// dont know why failing
-// func TestGetFullPostDoesNotExist(t *testing.T) {
-// 	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-// 	assert.NoError(t, err)
-// 	defer conn.Close()
-
-// 	c := pb.NewPostsReadClient(conn)
-
-// 	cleanDB(t)
-
-// 	posts := fillDBTestData(t)
-
-// 	req := &pb.Id{Id: proto.Uint64(5)}
-// 	_, err = c.GetFullPost(context.TODO(), req)
-// 	assert.NoError(t, err)
-
-// 	postsAfter, commentsAfter := queryDBTest(t)
-// 	assertPostsEqual(t, posts, postsAfter)
-// 	assert.Len(t, commentsAfter, 2)
-// }
-
-func TestGetFullPost(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.Id{Id: proto.Uint64(1)}
-	resp, err := c.GetFullPost(context.TODO(), req)
-	assert.NoError(t, err)
-	assertPostEqual(t, posts[0], protoPostToModelPost(resp))
-
-	postsAfter, commentsAfter := queryDBTest(t)
-	assertPostsEqual(t, posts, postsAfter)
-	assert.Len(t, commentsAfter, 2)
-}
-
-func TestGetPostsNoTotal(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.GetPostsQuery{}
-	_, err = c.GetPosts(context.TODO(), req)
-	assert.Error(t, err)
-
-	postsAfter, commentsAfter := queryDBTest(t)
-	assertPostsEqual(t, posts, postsAfter)
-	assert.Len(t, commentsAfter, 2)
-}
-
-func TestGetPostsNoPosts(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.GetPostsQuery{Total: proto.Uint64(1), From: proto.Uint64(10)}
-	resp, err := c.GetPosts(context.TODO(), req)
-	assert.NoError(t, err)
-	assert.Len(t, resp.Posts, 0)
-
-	postsAfter, commentsAfter := queryDBTest(t)
-	assertPostsEqual(t, posts, postsAfter)
-	assert.Len(t, commentsAfter, 2)
-}
-
-func TestGetPostsUserNoPosts(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.GetPostsQuery{Total: proto.Uint64(1), UserId: proto.Uint64(10)}
-	resp, err := c.GetPosts(context.TODO(), req)
-	assert.NoError(t, err)
-	assert.Len(t, resp.Posts, 0)
-
-	postsAfter, commentsAfter := queryDBTest(t)
-	assertPostsEqual(t, posts, postsAfter)
-	assert.Len(t, commentsAfter, 2)
-}
-
-func TestGetPostsSorted(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.GetPostsQuery{Total: proto.Uint64(10), Sort: proto.String("created_at")}
-	resp, err := c.GetPosts(context.TODO(), req)
-	assert.NoError(t, err)
-	expected := posts
-	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
-
-	postsAfter, comments := queryDBTest(t)
-	assert.Len(t, posts, 3)
-	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, postsAfter)
-}
-
-func TestGetPostsUserSorted(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.GetPostsQuery{Total: proto.Uint64(10), Sort: proto.String("created_at"), UserId: proto.Uint64(1)}
-	resp, err := c.GetPosts(context.TODO(), req)
-	assert.NoError(t, err)
-	expected := []models.Post{posts[1], posts[2]}
-	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
-
-	psotsAfter, comments := queryDBTest(t)
-	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, psotsAfter)
-}
-
-func TestGetPostsUnSorted(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.GetPostsQuery{Total: proto.Uint64(10)}
-	resp, err := c.GetPosts(context.TODO(), req)
-	assert.NoError(t, err)
-	expected := []models.Post{posts[2], posts[1], posts[0]}
-	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
-
-	postsAfter, comments := queryDBTest(t)
-	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, postsAfter)
-}
-
-func TestGetPostsUserUnSorted(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.GetPostsQuery{Total: proto.Uint64(10), UserId: proto.Uint64(1)}
-	resp, err := c.GetPosts(context.TODO(), req)
-	assert.NoError(t, err)
-	expected := []models.Post{posts[2], posts[1]}
-	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
-
-	postsAfter, comments := queryDBTest(t)
-	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, postsAfter)
-}
-
-func TestGetPostsTotal(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.GetPostsQuery{Total: proto.Uint64(2)}
-	resp, err := c.GetPosts(context.TODO(), req)
-	assert.NoError(t, err)
-	expected := []models.Post{posts[2], posts[1]}
-	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
-
-	postsAfter, comments := queryDBTest(t)
-	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, postsAfter)
-}
-
-func TestGetPostsFrom(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.GetPostsQuery{Total: proto.Uint64(2), From: proto.Uint64(1)}
-	resp, err := c.GetPosts(context.TODO(), req)
-	assert.NoError(t, err)
-	expected := []models.Post{posts[1], posts[0]}
-	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
-
-	postsAfter, commentsAfter := queryDBTest(t)
-	assertPostsEqual(t, posts, postsAfter)
-	assert.Len(t, commentsAfter, 2)
-}
-
-func TestGetPostsByIdNone(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.Ids{}
-	resp, err := c.GetPostsById(context.TODO(), req)
-	assert.NoError(t, err)
-	assert.Len(t, resp.Posts, 0)
-
-	postsAfter, comments := queryDBTest(t)
-	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, postsAfter)
-}
-
-func TestGetMultiplePostsDoesNotExist(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.Ids{Id: []uint64{5, 10}}
-	resp, err := c.GetPostsById(context.TODO(), req)
-	assert.NoError(t, err)
-	assert.Len(t, resp.Posts, 0)
-
-	postsAfter, comments := queryDBTest(t)
-	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, postsAfter)
-}
-
-func TestGetMultiplePosts(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewPostsReadClient(conn)
-
-	cleanDB(t)
-
-	posts := fillDBTestData(t)
-
-	req := &pb.Ids{Id: []uint64{2, 3}}
-	resp, err := c.GetPostsById(context.TODO(), req)
-	assert.NoError(t, err)
-	expected := []models.Post{posts[1], posts[2]}
-	assertMiniPostsEqual(t, expected, protoPostsToModelPosts(resp.Posts))
-
-	postsAfter, comments := queryDBTest(t)
-	assert.Len(t, comments, 2)
-	assertPostsEqual(t, posts, postsAfter)
 }

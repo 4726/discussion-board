@@ -35,6 +35,198 @@ func TestMain(m *testing.M) {
 	os.Exit(i)
 }
 
+func testSetup(t testing.TB) (pb.LikesClient, []PostLike, []CommentLike) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	// defer conn.Close()
+	c := pb.NewLikesClient(conn)
+	cleanDB(t)
+	pLikes, cLikes := fillDBTestData(t)
+	return c, pLikes, cLikes
+}
+
+func TestLikePostNoPostID(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{UserId: proto.Uint64(3)}
+	_, err := c.LikePost(context.TODO(), req)
+	assert.Error(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestLikePostNoUserID(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{Id: proto.Uint64(3)}
+	_, err := c.LikePost(context.TODO(), req)
+	assert.Error(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestLikePost(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{Id: proto.Uint64(1), UserId: proto.Uint64(3)}
+	resp, err := c.LikePost(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.Total{Total: proto.Uint64(3)}
+	assert.Equal(t, expected, resp)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assert.WithinDuration(t, pLikesAfter[2].CreatedAt, time.Now(), time.Second*10)
+	pLikesAfter[2].CreatedAt = time.Time{}
+	expectedPLikes := append(pLikes, PostLike{*req.Id, *req.UserId, time.Time{}})
+	assertPostsLikesEqual(t, expectedPLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestLikeCommentNoCommentID(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{UserId: proto.Uint64(3)}
+	_, err := c.LikeComment(context.TODO(), req)
+	assert.Error(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestLikeCommentNoUserID(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{Id: proto.Uint64(3)}
+	_, err := c.LikeComment(context.TODO(), req)
+	assert.Error(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestLikeComment(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{Id: proto.Uint64(1), UserId: proto.Uint64(3)}
+	resp, err := c.LikeComment(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.Total{Total: proto.Uint64(3)}
+	assert.Equal(t, expected, resp)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assert.WithinDuration(t, cLikesAfter[3].CreatedAt, time.Now(), time.Second*10)
+	cLikesAfter[3].CreatedAt = time.Time{}
+	expectedCLikes := append(cLikes, CommentLike{*req.Id, *req.UserId, time.Time{}})
+	assertCommentsLikesEqual(t, expectedCLikes, cLikesAfter)
+}
+
+func TestGetMultiplePostLikes(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	idLikes := []*pb.TotalLikes_IDLikes{}
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(1), Total: proto.Uint64(2)})
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(2), Total: proto.Uint64(0)})
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(3), Total: proto.Uint64(0)})
+	expected := &pb.TotalLikes{IdLikes: idLikes}
+
+	req := &pb.IDs{Id: []uint64{1, 2, 3}}
+	resp, err := c.GetPostLikes(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, resp)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestGetMultipleCommentLikes(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	idLikes := []*pb.TotalLikes_IDLikes{}
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(1), Total: proto.Uint64(2)})
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(2), Total: proto.Uint64(0)})
+	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(3), Total: proto.Uint64(1)})
+	expected := &pb.TotalLikes{IdLikes: idLikes}
+
+	req := &pb.IDs{Id: []uint64{1, 2, 3}}
+	resp, err := c.GetCommentLikes(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, resp)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestHasMultiplePostLikesNoUserID(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDsUserID{Id: []uint64{1}}
+	_, err := c.PostsHaveLike(context.TODO(), req)
+	assert.Error(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestHasMultiplePostLikes(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	haveLikes := []*pb.HaveLikes_HaveLike{}
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(1), HasLike: proto.Bool(true)})
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(2), HasLike: proto.Bool(false)})
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(3), HasLike: proto.Bool(false)})
+	expected := &pb.HaveLikes{HaveLikes: haveLikes}
+
+	req := &pb.IDsUserID{Id: []uint64{1, 2, 3}, UserId: proto.Uint64(1)}
+	resp, err := c.PostsHaveLike(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, resp)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestHasMultipleCommentLikesNoUserID(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDsUserID{Id: []uint64{1}}
+	_, err := c.CommentsHaveLike(context.TODO(), req)
+	assert.Error(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestHasMultipleCommentLikes(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	haveLikes := []*pb.HaveLikes_HaveLike{}
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(1), HasLike: proto.Bool(true)})
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(2), HasLike: proto.Bool(false)})
+	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(3), HasLike: proto.Bool(true)})
+	expected := &pb.HaveLikes{HaveLikes: haveLikes}
+
+	req := &pb.IDsUserID{Id: []uint64{1, 2, 3}, UserId: proto.Uint64(2)}
+	resp, err := c.CommentsHaveLike(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, resp)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
 func assertPostLikesEqual(t testing.TB, expected, actual PostLike) {
 	assert.WithinDuration(t, expected.CreatedAt, actual.CreatedAt, time.Second)
 	expected.CreatedAt, actual.CreatedAt = time.Time{}, time.Time{}
@@ -98,282 +290,4 @@ func queryDBTest(t testing.TB) ([]PostLike, []CommentLike) {
 	assert.NoError(t, testGRPCApi.handlers.db.Find(&postLikes).Error)
 	assert.NoError(t, testGRPCApi.handlers.db.Find(&commentLikes).Error)
 	return postLikes, commentLikes
-}
-
-func TestLikePostNoPostID(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	req := &pb.IDUserID{UserId: proto.Uint64(3)}
-	_, err = c.LikePost(context.TODO(), req)
-	assert.Error(t, err)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
-func TestLikePostNoUserID(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	req := &pb.IDUserID{Id: proto.Uint64(3)}
-	_, err = c.LikePost(context.TODO(), req)
-	assert.Error(t, err)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
-func TestLikePost(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	req := &pb.IDUserID{Id: proto.Uint64(1), UserId: proto.Uint64(3)}
-	resp, err := c.LikePost(context.TODO(), req)
-	assert.NoError(t, err)
-	expected := &pb.Total{Total: proto.Uint64(3)}
-	assert.Equal(t, expected, resp)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assert.WithinDuration(t, pLikesAfter[2].CreatedAt, time.Now(), time.Second*10)
-	pLikesAfter[2].CreatedAt = time.Time{}
-	expectedPLikes := append(pLikes, PostLike{*req.Id, *req.UserId, time.Time{}})
-	assertPostsLikesEqual(t, expectedPLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
-func TestLikeCommentNoCommentID(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	req := &pb.IDUserID{UserId: proto.Uint64(3)}
-	_, err = c.LikeComment(context.TODO(), req)
-	assert.Error(t, err)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
-func TestLikeCommentNoUserID(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	req := &pb.IDUserID{Id: proto.Uint64(3)}
-	_, err = c.LikeComment(context.TODO(), req)
-	assert.Error(t, err)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
-func TestLikeComment(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	req := &pb.IDUserID{Id: proto.Uint64(1), UserId: proto.Uint64(3)}
-	resp, err := c.LikeComment(context.TODO(), req)
-	assert.NoError(t, err)
-	expected := &pb.Total{Total: proto.Uint64(3)}
-	assert.Equal(t, expected, resp)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assert.WithinDuration(t, cLikesAfter[3].CreatedAt, time.Now(), time.Second*10)
-	cLikesAfter[3].CreatedAt = time.Time{}
-	expectedCLikes := append(cLikes, CommentLike{*req.Id, *req.UserId, time.Time{}})
-	assertCommentsLikesEqual(t, expectedCLikes, cLikesAfter)
-}
-
-func TestGetMultiplePostLikes(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	idLikes := []*pb.TotalLikes_IDLikes{}
-	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(1), Total: proto.Uint64(2)})
-	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(2), Total: proto.Uint64(0)})
-	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(3), Total: proto.Uint64(0)})
-	expected := &pb.TotalLikes{IdLikes: idLikes}
-
-	req := &pb.IDs{Id: []uint64{1, 2, 3}}
-	resp, err := c.GetPostLikes(context.TODO(), req)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, resp)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
-func TestGetMultipleCommentLikes(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	idLikes := []*pb.TotalLikes_IDLikes{}
-	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(1), Total: proto.Uint64(2)})
-	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(2), Total: proto.Uint64(0)})
-	idLikes = append(idLikes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(3), Total: proto.Uint64(1)})
-	expected := &pb.TotalLikes{IdLikes: idLikes}
-
-	req := &pb.IDs{Id: []uint64{1, 2, 3}}
-	resp, err := c.GetCommentLikes(context.TODO(), req)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, resp)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
-func TestHasMultiplePostLikesNoUserID(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	req := &pb.IDsUserID{Id: []uint64{1}}
-	_, err = c.PostsHaveLike(context.TODO(), req)
-	assert.Error(t, err)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
-func TestHasMultiplePostLikes(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	haveLikes := []*pb.HaveLikes_HaveLike{}
-	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(1), HasLike: proto.Bool(true)})
-	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(2), HasLike: proto.Bool(false)})
-	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(3), HasLike: proto.Bool(false)})
-	expected := &pb.HaveLikes{HaveLikes: haveLikes}
-
-	req := &pb.IDsUserID{Id: []uint64{1, 2, 3}, UserId: proto.Uint64(1)}
-	resp, err := c.PostsHaveLike(context.TODO(), req)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, resp)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
-func TestHasMultipleCommentLikesNoUserID(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	req := &pb.IDsUserID{Id: []uint64{1}}
-	_, err = c.CommentsHaveLike(context.TODO(), req)
-	assert.Error(t, err)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
-}
-
-func TestHasMultipleCommentLikes(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewLikesClient(conn)
-
-	cleanDB(t)
-
-	pLikes, cLikes := fillDBTestData(t)
-
-	haveLikes := []*pb.HaveLikes_HaveLike{}
-	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(1), HasLike: proto.Bool(true)})
-	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(2), HasLike: proto.Bool(false)})
-	haveLikes = append(haveLikes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(3), HasLike: proto.Bool(true)})
-	expected := &pb.HaveLikes{HaveLikes: haveLikes}
-
-	req := &pb.IDsUserID{Id: []uint64{1, 2, 3}, UserId: proto.Uint64(2)}
-	resp, err := c.CommentsHaveLike(context.TODO(), req)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, resp)
-
-	pLikesAfter, cLikesAfter := queryDBTest(t)
-	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }

@@ -15,5 +15,3 @@ require (
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/grpc v1.25.1
 )
-
-replace github.com/4726/discussion-board/services/common => ../common

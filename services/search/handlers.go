@@ -11,11 +11,11 @@ type Handlers struct {
 
 func (h *Handlers) Index(ctx context.Context, in *pb.Post) (*pb.IndexResponse, error) {
 	post := Post{
-		in.GetTitle(), 
-		in.GetBody(), 
-		in.GetId(), 
-		in.GetUserId(), 
-		in.GetTimestamp(), 
+		in.GetTitle(),
+		in.GetBody(),
+		in.GetId(),
+		in.GetUserId(),
+		in.GetTimestamp(),
 		in.GetLikes(),
 	}
 

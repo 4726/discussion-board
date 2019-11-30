@@ -7,7 +7,7 @@ import (
 )
 
 type Api struct {
-	esc    *ESClient
+	esc  *ESClient
 	grpc *grpc.Server
 }
 

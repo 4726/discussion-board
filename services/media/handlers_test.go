@@ -39,6 +39,100 @@ func TestMain(m *testing.M) {
 	os.Exit(i)
 }
 
+func testSetup(t testing.TB) (pb.MediaClient, [][]byte) {
+	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	assert.NoError(t, err)
+	// defer conn.Close()
+	c := pb.NewMediaClient(conn)
+	cleanDB(t)
+	contents := fillDBTestData(t)
+	return c, contents
+}
+
+func TestUploadNoMedia(t *testing.T) {
+	c, contents := testSetup(t)
+
+	req := &pb.UploadRequest{}
+	_, err := c.Upload(context.TODO(), req)
+	assert.Error(t, err)
+
+	contentsAfter := queryDBTest(t)
+	assert.Equal(t, contents, contentsAfter)
+}
+
+func TestUpload(t *testing.T) {
+	c, contents := testSetup(t)
+
+	req := &pb.UploadRequest{Media: []byte("message")}
+	resp, err := c.Upload(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.NotEqual(t, "", resp.Name)
+
+	contentsAfter := queryDBTest(t)
+	contents = append(contents, []byte("message"))
+	assert.ElementsMatch(t, contentsAfter, contents)
+}
+
+func TestRemoveDoesNotExist(t *testing.T) {
+	c, contents := testSetup(t)
+
+	req := &pb.Name{}
+	_, err := c.Remove(context.TODO(), req)
+	assert.Error(t, err)
+
+	contentsAfter := queryDBTest(t)
+	assert.Equal(t, contents, contentsAfter)
+}
+
+func TestRemove(t *testing.T) {
+	c, contents := testSetup(t)
+
+	req := &pb.Name{Name: proto.String("1")}
+	resp, err := c.Remove(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Equal(t, &pb.RemoveResponse{}, resp)
+
+	expectedContents := [][]byte{contents[1]}
+	contentsAfter := queryDBTest(t)
+	assert.Equal(t, expectedContents, contentsAfter)
+}
+
+func TestInfo(t *testing.T) {
+	c, contents := testSetup(t)
+
+	req := &pb.InfoRequest{}
+	resp, err := c.Info(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.InfoResponse{StoreAddress: proto.String(fmt.Sprintf("%s/%s/", testApi.mc.EndpointURL().String(), bucketName))}
+	assert.Equal(t, expected, resp)
+
+	contentsAfter := queryDBTest(t)
+	assert.Equal(t, contents, contentsAfter)
+}
+
+//tests if the bucket policy was set up correctly
+func TestPublicReadBucket(t *testing.T) {
+	c, contents := testSetup(t)
+
+	req := &pb.InfoRequest{}
+	resp, err := c.Info(context.TODO(), req)
+	assert.NoError(t, err)
+	storeAddress := resp.StoreAddress
+
+	getResp, err := http.Get(*storeAddress + "1")
+	assert.NoError(t, err)
+	defer getResp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, getResp.StatusCode)
+	body, err := ioutil.ReadAll(getResp.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, "text/plain", getResp.Header["Content-Type"][0])
+	assert.Equal(t, "hello", string(body))
+
+	contentsAfter := queryDBTest(t)
+	assert.Equal(t, contents, contentsAfter)
+}
+
 func fillDBTestData(t testing.TB) [][]byte {
 	msg1 := []byte("hello")
 	msg2 := []byte("world")
@@ -77,130 +171,4 @@ func cleanDB(t testing.TB) {
 		err := testApi.mc.RemoveObject(bucketName, objectInfo.Key)
 		assert.NoError(t, err)
 	}
-}
-
-func TestUploadNoMedia(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewMediaClient(conn)
-	cleanDB(t)
-
-	contents := fillDBTestData(t)
-
-	req := &pb.UploadRequest{}
-	_, err = c.Upload(context.TODO(), req)
-	assert.Error(t, err)
-
-	contentsAfter := queryDBTest(t)
-	assert.Equal(t, contents, contentsAfter)
-}
-
-func TestUpload(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewMediaClient(conn)
-	cleanDB(t)
-
-	contents := fillDBTestData(t)
-
-	req := &pb.UploadRequest{Media: []byte("message")}
-	resp, err := c.Upload(context.TODO(), req)
-	assert.NoError(t, err)
-	assert.NotEqual(t, "", resp.Name)
-
-	contentsAfter := queryDBTest(t)
-	contents = append(contents, []byte("message"))
-	assert.ElementsMatch(t, contentsAfter, contents)
-}
-
-func TestRemoveDoesNotExist(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewMediaClient(conn)
-	cleanDB(t)
-
-	contents := fillDBTestData(t)
-
-	req := &pb.Name{}
-	_, err = c.Remove(context.TODO(), req)
-	assert.Error(t, err)
-
-	contentsAfter := queryDBTest(t)
-	assert.Equal(t, contents, contentsAfter)
-}
-
-func TestRemove(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewMediaClient(conn)
-	cleanDB(t)
-
-	contents := fillDBTestData(t)
-
-	req := &pb.Name{Name: proto.String("1")}
-	resp, err := c.Remove(context.TODO(), req)
-	assert.NoError(t, err)
-	assert.Equal(t, &pb.RemoveResponse{}, resp)
-
-	expectedContents := [][]byte{contents[1]}
-	contentsAfter := queryDBTest(t)
-	assert.Equal(t, expectedContents, contentsAfter)
-}
-
-func TestInfo(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewMediaClient(conn)
-	cleanDB(t)
-
-	contents := fillDBTestData(t)
-
-	req := &pb.InfoRequest{}
-	resp, err := c.Info(context.TODO(), req)
-	assert.NoError(t, err)
-	expected := &pb.InfoResponse{StoreAddress: proto.String(fmt.Sprintf("%s/%s/", testApi.mc.EndpointURL().String(), bucketName))}
-	assert.Equal(t, expected, resp)
-
-	contentsAfter := queryDBTest(t)
-	assert.Equal(t, contents, contentsAfter)
-}
-
-//tests if the bucket policy was set up correctly
-func TestPublicReadBucket(t *testing.T) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
-	assert.NoError(t, err)
-	defer conn.Close()
-
-	c := pb.NewMediaClient(conn)
-	cleanDB(t)
-
-	contents := fillDBTestData(t)
-
-	req := &pb.InfoRequest{}
-	resp, err := c.Info(context.TODO(), req)
-	assert.NoError(t, err)
-	storeAddress := resp.StoreAddress
-
-	getResp, err := http.Get(*storeAddress + "1")
-	assert.NoError(t, err)
-	defer getResp.Body.Close()
-
-	assert.Equal(t, http.StatusOK, getResp.StatusCode)
-	body, err := ioutil.ReadAll(getResp.Body)
-	assert.NoError(t, err)
-	assert.Equal(t, "text/plain", getResp.Header["Content-Type"][0])
-	assert.Equal(t, "hello", string(body))
-
-	contentsAfter := queryDBTest(t)
-	assert.Equal(t, contents, contentsAfter)
 }
