@@ -1,14 +1,19 @@
 package main
 
 import (
+	"github.com/4726/discussion-board/api-gateway/pb/likes"
+	postsread "github.com/4726/discussion-board/api-gateway/pb/posts-read"
+	postswrite "github.com/4726/discussion-board/api-gateway/pb/posts-write"
+	"github.com/4726/discussion-board/api-gateway/pb/search"
+	"github.com/4726/discussion-board/api-gateway/pb/user"
 	"github.com/4726/discussion-board/services/common"
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
+	"google.golang.org/grpc"
 )
 
 type RestAPI struct {
-	engine *gin.Engine
-	db     *gorm.DB
+	engine      *gin.Engine
+	grpcClients GRPCClients
 }
 
 func NewRestAPI(cfg Config) (*RestAPI, error) {
@@ -20,7 +25,9 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api.engine.Use(corsMiddleware())
 	api.engine.Use(gin.Recovery())
 	api.engine.Use(log.RequestMiddleware())
-	
+
+	api.setupGRPCClients()
+
 	// api.setRoutes()
 	api.setMockRoutes()
 	common.AddMonitorHandler(api.engine)
@@ -30,47 +37,47 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 
 func (a *RestAPI) setRoutes() {
 	a.engine.GET("/post/:postid", func(ctx *gin.Context) {
-		GetPost(ctx)
+		GetPost(ctx, a.grpcClients)
 	})
 
 	a.engine.GET("/posts", func(ctx *gin.Context) {
-		GetPosts(ctx)
+		GetPosts(ctx, a.grpcClients)
 	})
 
 	a.engine.POST("/post", func(ctx *gin.Context) {
-		CreatePost(ctx)
+		CreatePost(ctx, a.grpcClients)
 	})
 
-	a.engine.DELETE("/post/:postid", func(ctx *gin.Context) {
-		DeletePost(ctx)
+	a.engine.POST("/post/delete", func(ctx *gin.Context) {
+		DeletePost(ctx, a.grpcClients)
 	})
 
 	a.engine.POST("/post/like", func(ctx *gin.Context) {
-		LikePost(ctx)
+		LikePost(ctx, a.grpcClients)
 	})
 
 	a.engine.POST("/post/unlike", func(ctx *gin.Context) {
-		UnlikePost(ctx)
+		UnlikePost(ctx, a.grpcClients)
 	})
 
 	a.engine.POST("/comment", func(ctx *gin.Context) {
-		AddComment(ctx)
+		AddComment(ctx, a.grpcClients)
 	})
 
 	a.engine.POST("/comment/like", func(ctx *gin.Context) {
-		LikeComment(ctx)
+		LikeComment(ctx, a.grpcClients)
 	})
 
 	a.engine.POST("/comment/unlike", func(ctx *gin.Context) {
-		UnlikeComment(ctx)
+		UnlikeComment(ctx, a.grpcClients)
 	})
 
 	a.engine.POST("/comment/clear", func(ctx *gin.Context) {
-		ClearComment(ctx)
+		ClearComment(ctx, a.grpcClients)
 	})
 
 	a.engine.GET("/search", func(ctx *gin.Context) {
-		Search(ctx)
+		Search(ctx, a.grpcClients)
 	})
 
 	a.engine.GET("/register", func(ctx *gin.Context) {
@@ -78,7 +85,7 @@ func (a *RestAPI) setRoutes() {
 	})
 
 	a.engine.POST("/register", func(ctx *gin.Context) {
-		RegisterPOST(ctx)
+		RegisterPOST(ctx, a.grpcClients)
 	})
 
 	a.engine.GET("/login", func(ctx *gin.Context) {
@@ -86,19 +93,19 @@ func (a *RestAPI) setRoutes() {
 	})
 
 	a.engine.POST("/login", func(ctx *gin.Context) {
-		LoginPOST(ctx)
+		LoginPOST(ctx, a.grpcClients)
 	})
 
 	a.engine.POST("/changepassword", func(ctx *gin.Context) {
-		ChangePassword(ctx)
+		ChangePassword(ctx, a.grpcClients)
 	})
 
 	a.engine.GET("/profile/:userid", func(ctx *gin.Context) {
-		GetProfile(ctx)
+		GetProfile(ctx, a.grpcClients)
 	})
 
 	a.engine.POST("/profile/update", func(ctx *gin.Context) {
-		UpdateProfile(ctx)
+		UpdateProfile(ctx, a.grpcClients)
 	})
 
 	a.engine.GET("/userid", func(ctx *gin.Context) {
@@ -119,7 +126,7 @@ func (a *RestAPI) setMockRoutes() {
 		CreatePostMock(ctx)
 	})
 
-	a.engine.DELETE("/post/:postid", func(ctx *gin.Context) {
+	a.engine.POST("/post/delete", func(ctx *gin.Context) {
 		DeletePostMock(ctx)
 	})
 
@@ -197,6 +204,41 @@ func corsMiddleware() gin.HandlerFunc {
 		}
 
 		c.Next()
+	}
+}
+
+func (a *RestAPI) setupGRPCClients() {
+	userConn, err := grpc.Dial(UserServiceAddr(), grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	userClient := user.NewUserClient(userConn)
+	searchConn, err := grpc.Dial(SearchServiceAddr(), grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	searchClient := search.NewSearchClient(searchConn)
+	likesConn, err := grpc.Dial(LikesServiceAddr(), grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	likesClient := likes.NewLikesClient(likesConn)
+	postreadConn, err := grpc.Dial(PostsReadServiceAddr(), grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	postsreadClient := postsread.NewPostsReadClient(postreadConn)
+	postWriteConn, err := grpc.Dial(PostsWriteServiceAddr(), grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	postswriteClient := postswrite.NewPostsWriteClient(postWriteConn)
+	a.grpcClients = GRPCClients{
+		searchClient,
+		userClient,
+		likesClient,
+		postsreadClient,
+		postswriteClient,
 	}
 }
 

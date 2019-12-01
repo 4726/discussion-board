@@ -14,10 +14,10 @@ import (
 )
 
 type statusCodeOpts struct {
-	WithoutJWTStatusCode int
-	WithJWTStatusCode    int
+	WithoutJWTStatusCode   int
+	WithJWTStatusCode      int
 	HasEmptyResponseBefore bool
-	HasEmptyResponseAfter bool
+	HasEmptyResponseAfter  bool
 }
 
 func getNewRestAPI(t *testing.T) *RestAPI {

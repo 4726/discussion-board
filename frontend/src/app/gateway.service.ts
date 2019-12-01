@@ -90,7 +90,6 @@ export class GatewayService {
       password: password,
     }
 
-
     return this.http.post(this.gatewayAddr + '/register', postData, {})
       .pipe(
         map(
@@ -102,7 +101,11 @@ export class GatewayService {
   }
 
   deletePost(postID: number) {
-    this.http.delete(this.gatewayAddr + `/post/${postID}`, {})
+    const postData = {
+      postID: postID
+    }
+
+    this.http.post(this.gatewayAddr + `/post/delete`, postData, {})
       .pipe(
         retry(3),
         catchError(this.handleError)

@@ -1,0 +1,50 @@
+syntax = "proto2";
+
+service PostsWrite {
+    rpc CreatePost(PostRequest) returns (PostId) {}
+    rpc DeletePost(DeletePostRequest) returns (DeletePostResponse) {}
+    rpc SetPostLikes(SetLikes) returns (SetLikesResponse) {}
+    rpc CreateComment(CommentRequest) returns (CreateCommentResponse) {}
+    rpc ClearComment(ClearCommentRequest) returns (ClearCommentResponse) {}
+    rpc SetCommentLikes(SetLikes) returns (SetLikesResponse) {}
+}
+
+message PostRequest {
+    required string title = 1;
+    required string body = 2;
+    required uint64 user_id = 3;
+}
+
+message PostId {
+    required uint64 post_id = 1;
+}
+
+message DeletePostRequest {
+    required uint64 post_id = 1;
+    optional uint64 user_id = 2;
+}
+
+message DeletePostResponse {}
+
+message SetLikes {
+    required uint64 id = 1;
+    required int64 likes = 2;
+}
+
+message SetLikesResponse {}
+
+message CommentRequest {
+    required uint64 post_id = 1;
+    optional uint64 parent_id = 2;
+    required uint64 user_id = 3;
+    required string body = 4;
+}
+
+message CreateCommentResponse {}
+
+message ClearCommentRequest {
+    required uint64 comment_id = 1;
+    optional uint64 user_id = 2;
+}
+
+message ClearCommentResponse {}

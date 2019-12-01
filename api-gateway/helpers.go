@@ -20,7 +20,6 @@ type RespArray struct {
 	StatusCode int
 }
 
-
 func parseJSON(body io.ReadCloser) (map[string]interface{}, error) {
 	data := map[string]interface{}{}
 
@@ -134,7 +133,7 @@ func bindJSONAndAdd(ctx *gin.Context, other map[string]interface{}) (map[string]
 	m := map[string]interface{}{}
 	err := ctx.ShouldBindJSON(&m)
 	if err != nil {
-		return m, nil
+		return m, err
 	}
 
 	for k, v := range other {

@@ -1,0 +1,50 @@
+syntax = "proto2";
+
+service Search {
+    rpc Index(Post) returns (IndexResponse) {}
+    rpc Search(SearchQuery) returns (SearchResult) {}
+    rpc SetLikes(Likes) returns (LikesResponse) {}
+    rpc DeletePost(Id) returns (DeletePostResponse) {}
+    rpc SetTimestamp(Timestamp) returns (SetTimestampResponse) {}
+}
+
+message Post {
+    required string title = 1;
+    required string body = 2;
+    required uint64 user_id = 3;
+    required uint64 id = 4;
+    optional int64 timestamp = 5;
+    optional int64 likes = 6;
+}
+
+message IndexResponse {}
+
+message SearchQuery {
+    required string term = 1;
+    required uint64 total = 2;
+    optional uint64 from = 3;
+}
+
+message SearchResult {
+    repeated uint64 id = 1;
+}
+
+message Likes {
+    required uint64 id = 1;
+    required int64 likes = 2;
+}
+
+message LikesResponse {}
+
+message Id {
+    required uint64 id = 1;
+}
+
+message DeletePostResponse {}
+
+message Timestamp {
+    required uint64 id = 1;
+    required int64 timestamp = 2;
+}
+
+message SetTimestampResponse {}

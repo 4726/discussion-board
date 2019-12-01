@@ -1,14 +1,22 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
+	"github.com/4726/discussion-board/api-gateway/pb/likes"
+	postsread "github.com/4726/discussion-board/api-gateway/pb/posts-read"
+	postswrite "github.com/4726/discussion-board/api-gateway/pb/posts-write"
+	"github.com/4726/discussion-board/api-gateway/pb/search"
+	"github.com/4726/discussion-board/api-gateway/pb/user"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 )
 
 var jwtSecretKey = []byte("todosecretkey")
@@ -18,92 +26,105 @@ type JWTClaims struct {
 	UserID uint
 }
 
-func GetPost(ctx *gin.Context) {
-	postIDParam := ctx.Param("postid")
-	resp, err := get(PostsReadServiceAddr() + "/posts/" + postIDParam)
+func GetPost(ctx *gin.Context, clients GRPCClients) {
+	postIdParam := ctx.Param("postid")
+	postId, err := strconv.ParseUint(postIdParam, 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{})
+		return
+	}
+
+	req := postsread.Id{Id: proto.Uint64(postId)}
+	post, err := clients.PostsRead.GetFullPost(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
-	ctx.JSON(resp.StatusCode, resp.Data)
+	ctx.JSON(http.StatusOK, post)
 }
 
-func GetPosts(ctx *gin.Context) {
+func GetPosts(ctx *gin.Context, clients GRPCClients) {
 	query := struct {
-		Page  uint   `form:"page" binding:"required"`
-		UserID uint   `form:"userid"`
+		Page   uint64 `form:"page" binding:"required"`
+		UserId uint64 `form:"userid"`
 	}{}
 	if err := ctx.BindQuery(&query); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
 
-	resp, err := get(fmt.Sprintf("%s/posts?from=%v&total=%v&user=%v&sort=%v",
-		PostsReadServiceAddr(), query.Page * 10 - 10, 10, query.UserID, ""))
+	req := postsread.GetPostsQuery{
+		From:   proto.Uint64(query.Page*10 - 10),
+		Total:  proto.Uint64(10),
+		UserId: proto.Uint64(query.UserId),
+		Sort:   proto.String(""),
+	}
+	posts, err := clients.PostsRead.GetPosts(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	ctx.JSON(resp.StatusCode, resp.Data)
+	ctx.JSON(http.StatusOK, posts)
 }
 
-func CreatePost(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+func CreatePost(ctx *gin.Context, clients GRPCClients) {
+	userId, err := getUserId(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
+	req := postswrite.PostRequest{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+	req.UserId = proto.Uint64(userId)
+
+	resp, err := clients.PostsWrite.CreatePost(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
-	resp, err := post(PostsWriteServiceAddr()+"/post/create", m)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
-		return
-	}
-	ctx.JSON(resp.StatusCode, resp.Data)
+	ctx.JSON(http.StatusOK, resp)
 }
 
-func DeletePost(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+func DeletePost(ctx *gin.Context, clients GRPCClients) {
+	userId, err := getUserId(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
+	req := postswrite.DeletePostRequest{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+	req.UserId = proto.Uint64(userId)
+
+	resp, err := clients.PostsWrite.DeletePost(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
-	resp, err := post(PostsWriteServiceAddr()+"/post/delete", m)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
-		return
-	}
-	ctx.JSON(resp.StatusCode, resp.Data)
+	//should also remove from likes service
+
+	ctx.JSON(http.StatusOK, resp)
 }
 
-func LikePost(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+func LikePost(ctx *gin.Context, clients GRPCClients) {
+	userId, err := getUserId(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
-		return
-	}
+	req := likes.IDUserID{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+	req.UserId = proto.Uint64(userId)
 
-	resp, err := post(LikesServiceAddr()+"/post/like", m)
+	resp, err := clients.Likes.LikePost(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -112,315 +133,339 @@ func LikePost(ctx *gin.Context) {
 	//should not matter much if it fails since
 	//it can try again when another user likes/unlikes
 	go func() {
-		data := struct {
-			PostID uint
-			Likes  int
-		}{m["PostID"].(uint), resp.Data["Total"].(int)}
-		_, _ = post(PostsWriteServiceAddr()+"/post/likes", data)
+		req2 := postswrite.SetLikes{
+			Id:    proto.Uint64(req.GetId()),
+			Likes: proto.Int64(int64(resp.GetTotal())),
+		}
+		_, _ = clients.PostsWrite.SetPostLikes(context.TODO(), &req2)
 	}()
 
-	ctx.JSON(resp.StatusCode, resp.Data)
+	ctx.JSON(http.StatusOK, resp)
 }
 
-func UnlikePost(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+func UnlikePost(ctx *gin.Context, clients GRPCClients) {
+	userId, err := getUserId(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
-		return
-	}
+	req := likes.IDUserID{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+	req.UserId = proto.Uint64(userId)
 
-	resp, err := post(LikesServiceAddr()+"/post/unlike", m)
+	resp, err := clients.Likes.UnlikePost(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
 	go func() {
-		data := struct {
-			PostID uint
-			Likes  int
-		}{m["PostID"].(uint), resp.Data["Total"].(int)}
-		_, _ = post(PostsWriteServiceAddr()+"/post/likes", data)
+		req2 := postswrite.SetLikes{
+			Id:    proto.Uint64(req.GetId()),
+			Likes: proto.Int64(int64(resp.GetTotal())),
+		}
+		_, _ = clients.PostsWrite.SetPostLikes(context.TODO(), &req2)
 	}()
 
-	ctx.JSON(resp.StatusCode, resp.Data)
+	ctx.JSON(http.StatusOK, resp)
 }
 
-func AddComment(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+func AddComment(ctx *gin.Context, clients GRPCClients) {
+	userId, err := getUserId(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
-		return
-	}
+	req := postswrite.CommentRequest{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+	req.UserId = proto.Uint64(userId)
 
-	resp, err := post(PostsWriteServiceAddr()+"/comment/create", m)
+	resp, err := clients.PostsWrite.CreateComment(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	ctx.JSON(resp.StatusCode, resp.Data)
+	ctx.JSON(http.StatusOK, resp)
 }
 
-func LikeComment(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+func LikeComment(ctx *gin.Context, clients GRPCClients) {
+	userId, err := getUserId(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
-		return
-	}
+	req := likes.IDUserID{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+	req.UserId = proto.Uint64(userId)
 
-	resp, err := post(LikesServiceAddr()+"/comment/like", m)
+	resp, err := clients.Likes.LikeComment(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
 	go func() {
-		data := struct {
-			PostID uint
-			Likes  int
-		}{m["PostID"].(uint), resp.Data["Total"].(int)}
-		_, _ = post(PostsWriteServiceAddr()+"/post/likes", data)
+		req2 := postswrite.SetLikes{
+			Id:    proto.Uint64(req.GetId()),
+			Likes: proto.Int64(int64(resp.GetTotal())),
+		}
+		_, _ = clients.PostsWrite.SetCommentLikes(context.TODO(), &req2)
 	}()
 
-	ctx.JSON(resp.StatusCode, resp.Data)
+	ctx.JSON(http.StatusOK, resp)
 }
 
-func UnlikeComment(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+func UnlikeComment(ctx *gin.Context, clients GRPCClients) {
+	userId, err := getUserId(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
-		return
-	}
+	req := likes.IDUserID{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+	req.UserId = proto.Uint64(userId)
 
-	resp, err := post(LikesServiceAddr()+"/post/unlike", m)
+	resp, err := clients.Likes.UnlikeComment(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
 	go func() {
-		data := struct {
-			PostID uint
-			Likes  int
-		}{m["PostID"].(uint), resp.Data["Total"].(int)}
-		_, _ = post(PostsWriteServiceAddr()+"/post/likes", data)
+		req2 := postswrite.SetLikes{
+			Id:    proto.Uint64(req.GetId()),
+			Likes: proto.Int64(int64(resp.GetTotal())),
+		}
+		_, _ = clients.PostsWrite.SetCommentLikes(context.TODO(), &req2)
 	}()
 
-	ctx.JSON(resp.StatusCode, resp.Data)
+	ctx.JSON(http.StatusOK, resp)
 }
 
-func ClearComment(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+func ClearComment(ctx *gin.Context, clients GRPCClients) {
+	userId, err := getUserId(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
-		return
-	}
+	req := postswrite.ClearCommentRequest{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+	req.UserId = proto.Uint64(userId)
 
-	resp, err := post(PostsWriteServiceAddr()+"/comment/clear/", m)
+	resp, err := clients.PostsWrite.ClearComment(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	ctx.JSON(resp.StatusCode, resp.Data)
+	ctx.JSON(http.StatusOK, resp)
 }
 
-func Search(ctx *gin.Context) {
+func Search(ctx *gin.Context, clients GRPCClients) {
 	form := struct {
 		Term string `form:"term" binding:"required"`
-		Page uint   `form:"page" binding:"required"`
+		Page uint64 `form:"page" binding:"required"`
 	}{}
 	if err := ctx.BindQuery(&form); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
 
-	resp, err := get(fmt.Sprintf("%s/search?from=%v&total=%v&term=%v",
-		SearchServiceAddr(), (form.Page*10)-10, 10, form.Term))
+	req := search.SearchQuery{
+		Term:  proto.String(form.Term),
+		Total: proto.Uint64(10),
+		From:  proto.Uint64(form.Page*10 - 10),
+	}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+
+	resp, err := clients.Search.Search(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
-	resp, err = post(PostsReadServiceAddr()+"/posts/multiple", resp.Data)
+	req2 := postsread.Ids{
+		Id: resp.GetId(),
+	}
+	resp2, err := clients.PostsRead.GetPostsById(context.TODO(), &req2)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
-	ctx.JSON(resp.StatusCode, resp.Data)
+	ctx.JSON(http.StatusOK, resp2)
 }
 
 func RegisterGET(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+	userId, err := getUserId(ctx)
 	if err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"UserID": userID})
+		ctx.JSON(http.StatusBadRequest, gin.H{"UserID": userId})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{})
 }
 
-func RegisterPOST(ctx *gin.Context) {
-	if _, err := getUserID(ctx); err == nil {
+func RegisterPOST(ctx *gin.Context, clients GRPCClients) {
+	if _, err := getUserId(ctx); err == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
-	resp, err := postProxy(UserServiceAddr()+"/account", ctx.Request.Body)
+
+	req := user.LoginCredentials{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+
+	resp, err := clients.User.CreateAccount(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	jwt, err := generateJWT(resp.Data["userID"].(uint))
+
+	jwt, err := generateJWT(resp.GetUserId())
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	resp.Data["jwt"] = jwt
-	ctx.JSON(resp.StatusCode, resp.Data)
+
+	m := map[string]interface{}{
+		"user_id": resp.GetUserId(),
+		"jwt":     jwt,
+	}
+	ctx.JSON(http.StatusOK, m)
 }
 
 func LoginGET(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+	userId, err := getUserId(ctx)
 	if err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"UserID": userID})
+		ctx.JSON(http.StatusBadRequest, gin.H{"UserID": userId})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{})
 }
 
-func LoginPOST(ctx *gin.Context) {
-	if _, err := getUserID(ctx); err == nil {
+func LoginPOST(ctx *gin.Context, clients GRPCClients) {
+	if _, err := getUserId(ctx); err == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 		return
 	}
-	resp, err := postProxy(UserServiceAddr()+"/login", ctx.Request.Body)
+
+	req := user.LoginCredentials{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+
+	resp, err := clients.User.Login(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	jwt, err := generateJWT(resp.Data["userID"].(uint))
+
+	jwt, err := generateJWT(resp.GetUserId())
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	resp.Data["jwt"] = jwt
-	ctx.JSON(resp.StatusCode, resp.Data)
+	m := map[string]interface{}{
+		"user_id": resp.GetUserId(),
+		"jwt":     jwt,
+	}
+	ctx.JSON(http.StatusOK, m)
 }
 
-func ChangePassword(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+func ChangePassword(ctx *gin.Context, clients GRPCClients) {
+	userId, err := getUserId(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	m, err := bindJSONAndAdd(ctx, gin.H{"UserID": userID})
+	req := user.ChangePasswordRequest{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+	req.UserId = proto.Uint64(userId)
+
+	resp, err := clients.User.ChangePassword(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
-	resp, err := post(UserServiceAddr()+"/password", m)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
-		return
-	}
-	ctx.JSON(resp.StatusCode, resp.Data)
+	ctx.JSON(http.StatusOK, resp)
 }
 
-func GetProfile(ctx *gin.Context) {
+func GetProfile(ctx *gin.Context, clients GRPCClients) {
 	isMine := false
-	userID, _ := getUserID(ctx)
-
-	userIDParam := ctx.Param("userid")
-	resp, err := get(UserServiceAddr() + "/" + userIDParam)
+	userId, _ := getUserId(ctx)
+	profileIdParam := ctx.Param("userid")
+	profileId, err := strconv.ParseUint(profileIdParam, 10, 32)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		ctx.JSON(http.StatusNotFound, gin.H{})
 		return
 	}
 
-	if strconv.Itoa(int(userID)) == userIDParam {
+	if profileId == userId {
 		isMine = true
 	}
 
-	resp.Data["IsMine"] = isMine
+	req := user.UserId{UserId: proto.Uint64(profileId)}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
 
-	ctx.JSON(resp.StatusCode, resp.Data)
+	resp, err := clients.User.GetProfile(context.TODO(), &req)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
+
+	data := map[string]interface{}{
+		"user_id":   resp.GetUserId(),
+		"username":  resp.GetUsername(),
+		"bio":       resp.GetBio(),
+		"avatar_id": resp.GetAvatarId,
+		"is_mine":   isMine,
+	}
+
+	ctx.JSON(http.StatusOK, data)
 }
 
-func UpdateProfile(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+func UpdateProfile(ctx *gin.Context, clients GRPCClients) {
+	userId, err := getUserId(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
 
-	extra := gin.H{"UserID": userID}
+	req := user.UpdateProfileRequest{}
+	defer ctx.Request.Body.Close()
+	jsonpb.Unmarshal(ctx.Request.Body, &req)
+	req.UserId = proto.Uint64(userId)
 
-	_, err = ctx.FormFile("avatar")
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
-		return
-	} else {
-		//upload multipart form to media service
-		//then get the avatar id
-		//then add to extra map
-	}
-
-	newBody, ok := ctx.GetPostForm("body")
-	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
-		return
-	}
-	extra["body"] = newBody
-
-	m, err := bindJSONAndAdd(ctx, extra)
+	resp, err := clients.User.UpdateProfile(context.TODO(), &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	_, _ = post(UserServiceAddr()+"/profile/update", m)
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	ctx.JSON(http.StatusOK, resp)
 }
 
-func generateJWT(userID uint) (string, error) {
+func generateJWT(userId uint64) (string, error) {
 	claims := JWTClaims{
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour).Unix(),
 		},
-		userID,
+		uint(userId),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -429,7 +474,7 @@ func generateJWT(userID uint) (string, error) {
 
 //jwt must be stored in authorization bearer
 //format: Authorization: Bearer <token>
-func getUserID(ctx *gin.Context) (uint, error) {
+func getUserId(ctx *gin.Context) (uint64, error) {
 	authHeader := ctx.GetHeader("Authorization")
 	splitTokens := strings.Split(authHeader, "Bearer ")
 	if len(splitTokens) != 2 {
@@ -453,11 +498,11 @@ func getUserID(ctx *gin.Context) (uint, error) {
 	}
 
 	if claims, ok := token.Claims.(*JWTClaims); ok {
-		userID := claims.UserID
-		if userID < 1 {
+		userId := claims.UserID
+		if userId < 1 {
 			return 0, fmt.Errorf("invalid userid")
 		}
-		return userID, nil
+		return uint64(userId), nil
 	}
 
 	//should not happen

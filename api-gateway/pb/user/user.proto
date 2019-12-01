@@ -1,0 +1,41 @@
+syntax = "proto2";
+
+service User {
+    rpc GetProfile(UserId) returns (Profile) {}
+    rpc Login(LoginCredentials) returns (UserId) {}
+    rpc CreateAccount(LoginCredentials) returns (UserId) {}
+    rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {}
+    rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse) {}
+}
+
+message UserId {
+    required uint64 user_id = 1;
+}
+
+message Profile {
+    required uint64 user_id = 1;
+    required string username = 2;
+    required string bio = 3;
+    required string avatar_id = 4;
+}
+
+message LoginCredentials {
+    required string username = 1;
+    required string password = 2;
+}
+
+message UpdateProfileRequest {
+    required uint64 user_id = 1;
+    optional string bio = 2;
+    optional string avatar_id = 3;
+}
+
+message UpdateProfileResponse {}
+
+message ChangePasswordRequest {
+    required uint64 user_id = 1;
+    required string old_pass = 2;
+    required string new_pass = 3;
+}
+
+message ChangePasswordResponse {}

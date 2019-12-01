@@ -1,0 +1,47 @@
+syntax = "proto2";
+
+service PostsRead {
+    rpc GetFullPost(Id) returns (Post) {}
+    rpc GetPosts(GetPostsQuery) returns (MultiplePosts) {}
+    rpc GetPostsById(Ids) returns (MultiplePosts) {}
+}
+
+message Id {
+    required uint64 Id = 1;
+}
+
+message Post {
+    required uint64 id = 1;
+    required uint64 user_id = 2;
+    required string title = 3;
+    optional string body = 4;
+    optional int64 likes = 5;
+    required int64 created_at = 6;
+    required int64 updated_at = 7;
+    repeated Comment comments = 8;
+}
+
+message Comment {
+    required uint64 id = 1;
+    required uint64 post_id = 2;
+    optional uint64 parent_id = 3;
+    required uint64 user_id = 4;
+    required string body = 5;
+    required int64 created_at = 6;
+    optional int64 Likes = 7;
+}
+
+message MultiplePosts {
+    repeated Post posts = 1;
+}
+
+message GetPostsQuery {
+    required uint64 total = 1;
+    optional uint64 from = 2;
+    optional uint64 user_id = 3;
+    optional string sort = 4;
+}
+
+message Ids {
+    repeated uint64 id = 1;
+}
