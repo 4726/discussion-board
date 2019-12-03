@@ -49,9 +49,9 @@ func testJWTStatusCode(t *testing.T, method, route string, opts statusCodeOpts) 
 
 	assert.Equal(t, withoutJWT, w.Code)
 	if opts.HasEmptyResponseBefore {
-		assert.Equal(t, "{}", w.Body.String())
+		assert.Contains(t, []string{"{}", ""}, w.Body.String())
 	} else {
-		assert.NotEqual(t, "{}", w.Body.String())
+		assert.NotContains(t, []string{"{}", ""}, w.Body.String())
 	}
 
 	//do again with jwt
@@ -64,9 +64,9 @@ func testJWTStatusCode(t *testing.T, method, route string, opts statusCodeOpts) 
 
 	assert.Equal(t, withJWT, w.Code)
 	if opts.HasEmptyResponseAfter {
-		assert.Equal(t, "{}", w.Body.String())
+		assert.Contains(t, []string{"{}", ""}, w.Body.String())
 	} else {
-		assert.NotEqual(t, "{}", w.Body.String())
+		assert.NotContains(t, []string{"{}", ""}, w.Body.String())
 	}
 }
 
@@ -81,7 +81,7 @@ func TestJWTNotRequired(t *testing.T) {
 
 func TestJWTRequired(t *testing.T) {
 	testJWTRequired(t, "POST", "/post")
-	testJWTRequired(t, "DELETE", "/post/1")
+	testJWTRequired(t, "POST", "/post/delete")
 	testJWTRequired(t, "POST", "/post/like")
 	testJWTRequired(t, "POST", "/post/unlike")
 	testJWTRequired(t, "POST", "/comment")
@@ -89,6 +89,7 @@ func TestJWTRequired(t *testing.T) {
 	testJWTRequired(t, "POST", "/comment/unlike")
 	testJWTRequired(t, "POST", "/comment/clear")
 	testJWTRequired(t, "POST", "/changepassword")
+	testJWTRequired(t, "POST", "profile/update")
 }
 
 func TestJWTCustom(t *testing.T) {
@@ -96,5 +97,4 @@ func TestJWTCustom(t *testing.T) {
 	testJWTStatusCode(t, "POST", "/register", statusCodeOpts{http.StatusInternalServerError, http.StatusBadRequest, true, true})
 	testJWTStatusCode(t, "GET", "/login", statusCodeOpts{http.StatusOK, http.StatusBadRequest, true, false})
 	testJWTStatusCode(t, "POST", "/login", statusCodeOpts{http.StatusInternalServerError, http.StatusBadRequest, true, true})
-	testJWTStatusCode(t, "POST", "/profile/update", statusCodeOpts{http.StatusUnauthorized, http.StatusBadRequest, true, true})
 }

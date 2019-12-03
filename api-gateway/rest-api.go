@@ -20,16 +20,16 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api := &RestAPI{}
 
 	engine := gin.New()
-	// gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.ReleaseMode)
 	api.engine = engine
 	api.engine.Use(corsMiddleware())
 	api.engine.Use(gin.Recovery())
-	api.engine.Use(log.RequestMiddleware())
+	// api.engine.Use(log.RequestMiddleware())
 
 	api.setupGRPCClients()
 
-	// api.setRoutes()
-	api.setMockRoutes()
+	api.setRoutes()
+	// api.setMockRoutes()
 	common.AddMonitorHandler(api.engine)
 
 	return api, nil
@@ -109,7 +109,7 @@ func (a *RestAPI) setRoutes() {
 	})
 
 	a.engine.GET("/userid", func(ctx *gin.Context) {
-		// UserID(ctx)
+		UserIdGET(ctx)
 	})
 }
 
@@ -208,31 +208,20 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func (a *RestAPI) setupGRPCClients() {
-	userConn, err := grpc.Dial(UserServiceAddr(), grpc.WithInsecure())
-	if err != nil {
-		panic(err)
-	}
+	userConn, _ := grpc.Dial(UserServiceAddr(), grpc.WithInsecure())
 	userClient := user.NewUserClient(userConn)
-	searchConn, err := grpc.Dial(SearchServiceAddr(), grpc.WithInsecure())
-	if err != nil {
-		panic(err)
-	}
+
+	searchConn, _ := grpc.Dial(SearchServiceAddr(), grpc.WithInsecure())
 	searchClient := search.NewSearchClient(searchConn)
-	likesConn, err := grpc.Dial(LikesServiceAddr(), grpc.WithInsecure())
-	if err != nil {
-		panic(err)
-	}
+
+	likesConn, _ := grpc.Dial(LikesServiceAddr(), grpc.WithInsecure())
 	likesClient := likes.NewLikesClient(likesConn)
-	postreadConn, err := grpc.Dial(PostsReadServiceAddr(), grpc.WithInsecure())
-	if err != nil {
-		panic(err)
-	}
+	postreadConn, _ := grpc.Dial(PostsReadServiceAddr(), grpc.WithInsecure())
 	postsreadClient := postsread.NewPostsReadClient(postreadConn)
-	postWriteConn, err := grpc.Dial(PostsWriteServiceAddr(), grpc.WithInsecure())
-	if err != nil {
-		panic(err)
-	}
+
+	postWriteConn, _ := grpc.Dial(PostsWriteServiceAddr(), grpc.WithInsecure())
 	postswriteClient := postswrite.NewPostsWriteClient(postWriteConn)
+
 	a.grpcClients = GRPCClients{
 		searchClient,
 		userClient,

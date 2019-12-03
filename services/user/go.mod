@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/4726/discussion-board/services/common v0.0.0-20191128014125-0a385bcc49c5
+	github.com/fatih/structs v1.1.0 // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.3.1 // indirect

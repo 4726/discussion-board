@@ -1,0 +1,163 @@
+GET /post/:postid
+return {
+    required uint64 id = 1;
+    required uint64 user_id = 2;
+    required string title = 3;
+    optional string body = 4;
+    optional int64 likes = 5;
+    required int64 created_at = 6;
+    required int64 updated_at = 7;
+    repeated {
+        required uint64 id = 1;
+        required uint64 post_id = 2;
+        optional uint64 parent_id = 3;
+        required uint64 user_id = 4;
+        required string body = 5;
+        required int64 created_at = 6;
+        optional int64 Likes = 7;
+        bool has_like
+    } comments = 8;
+    bool has_like
+}
+
+GET /posts 
+{
+    Page   uint64 `form:"page" binding:"required"`
+    UserId uint64 `form:"userid"`
+}
+return {
+    repeated Post posts = 1;
+}
+
+POST /post (jwt)
+{
+    required string title = 1;
+    required string body = 2;
+}
+return {
+    required uint64 post_id = 1;
+}
+
+POST /post/delete (jwt)
+{
+    required uint64 post_id = 1;
+}
+return {}
+
+POST /post/like (jwt)
+{
+    required uint64 id = 1;
+}
+return {
+    required uint64 total = 1;
+}
+
+POST /post/unlike (jwt)
+{
+    required uint64 id = 1;
+}
+return {
+    required uint64 total = 1;
+}
+
+POST /comment (jwt)
+{
+    required uint64 post_id = 1;
+    optional uint64 parent_id = 2;
+    required string body = 4;
+}
+return {}
+
+POST /comment/like (jwt)
+{
+    required uint64 id = 1;
+}
+return {
+    required uint64 total = 1;
+}
+
+POST /comment/unlike (jwt)
+{
+    required uint64 id = 1;
+}
+return {
+    required uint64 total = 1;
+}
+
+POST /comment/clear (jwt)
+{
+    required uint64 comment_id = 1;
+}
+
+GET /search 
+{
+    Term string `form:"term" binding:"required"`
+    Page uint64 `form:"page" binding:"required"`
+}
+return {
+    repeated {
+        required uint64 id = 1;
+        required uint64 user_id = 2;
+        required string title = 3;
+        optional string body = 4;
+        optional int64 likes = 5;
+        required int64 created_at = 6;
+        required int64 updated_at = 7;
+        repeated Comment comments = 8;
+    } posts = 1;
+}
+
+GET /register (no jwt) 
+return {}
+
+POST /register (no jwt)
+{
+    required string username = 1;
+    required string password = 2;
+}
+return {
+    required uint64 user_id = 1;
+    string jwt
+}
+
+GET /login (no jwt)
+return {}
+
+POST /login (no jwt)
+{
+    required string username = 1;
+    required string password = 2;
+}
+return {
+    required uint64 user_id = 1;
+    string jwt
+}
+
+POST /changepassword (jwt)
+{
+    required string old_pass = 2;
+    required string new_pass = 3;
+}
+return {}
+
+GET /profile/:userid 
+return {
+    required uint64 user_id = 1;
+    required string username = 2;
+    required string bio = 3;
+    required string avatar_id = 4;
+    bool is_mine
+
+}
+
+POST /profile/update (jwt)
+{
+    optional string bio = 2;
+    optional string avatar_id = 3;
+}
+return {}
+
+GET /userid (jwt)
+return {
+    string user_id 
+}

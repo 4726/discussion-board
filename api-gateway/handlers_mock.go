@@ -13,48 +13,49 @@ func GetPostMock(ctx *gin.Context) {
 	postID, err := strconv.Atoi(postIDParam)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
+		return
 	}
 	data := map[string]interface{}{}
-	data["ID"] = postID
-	data["UserID"] = 1
-	data["Title"] = "Hello World"
-	data["Body"] = "My first post"
-	data["Likes"] = 10
-	data["CreatedAt"] = time.Now().Truncate(time.Hour * 5)
-	data["UpdatedAt"] = time.Now().Truncate(time.Hour)
-	data["HasLike"] = true
+	data["id"] = postID
+	data["user_id"] = 1
+	data["title"] = "Hello World"
+	data["body"] = "My first post"
+	data["likes"] = 10
+	data["created_at"] = time.Now().Truncate(time.Hour * 5)
+	data["updated_at"] = time.Now().Truncate(time.Hour)
+	data["has_like"] = true
 
 	comment1 := map[string]interface{}{}
-	comment1["ID"] = 1
-	comment1["PostID"] = postID
-	comment1["ParentID"] = 0
-	comment1["UserID"] = 2
-	comment1["Body"] = "good"
-	comment1["CreatedAt"] = data["CreatedAt"].(time.Time).Add(time.Minute * 10)
-	comment1["Likes"] = 0
-	comment1["HasLike"] = false
+	comment1["id"] = 1
+	comment1["post_id"] = postID
+	comment1["parent_id"] = 0
+	comment1["user_id"] = 2
+	comment1["body"] = "good"
+	comment1["created_at"] = data["created_at"].(time.Time).Add(time.Minute * 10)
+	comment1["likes"] = 0
+	comment1["has_like"] = false
 
 	comment2 := map[string]interface{}{}
-	comment2["ID"] = 2
-	comment2["PostID"] = postID
-	comment2["ParentID"] = 0
-	comment2["UserID"] = 3
-	comment2["Body"] = "great"
-	comment2["CreatedAt"] = data["CreatedAt"].(time.Time).Add(time.Hour)
-	comment2["Likes"] = 1
-	comment2["HasLike"] = true
+	comment2["id"] = 2
+	comment2["post_id"] = postID
+	comment2["parent_id"] = 0
+	comment2["user_id"] = 3
+	comment2["body"] = "great"
+	comment2["created_at"] = data["created_at"].(time.Time).Add(time.Hour)
+	comment2["likes"] = 1
+	comment2["has_like"] = true
 
 	comment3 := map[string]interface{}{}
-	comment3["ID"] = 3
-	comment3["PostID"] = postID
-	comment3["ParentID"] = 2
-	comment3["UserID"] = 1
-	comment3["Body"] = "thank you"
-	comment3["CreatedAt"] = data["UpdatedAt"]
-	comment3["Likes"] = 0
-	comment3["HasLike"] = false
+	comment3["id"] = 3
+	comment3["post_id"] = postID
+	comment3["parent_id"] = 2
+	comment3["user_id"] = 1
+	comment3["body"] = "thank you"
+	comment3["created_at"] = data["updated_at"]
+	comment3["likes"] = 0
+	comment3["has_like"] = false
 
-	data["Comments"] = []map[string]interface{}{comment1, comment2, comment3}
+	data["comments"] = []map[string]interface{}{comment1, comment2, comment3}
 	ctx.JSON(http.StatusOK, data)
 }
 
@@ -69,16 +70,18 @@ func GetPostsMock(ctx *gin.Context) {
 	}
 
 	data1 := map[string]interface{}{}
-	data1["ID"] = 1
-	data1["UserID"] = 1
-	data1["Title"] = "Hello World"
-	data1["Body"] = ""
-	data1["Likes"] = 10
-	data1["CreatedAt"] = time.Now().Truncate(time.Hour * 5)
-	data1["UpdatedAt"] = time.Now().Truncate(time.Hour)
-	data1["Comments"] = []gin.H{}
+	data1["id"] = 1
+	data1["user_id"] = 1
+	data1["title"] = "Hello World"
+	data1["body"] = ""
+	data1["likes"] = 10
+	data1["created_at"] = time.Now().Truncate(time.Hour * 5)
+	data1["updated_at"] = time.Now().Truncate(time.Hour)
+	data1["comments"] = []gin.H{}
 
-	ctx.JSON(http.StatusOK, []gin.H{data1, data1, data1, data1, data1, data1, data1, data1, data1, data1})
+	posts := []gin.H{data1, data1, data1, data1, data1, data1, data1, data1, data1, data1}
+
+	ctx.JSON(http.StatusOK, gin.H{"posts": posts})
 }
 
 func CreatePostMock(ctx *gin.Context) {
@@ -88,7 +91,7 @@ func CreatePostMock(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"postID": 1})
+	ctx.JSON(http.StatusOK, gin.H{"post_id": 1})
 }
 
 func DeletePostMock(ctx *gin.Context) {
@@ -107,7 +110,7 @@ func LikePostMock(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	ctx.JSON(http.StatusOK, gin.H{"total": 11})
 }
 
 func UnlikePostMock(ctx *gin.Context) {
@@ -117,7 +120,7 @@ func UnlikePostMock(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	ctx.JSON(http.StatusOK, gin.H{"total": 11})
 }
 
 func AddCommentMock(ctx *gin.Context) {
@@ -136,7 +139,7 @@ func LikeCommentMock(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	ctx.JSON(http.StatusOK, gin.H{"total": 11})
 }
 
 func UnlikeCommentMock(ctx *gin.Context) {
@@ -146,7 +149,7 @@ func UnlikeCommentMock(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	ctx.JSON(http.StatusOK, gin.H{"total": 11})
 }
 
 func ClearCommentMock(ctx *gin.Context) {
@@ -169,22 +172,24 @@ func SearchMock(ctx *gin.Context) {
 	}
 
 	data1 := map[string]interface{}{}
-	data1["ID"] = 1
-	data1["UserID"] = 1
-	data1["Title"] = "Hello World"
-	data1["Body"] = ""
+	data1["id"] = 1
+	data1["user_id"] = 1
+	data1["title"] = "Hello World"
+	data1["body"] = ""
 	data1["Likes"] = 10
-	data1["CreatedAt"] = time.Now().Truncate(time.Hour * 5)
-	data1["UpdatedAt"] = time.Now().Truncate(time.Hour)
-	data1["Comments"] = []gin.H{}
+	data1["created_at"] = time.Now().Truncate(time.Hour * 5)
+	data1["updated_at"] = time.Now().Truncate(time.Hour)
+	data1["comments"] = []gin.H{}
 
-	ctx.JSON(http.StatusOK, []gin.H{data1, data1, data1, data1, data1, data1, data1, data1, data1, data1})
+	posts := []map[string]interface{}{data1, data1, data1, data1, data1, data1, data1, data1, data1, data1}
+
+	ctx.JSON(http.StatusOK, gin.H{"posts": posts})
 }
 
 func RegisterGETMock(ctx *gin.Context) {
 	userID, err := getUserId(ctx)
 	if err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"UserID": userID})
+		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
 		return
 	}
 
@@ -193,7 +198,7 @@ func RegisterGETMock(ctx *gin.Context) {
 
 func RegisterPOSTMock(ctx *gin.Context) {
 	if userID, err := getUserId(ctx); err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"userID": userID})
+		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
 		return
 	}
 	jwt, err := generateJWT(1)
@@ -201,13 +206,12 @@ func RegisterPOSTMock(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"jwt": jwt, "userID": 1})
+	ctx.JSON(http.StatusOK, gin.H{"jwt": jwt, "user_id": 1})
 }
 
 func LoginGETMock(ctx *gin.Context) {
-	userID, err := getUserId(ctx)
-	if err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"UserID": userID})
+	if userID, err := getUserId(ctx); err == nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
 		return
 	}
 
@@ -216,7 +220,7 @@ func LoginGETMock(ctx *gin.Context) {
 
 func LoginPOSTMock(ctx *gin.Context) {
 	if userID, err := getUserId(ctx); err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"userID": userID})
+		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
 		return
 	}
 	jwt, err := generateJWT(1)
@@ -224,7 +228,7 @@ func LoginPOSTMock(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"jwt": jwt, "userID": 1})
+	ctx.JSON(http.StatusOK, gin.H{"jwt": jwt, "user_id": 1})
 }
 
 func ChangePasswordMock(ctx *gin.Context) {
@@ -245,39 +249,23 @@ func GetProfileMock(ctx *gin.Context) {
 	}
 
 	data := gin.H{}
-	data["UserID"] = userID
-	data["Username"] = "my_username"
-	data["Bio"] = "This is my bio"
-	data["AvatarID"] = ""
+	data["user_id"] = userID
+	data["username"] = "my_username"
+	data["bio"] = "This is my bio"
+	data["avatar_id"] = ""
+	if userID == 1 {
+		data["is_mine"] = true
+	}
 
 	ctx.JSON(http.StatusOK, data)
 }
 
 func UpdateProfileMock(ctx *gin.Context) {
-	userID, err := getUserId(ctx)
+	_, err := getUserId(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
 	}
-
-	extra := gin.H{"UserID": userID}
-
-	_, err = ctx.FormFile("avatar")
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
-		return
-	} else {
-		//upload multipart form to media service
-		//then get the avatar id
-		//then add to extra map
-	}
-
-	newBody, ok := ctx.GetPostForm("body")
-	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
-		return
-	}
-	extra["body"] = newBody
 
 	ctx.JSON(http.StatusOK, gin.H{})
 }
@@ -288,6 +276,5 @@ func UserIDMock(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"UserID": userID})
-	return
+	ctx.JSON(http.StatusOK, gin.H{"user_id": userID})
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/4726/discussion-board/api-gateway/pb/search"
 	"github.com/4726/discussion-board/api-gateway/pb/user"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/fatih/structs"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
@@ -23,7 +24,7 @@ var jwtSecretKey = []byte("todosecretkey")
 
 type JWTClaims struct {
 	jwt.StandardClaims
-	UserID uint
+	UserID uint64
 }
 
 func GetPost(ctx *gin.Context, clients GRPCClients) {
@@ -41,7 +42,44 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, post)
+	m := structs.Map(post)
+
+	userId, err := getUserId(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusOK, post)
+		return
+	}
+
+	req2 := likes.IDsUserID{UserId: proto.Uint64(userId), Id: []uint64{post.GetId()}}
+	resp, err := clients.Likes.PostsHaveLike(context.TODO(), &req2)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
+	m["has_like"] = resp.GetHaveLikes()[0].GetHasLike()
+
+	commentIds := []uint64{}
+	for _, v := range post.GetComments() {
+		commentIds = append(commentIds, v.GetId())
+	}
+	req3 := likes.IDsUserID{UserId: proto.Uint64(userId), Id: commentIds}
+	resp, err = clients.Likes.CommentsHaveLike(context.TODO(), &req3)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
+	for _, v := range resp.GetHaveLikes() {
+		id := v.GetId()
+		hasLike := v.GetHasLike()
+		comments := m["comments"].([]map[string]interface{})
+		for i, comment := range comments {
+			if comment["id"].(uint64) == id {
+				comments[i]["has_like"] = hasLike
+			}
+		}
+	}
+
+	ctx.JSON(http.StatusOK, m)
 }
 
 func GetPosts(ctx *gin.Context, clients GRPCClients) {
@@ -307,9 +345,8 @@ func Search(ctx *gin.Context, clients GRPCClients) {
 }
 
 func RegisterGET(ctx *gin.Context) {
-	userId, err := getUserId(ctx)
-	if err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"UserID": userId})
+	if userID, err := getUserId(ctx); err == nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
 		return
 	}
 
@@ -338,17 +375,15 @@ func RegisterPOST(ctx *gin.Context, clients GRPCClients) {
 		return
 	}
 
-	m := map[string]interface{}{
-		"user_id": resp.GetUserId(),
-		"jwt":     jwt,
-	}
+	m := structs.Map(resp)
+	m["jwt"] = jwt
+
 	ctx.JSON(http.StatusOK, m)
 }
 
 func LoginGET(ctx *gin.Context) {
-	userId, err := getUserId(ctx)
-	if err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"UserID": userId})
+	if userID, err := getUserId(ctx); err == nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
 		return
 	}
 
@@ -376,10 +411,8 @@ func LoginPOST(ctx *gin.Context, clients GRPCClients) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	m := map[string]interface{}{
-		"user_id": resp.GetUserId(),
-		"jwt":     jwt,
-	}
+	m := structs.Map(resp)
+	m["jwt"] = jwt
 	ctx.JSON(http.StatusOK, m)
 }
 
@@ -428,15 +461,9 @@ func GetProfile(ctx *gin.Context, clients GRPCClients) {
 		return
 	}
 
-	data := map[string]interface{}{
-		"user_id":   resp.GetUserId(),
-		"username":  resp.GetUsername(),
-		"bio":       resp.GetBio(),
-		"avatar_id": resp.GetAvatarId,
-		"is_mine":   isMine,
-	}
-
-	ctx.JSON(http.StatusOK, data)
+	m := structs.Map(resp)
+	m["is_mine"] = isMine
+	ctx.JSON(http.StatusOK, m)
 }
 
 func UpdateProfile(ctx *gin.Context, clients GRPCClients) {
@@ -460,12 +487,21 @@ func UpdateProfile(ctx *gin.Context, clients GRPCClients) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+func UserIdGET(ctx *gin.Context) {
+	userId, err := getUserId(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"user_id": userId})
+}
+
 func generateJWT(userId uint64) (string, error) {
 	claims := JWTClaims{
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour).Unix(),
 		},
-		uint(userId),
+		userId,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
