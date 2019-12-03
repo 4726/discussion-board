@@ -2,47 +2,21 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, retry, map } from 'rxjs/operators';
-
-export interface Post {
-  ID: number;
-  UserID: number;
-  Title: string;
-  Body: string;
-  Likes: number;
-  CreatedAt: string;
-  UpdatedAt: string;
-  Comments: PostComment[];
-  HasLike: boolean;
-}
-
-export interface PostComment {
-  ID: number;
-  PostID: number;
-  ParentID: number;
-  UserID: number;
-  Body: string;
-  CreatedAt: string;
-  Likes: number;
-  HasLike: boolean;
-}
-
-export interface Profile {
-  UserID: number;
-  Username: string;
-  Bio: string;
-  AvatarID: string;
-  IsMine: boolean;
-}
+import { Post, Profile, InterfacesService } from './interfaces.service';
 
 @Injectable()
 export class GatewayService {
   gatewayAddr = 'http://100.115.92.200:14000'
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient, 
+    private interfaces: InterfacesService,
+  ) {}
 
   getPosts(page: number, userID: number = 0): Observable<Post[]> {
     return this.http.get<Post[]>(this.gatewayAddr + `/posts?page=${page}&userid=${userID}`)
       .pipe(
+        map(resp => this.interfaces.postsFromJSON(resp["posts"])),
         retry(3),
         catchError(this.handleError)
       )
@@ -51,6 +25,7 @@ export class GatewayService {
   getPost(postID: number): Observable<Post> {
     return this.http.get<Post>(this.gatewayAddr + `/post/${postID}`)
       .pipe(
+        map(resp => this.interfaces.postFromJSON(resp)),
         retry(3),
         catchError(this.handleError)
       )
@@ -63,6 +38,7 @@ export class GatewayService {
     }
     return this.http.post<number>(this.gatewayAddr + '/post', post, {})
       .pipe(
+        map(resp => resp["post_id"]),
         retry(3),
         catchError(this.handleError)
       )
@@ -73,12 +49,9 @@ export class GatewayService {
       username: username,
       password: password,
     }
-
-    return this.http.post(this.gatewayAddr + '/login', postData, {})
+    return this.http.post<string>(this.gatewayAddr + '/login', postData, {})
       .pipe(
-        map(
-          res => res['jwt']
-        ),
+        map(resp => resp['jwt']),
         retry(3),
         catchError(this.handleError)
       )
@@ -89,12 +62,9 @@ export class GatewayService {
       username: username,
       password: password,
     }
-
-    return this.http.post(this.gatewayAddr + '/register', postData, {})
+    return this.http.post<string>(this.gatewayAddr + '/register', postData, {})
       .pipe(
-        map(
-          res => res['jwt']
-        ),
+        map(resp => resp['jwt']),
         retry(3),
         catchError(this.handleError)
       )
@@ -102,7 +72,7 @@ export class GatewayService {
 
   deletePost(postID: number) {
     const postData = {
-      postID: postID
+      post_id: postID
     }
 
     this.http.post(this.gatewayAddr + `/post/delete`, postData, {})
@@ -112,25 +82,27 @@ export class GatewayService {
       )
   }
 
-  likePost(postID: number) {
+  likePost(postID: number): Observable<number> {
     const postData = {
-      postID: postID,
+      id: postID,
     }
 
-    this.http.post(this.gatewayAddr + '/post/like', postData, {})
+    return this.http.post<number>(this.gatewayAddr + '/post/like', postData, {})
       .pipe(
+        map(resp => resp["total"]),
         retry(3),
         catchError(this.handleError)
       )
   }
 
-  unlikePost(postID: number) {
+  unlikePost(postID: number): Observable<number> {
     const postData = {
-      postID: postID,
+      id: postID,
     }
 
-    this.http.post(this.gatewayAddr + '/post/unlike', postData, {})
+    return this.http.post<number>(this.gatewayAddr + '/post/unlike', postData, {})
       .pipe(
+        map(resp => resp["total"]),
         retry(3),
         catchError(this.handleError)
       )
@@ -138,9 +110,9 @@ export class GatewayService {
 
   addComment(postID: number, body: string, parentID: number = 0) {
     const postData = {
-      postID: postID,
+      post_id: postID,
       body: body,
-      parentID: parentID,
+      parent_id: parentID,
     }
 
     this.http.post(this.gatewayAddr + '/comment/create', postData, {})
@@ -150,25 +122,27 @@ export class GatewayService {
       )
   }
 
-  likeComment(commentID: number) {
+  likeComment(commentID: number): Observable<number> {
     const postData = {
-      commentID: commentID,
+      id: commentID,
     }
 
-    this.http.post(this.gatewayAddr + '/comment/like', postData, {})
+    return this.http.post<number>(this.gatewayAddr + '/comment/like', postData, {})
       .pipe(
+        map(resp => resp["total"]),
         retry(3),
         catchError(this.handleError)
       )
   }
 
-  unlikeComment(commentID: number) {
+  unlikeComment(commentID: number): Observable<number> {
     const postData = {
-      commentID: commentID,
+      id: commentID,
     }
 
-    this.http.post(this.gatewayAddr + '/comment/unlike', postData, {})
+    return this.http.post<number>(this.gatewayAddr + '/comment/unlike', postData, {})
       .pipe(
+        map(resp => resp["total"]),
         retry(3),
         catchError(this.handleError)
       )
@@ -176,7 +150,7 @@ export class GatewayService {
 
   clearComment(commentID: number) {
     const postData = {
-      commentID: commentID,
+      comment_id: commentID,
     }
 
     this.http.post(this.gatewayAddr + '/comment/clear', postData, {})
@@ -189,6 +163,7 @@ export class GatewayService {
   search(term: string, page: number): Observable<Post[]> {
     return this.http.get<Post[]>(this.gatewayAddr + `/search?term=${term}&page=${page}`, {})
       .pipe(
+        map(resp => this.interfaces.postsFromJSON(resp["posts"])),
         retry(3),
         catchError(this.handleError)
       )
@@ -196,8 +171,8 @@ export class GatewayService {
 
   changePassword(oldPass: string, newPass: string) {
     const postData = {
-      oldPass: oldPass,
-      newPass: newPass,
+      old_pass: oldPass,
+      new_pass: newPass,
     }
 
     this.http.post(this.gatewayAddr + '/changepassword', postData, {})
@@ -210,6 +185,7 @@ export class GatewayService {
   getProfile(userID: number): Observable<Profile> {
     return this.http.get<Profile>(this.gatewayAddr + `/profile/${userID}`, {})
       .pipe(
+        map(resp => this.interfaces.profileFromJSON(resp)),
         retry(3),
         catchError(this.handleError)
       )
@@ -246,8 +222,7 @@ export class GatewayService {
       .pipe(
         map(
           resp => {
-            console.log(resp)
-            return resp['UserID']
+            return resp['user_id']
           }
         )
       )

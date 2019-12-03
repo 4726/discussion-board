@@ -29,6 +29,7 @@ import { SearchComponent } from './search/search.component';
 import {MatCardModule} from '@angular/material/card';
 import { UserPostsComponent } from './user-posts/user-posts.component';
 import { AuthGuard } from './auth.guard';
+import { InterfacesService } from './interfaces.service';
 
 @NgModule({
   declarations: [
@@ -65,7 +66,8 @@ import { AuthGuard } from './auth.guard';
     httpInterceptorProviders,
     NoAuthGuard,
     AuthGuard,
-    GatewayService
+    GatewayService,
+    InterfacesService,
   ],
   bootstrap: [AppComponent]
 })

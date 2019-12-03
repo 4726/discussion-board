@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { Post, GatewayService } from '../gateway.service';
+import { GatewayService } from '../gateway.service';
 import { MatTableDataSource } from '@angular/material/table';
 import { Router, ActivatedRoute, ParamMap } from '@angular/router';
+import {Post} from '../interfaces.service';
 
 @Component({
   selector: 'app-user-posts',
@@ -14,16 +15,16 @@ export class UserPostsComponent implements OnInit {
   error: string;
   displayedColumns: string[] = ['title', 'userid', 'likes', 'updatedat']//html
   page: number = 1;
-  userID: number;
   hasPrevPage: boolean = true;
   dataSource: MatTableDataSource<Post>;
+  userID: number;
 
   constructor(
     private gatewayService: GatewayService,
     private router: Router,
     private route: ActivatedRoute,
-  ) {
-    this.dataSource = new MatTableDataSource(this.posts);
+    ) {
+      this.dataSource = new MatTableDataSource(this.posts);
   }
 
   ngOnInit() {
@@ -33,58 +34,19 @@ export class UserPostsComponent implements OnInit {
       const userIDParam = this.route.snapshot.paramMap.get('userid')
       this.userID = +userIDParam
       this.prodInit()
-      // this.testInit()
-    })
+    })    
   }
 
   prodInit() {
+    this.posts = []
     this.gatewayService.getPosts(this.page, this.userID)
-  }
-
-  testInit() {
-    this.posts = [];
-    if (this.page == 1) {
-      const p = {} as Post
-      p.ID = 123
-      p.UserID = this.userID
-      p.Title = 'hello world'
-      p.Likes = 1
-      p.UpdatedAt = '1 hour ago'
-
-      this.posts.push(p)
-
-      const p2 = {} as Post
-      p2.ID = 124
-      p2.UserID = this.userID
-      p2.Title = 'my title'
-      p2.Likes = 20
-      p2.UpdatedAt = '5 hours ago'
-
-      this.posts.push(p2)
-
-      this.hasPrevPage = false
-    } else if (this.page == 2) {
-      const p = {} as Post
-      p.ID = 222
-      p.UserID = this.userID
-      p.Title = 'testing'
-      p.Likes = 13
-      p.UpdatedAt = '1 day ago'
-
-      this.posts.push(p)
-
-      const p2 = {} as Post
-      p2.ID = 333
-      p2.UserID = this.userID
-      p2.Title = 'good'
-      p2.Likes = 200
-      p2.UpdatedAt = '5 days ago'
-
-      this.posts.push(p2)
-
-      this.hasPrevPage = true
-    }
-    this.dataSource.data = this.posts //refresh table
+      .subscribe(
+        (data: Post[]) => {
+          this.posts = data
+          this.dataSource.data = this.posts
+        },
+        error => this.error = error
+      );
   }
 
   nextPage() {
@@ -97,6 +59,10 @@ export class UserPostsComponent implements OnInit {
     } else {
       this.router.navigate([`profile/${this.userID}/posts/${this.page - 1}`])
     }
+  }
+
+  onRowClick(postID: number) {
+    this.router.navigate([`post/${postID}`])
   }
 
 }

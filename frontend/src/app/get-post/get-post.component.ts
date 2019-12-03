@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { GatewayService, Post, PostComment } from '../gateway.service';
+import { GatewayService } from '../gateway.service';
 import { ActivatedRoute, ParamMap } from "@angular/router";
+import {Post, PostComment} from '../interfaces.service';
 
 @Component({
   selector: 'app-get-post',
@@ -33,18 +34,52 @@ export class GetPostComponent implements OnInit {
   }
 
   onLikePost() {
-
+    this.gatewayService.likePost(this.post.ID)
+      .subscribe(
+        (data: number) => {
+          this.post.Likes = data
+          this.post.HasLike = true
+        },
+        error => this.error = error
+      )
   }
 
   onUnlikePost() {
-
+    this.gatewayService.unlikePost(this.post.ID)
+      .subscribe(
+        (data: number) => {
+          this.post.Likes = data
+          this.post.HasLike = false
+        },
+        error => this.error = error
+      )
   }
 
-  onLikeComment() {
-
+  onLikeComment(commentID: number) {
+    this.gatewayService.likeComment(commentID)
+    .subscribe(
+      (data: number) => {
+        let comment = this.findComment(commentID)
+        comment.Likes = data
+        comment.HasLike = true
+      },
+      error => this.error = error
+    )
   }
 
-  onUnlikeComment() {
+  onUnlikeComment(commentID: number) {
+    this.gatewayService.unlikeComment(commentID)
+      .subscribe(
+        (data: number) => {
+          let comment = this.findComment(commentID)
+          comment.Likes = data
+          comment.HasLike = false
+        },
+        error => this.error = error
+      )
+  }
 
+  private findComment(commentID: number): PostComment {
+    return this.post.Comments.find(v => v.ID == commentID)
   }
 }

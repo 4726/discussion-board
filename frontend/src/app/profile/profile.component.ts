@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { GatewayService, Profile } from '../gateway.service';
+import { GatewayService } from '../gateway.service';
 import { Router, ActivatedRoute, ParamMap } from '@angular/router';
+import {Profile} from '../interfaces.service';
 
 @Component({
   selector: 'app-profile',
@@ -25,7 +26,6 @@ export class ProfileComponent implements OnInit {
       const userIDParam = this.route.snapshot.paramMap.get('userid')
       this.userID = +userIDParam
       this.prodInit()
-      // this.testInit()
     })    
   }
 
@@ -37,22 +37,6 @@ export class ProfileComponent implements OnInit {
       },
       error => this.error = error
     );
-  }
-
-  testInit() {
-    const p = {} as Profile
-    p.UserID = this.userID
-    p.Username = 'my_username'
-    p.Bio = 'hello world'
-    p.AvatarID = ''
-
-    if (this.userID == 1) {
-      p.IsMine = true
-    } else {
-      p.IsMine = false
-    }
-    this.profile = p
-    this.isMine = p.IsMine
   }
 
   onEditProfile() {

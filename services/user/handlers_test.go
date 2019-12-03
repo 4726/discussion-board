@@ -186,6 +186,18 @@ func TestCreateAccountInvalidPassword(t *testing.T) {
 	assert.Equal(t, profiles, profilesAfter)
 }
 
+func TestCreateAccountUsernameExists(t *testing.T) {
+	c, auths, profiles := testSetup(t)
+
+	req := &pb.LoginCredentials{Username: proto.String(auths[0].Username), Password: proto.String("password")}
+	_, err := c.CreateAccount(context.TODO(), req)
+	assert.Error(t, err)
+
+	authsAfter, profilesAfter := queryDBTest(t)
+	assert.Equal(t, auths, authsAfter)
+	assert.Equal(t, profiles, profilesAfter)
+}
+
 func TestCreateAccount(t *testing.T) {
 	c, auths, profiles := testSetup(t)
 

@@ -25,7 +25,6 @@ export class HeaderComponent implements OnInit {
   }
 
   ngOnInit() {
-    // this.testInit()
     this.prodInit()
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
@@ -38,25 +37,13 @@ export class HeaderComponent implements OnInit {
     this.gatewayService.getUserID()
       .subscribe(
         res => {
-          console.log('signed in')
           this.signedIn = true
           this.userID = res
         },
         err => {
-          console.log('not signed in')
           this.signedIn = false
         }
     )
-  }
-
-  testInit() {
-    const userID: number = 1
-    if (userID != 0) {
-      this.signedIn = true
-      this.userID = userID
-    } else {
-      this.signedIn = false
-    }
   }
 
   onSearch(formData) {

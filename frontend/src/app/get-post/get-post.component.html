@@ -1,15 +1,3 @@
-<!-- export interface Post {
-ID: number;
-UserID: number;
-Comments: PostComment[];
-}
-
-export interface PostComment {
-ID: number;
-PostID: number;
-ParentID: number;
-} -->
-
 <mat-card class="card">
     <mat-card-header>
         <mat-card-title>{{post?.Username}}</mat-card-title>
@@ -23,12 +11,12 @@ ParentID: number;
     </mat-card-content>
     <div *ngIf="post?.HasLike; else elseBlock">
             <mat-card-actions>
-                <button mat-raised-button (click)="onUnlikePost()">Unlike</button>
+                <button mat-raised-button (click)="onUnlikePost(post?.ID)">Unlike</button>
             </mat-card-actions>
         </div>
         <ng-template #elseBlock>
             <mat-card-actions>
-                <button mat-raised-button (click)="onLikePost()">Like</button>
+                <button mat-raised-button (click)="onLikePost(post?.ID)">Like</button>
             </mat-card-actions>
         </ng-template>
 </mat-card>
@@ -45,14 +33,14 @@ ParentID: number;
             <mat-card-content>
                 {{comment.Body}}
             </mat-card-content>
-            <div *ngIf="comment?.HasLike; else elseBlock">
+            <div *ngIf="comment.HasLike; else elseBlock">
                 <mat-card-actions>
-                    <button mat-raised-button (click)="onUnlikeComment()">Unlike</button>
+                    <button mat-raised-button (click)="onUnlikeComment(comment.ID)">Unlike</button>
                 </mat-card-actions>
             </div>
             <ng-template #elseBlock>
                 <mat-card-actions>
-                    <button mat-raised-button (click)="onLikeComment()">Like</button>
+                    <button mat-raised-button (click)="onLikeComment(comment.ID)">Like</button>
                 </mat-card-actions>
             </ng-template>
         </mat-card>
