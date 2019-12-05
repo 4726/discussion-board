@@ -10,6 +10,7 @@ type Handlers struct {
 }
 
 func (h *Handlers) Index(ctx context.Context, in *pb.Post) (*pb.IndexResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	post := Post{
 		in.GetTitle(),
 		in.GetBody(),
@@ -26,6 +27,7 @@ func (h *Handlers) Index(ctx context.Context, in *pb.Post) (*pb.IndexResponse, e
 }
 
 func (h *Handlers) Search(ctx context.Context, in *pb.SearchQuery) (*pb.SearchResult, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	res, err := h.esc.Search(in.GetTerm(), in.GetFrom(), in.GetTotal())
 	if err != nil {
 		return nil, err
@@ -34,6 +36,7 @@ func (h *Handlers) Search(ctx context.Context, in *pb.SearchQuery) (*pb.SearchRe
 }
 
 func (h *Handlers) SetLikes(ctx context.Context, in *pb.Likes) (*pb.LikesResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	if err := h.esc.UpdateLikes(in.GetId(), in.GetLikes()); err != nil {
 		return nil, err
 	}
@@ -41,6 +44,7 @@ func (h *Handlers) SetLikes(ctx context.Context, in *pb.Likes) (*pb.LikesRespons
 }
 
 func (h *Handlers) DeletePost(ctx context.Context, in *pb.Id) (*pb.DeletePostResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	if err := h.esc.Delete(in.GetId()); err != nil {
 		return nil, err
 	}
@@ -49,6 +53,7 @@ func (h *Handlers) DeletePost(ctx context.Context, in *pb.Id) (*pb.DeletePostRes
 }
 
 func (h *Handlers) SetTimestamp(ctx context.Context, in *pb.Timestamp) (*pb.SetTimestampResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	if err := h.esc.UpdateLastUpdate(in.GetId(), in.GetTimestamp()); err != nil {
 		return nil, err
 	}

@@ -13,6 +13,7 @@ type GRPCHandlers struct {
 }
 
 func (h *GRPCHandlers) LikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	like := PostLike{idu.GetId(), idu.GetUserId(), time.Now()}
 
 	if err := h.db.FirstOrCreate(&PostLike{}, &like).Error; err != nil {
@@ -29,6 +30,7 @@ func (h *GRPCHandlers) LikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Tota
 }
 
 func (h *GRPCHandlers) UnlikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	like := PostLike{PostID: idu.GetId(), UserID: idu.GetUserId()}
 
 	if err := h.db.Delete(&like).Error; err != nil {
@@ -45,6 +47,7 @@ func (h *GRPCHandlers) UnlikePost(ctx context.Context, idu *pb.IDUserID) (*pb.To
 }
 
 func (h *GRPCHandlers) LikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	like := CommentLike{idu.GetId(), idu.GetUserId(), time.Now()}
 
 	if err := h.db.FirstOrCreate(&CommentLike{}, &like).Error; err != nil {
@@ -61,6 +64,7 @@ func (h *GRPCHandlers) LikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.T
 }
 
 func (h *GRPCHandlers) UnlikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	like := CommentLike{CommentID: idu.GetId(), UserID: idu.GetUserId()}
 
 	if err := h.db.Delete(&like).Error; err != nil {
@@ -77,6 +81,7 @@ func (h *GRPCHandlers) UnlikeComment(ctx context.Context, idu *pb.IDUserID) (*pb
 }
 
 func (h *GRPCHandlers) GetPostLikes(ctx context.Context, ids *pb.IDs) (*pb.TotalLikes, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	likes := []*pb.TotalLikes_IDLikes{}
 
 	for _, v := range ids.Id {
@@ -97,6 +102,7 @@ func (h *GRPCHandlers) GetPostLikes(ctx context.Context, ids *pb.IDs) (*pb.Total
 }
 
 func (h *GRPCHandlers) GetCommentLikes(ctx context.Context, ids *pb.IDs) (*pb.TotalLikes, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	likes := []*pb.TotalLikes_IDLikes{}
 
 	for _, v := range ids.Id {
@@ -117,6 +123,7 @@ func (h *GRPCHandlers) GetCommentLikes(ctx context.Context, ids *pb.IDs) (*pb.To
 }
 
 func (h *GRPCHandlers) PostsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*pb.HaveLikes, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	likes := []*pb.HaveLikes_HaveLike{}
 
 	for _, v := range idu.Id {
@@ -137,6 +144,7 @@ func (h *GRPCHandlers) PostsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*p
 }
 
 func (h *GRPCHandlers) CommentsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*pb.HaveLikes, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	likes := []*pb.HaveLikes_HaveLike{}
 
 	for _, v := range idu.Id {

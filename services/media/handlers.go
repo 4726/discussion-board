@@ -15,6 +15,7 @@ type Handlers struct {
 }
 
 func (h *Handlers) Upload(ctx context.Context, in *pb.UploadRequest) (*pb.Name, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	buffer := bytes.NewBuffer(in.Media)
 	guid, err := ksuid.NewRandom() //not guaranteed unique
 	if err != nil {
@@ -31,6 +32,7 @@ func (h *Handlers) Upload(ctx context.Context, in *pb.UploadRequest) (*pb.Name, 
 }
 
 func (h *Handlers) Remove(ctx context.Context, in *pb.Name) (*pb.RemoveResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	if err := h.mc.RemoveObject(bucketName, in.GetName()); err != nil {
 		return nil, err
 	}
@@ -38,6 +40,7 @@ func (h *Handlers) Remove(ctx context.Context, in *pb.Name) (*pb.RemoveResponse,
 }
 
 func (h *Handlers) Info(ctx context.Context, in *pb.InfoRequest) (*pb.InfoResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	addr := fmt.Sprintf("%s/%s/", h.mc.EndpointURL().String(), bucketName)
 	return &pb.InfoResponse{StoreAddress: proto.String(addr)}, nil
 }

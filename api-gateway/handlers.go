@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -36,7 +35,9 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 	}
 
 	req := postsread.Id{Id: proto.Uint64(postId)}
-	post, err := clients.PostsRead.GetFullPost(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	post, err := clients.PostsRead.GetFullPost(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -51,7 +52,9 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 	}
 
 	req2 := likes.IDsUserID{UserId: proto.Uint64(userId), Id: []uint64{post.GetId()}}
-	resp, err := clients.Likes.PostsHaveLike(context.TODO(), &req2)
+	grpcCtx2, cancel2 := DefaultGRPCContext()
+	defer cancel2()
+	resp, err := clients.Likes.PostsHaveLike(grpcCtx2, &req2)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -63,7 +66,9 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 		commentIds = append(commentIds, v.GetId())
 	}
 	req3 := likes.IDsUserID{UserId: proto.Uint64(userId), Id: commentIds}
-	resp, err = clients.Likes.CommentsHaveLike(context.TODO(), &req3)
+	grpcCtx3, cancel3 := DefaultGRPCContext()
+	defer cancel3()
+	resp, err = clients.Likes.CommentsHaveLike(grpcCtx3, &req3)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -98,7 +103,9 @@ func GetPosts(ctx *gin.Context, clients GRPCClients) {
 		UserId: proto.Uint64(query.UserId),
 		Sort:   proto.String(""),
 	}
-	posts, err := clients.PostsRead.GetPosts(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	posts, err := clients.PostsRead.GetPosts(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -118,7 +125,9 @@ func CreatePost(ctx *gin.Context, clients GRPCClients) {
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 	req.UserId = proto.Uint64(userId)
 
-	resp, err := clients.PostsWrite.CreatePost(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.PostsWrite.CreatePost(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -139,7 +148,9 @@ func DeletePost(ctx *gin.Context, clients GRPCClients) {
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 	req.UserId = proto.Uint64(userId)
 
-	resp, err := clients.PostsWrite.DeletePost(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.PostsWrite.DeletePost(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -162,7 +173,9 @@ func LikePost(ctx *gin.Context, clients GRPCClients) {
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 	req.UserId = proto.Uint64(userId)
 
-	resp, err := clients.Likes.LikePost(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.Likes.LikePost(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -175,7 +188,9 @@ func LikePost(ctx *gin.Context, clients GRPCClients) {
 			Id:    proto.Uint64(req.GetId()),
 			Likes: proto.Int64(int64(resp.GetTotal())),
 		}
-		_, _ = clients.PostsWrite.SetPostLikes(context.TODO(), &req2)
+		grpcCtx, cancel := DefaultGRPCContext()
+		defer cancel()
+		_, _ = clients.PostsWrite.SetPostLikes(grpcCtx, &req2)
 	}()
 
 	ctx.JSON(http.StatusOK, resp)
@@ -193,7 +208,9 @@ func UnlikePost(ctx *gin.Context, clients GRPCClients) {
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 	req.UserId = proto.Uint64(userId)
 
-	resp, err := clients.Likes.UnlikePost(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.Likes.UnlikePost(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -204,7 +221,9 @@ func UnlikePost(ctx *gin.Context, clients GRPCClients) {
 			Id:    proto.Uint64(req.GetId()),
 			Likes: proto.Int64(int64(resp.GetTotal())),
 		}
-		_, _ = clients.PostsWrite.SetPostLikes(context.TODO(), &req2)
+		grpcCtx, cancel := DefaultGRPCContext()
+		defer cancel()
+		_, _ = clients.PostsWrite.SetPostLikes(grpcCtx, &req2)
 	}()
 
 	ctx.JSON(http.StatusOK, resp)
@@ -222,7 +241,9 @@ func AddComment(ctx *gin.Context, clients GRPCClients) {
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 	req.UserId = proto.Uint64(userId)
 
-	resp, err := clients.PostsWrite.CreateComment(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.PostsWrite.CreateComment(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -242,7 +263,9 @@ func LikeComment(ctx *gin.Context, clients GRPCClients) {
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 	req.UserId = proto.Uint64(userId)
 
-	resp, err := clients.Likes.LikeComment(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.Likes.LikeComment(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -253,7 +276,9 @@ func LikeComment(ctx *gin.Context, clients GRPCClients) {
 			Id:    proto.Uint64(req.GetId()),
 			Likes: proto.Int64(int64(resp.GetTotal())),
 		}
-		_, _ = clients.PostsWrite.SetCommentLikes(context.TODO(), &req2)
+		grpcCtx, cancel := DefaultGRPCContext()
+		defer cancel()
+		_, _ = clients.PostsWrite.SetCommentLikes(grpcCtx, &req2)
 	}()
 
 	ctx.JSON(http.StatusOK, resp)
@@ -271,7 +296,9 @@ func UnlikeComment(ctx *gin.Context, clients GRPCClients) {
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 	req.UserId = proto.Uint64(userId)
 
-	resp, err := clients.Likes.UnlikeComment(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.Likes.UnlikeComment(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -282,7 +309,9 @@ func UnlikeComment(ctx *gin.Context, clients GRPCClients) {
 			Id:    proto.Uint64(req.GetId()),
 			Likes: proto.Int64(int64(resp.GetTotal())),
 		}
-		_, _ = clients.PostsWrite.SetCommentLikes(context.TODO(), &req2)
+		grpcCtx, cancel := DefaultGRPCContext()
+		defer cancel()
+		_, _ = clients.PostsWrite.SetCommentLikes(grpcCtx, &req2)
 	}()
 
 	ctx.JSON(http.StatusOK, resp)
@@ -300,7 +329,9 @@ func ClearComment(ctx *gin.Context, clients GRPCClients) {
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 	req.UserId = proto.Uint64(userId)
 
-	resp, err := clients.PostsWrite.ClearComment(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.PostsWrite.ClearComment(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -326,7 +357,9 @@ func Search(ctx *gin.Context, clients GRPCClients) {
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 
-	resp, err := clients.Search.Search(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.Search.Search(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -335,7 +368,9 @@ func Search(ctx *gin.Context, clients GRPCClients) {
 	req2 := postsread.Ids{
 		Id: resp.GetId(),
 	}
-	resp2, err := clients.PostsRead.GetPostsById(context.TODO(), &req2)
+	grpcCtx2, cancel2 := DefaultGRPCContext()
+	defer cancel2()
+	resp2, err := clients.PostsRead.GetPostsById(grpcCtx2, &req2)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -363,7 +398,9 @@ func RegisterPOST(ctx *gin.Context, clients GRPCClients) {
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 
-	resp, err := clients.User.CreateAccount(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.User.CreateAccount(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -400,7 +437,9 @@ func LoginPOST(ctx *gin.Context, clients GRPCClients) {
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 
-	resp, err := clients.User.Login(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.User.Login(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -428,7 +467,9 @@ func ChangePassword(ctx *gin.Context, clients GRPCClients) {
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 	req.UserId = proto.Uint64(userId)
 
-	resp, err := clients.User.ChangePassword(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.User.ChangePassword(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -455,7 +496,9 @@ func GetProfile(ctx *gin.Context, clients GRPCClients) {
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 
-	resp, err := clients.User.GetProfile(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.User.GetProfile(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
@@ -478,7 +521,9 @@ func UpdateProfile(ctx *gin.Context, clients GRPCClients) {
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
 	req.UserId = proto.Uint64(userId)
 
-	resp, err := clients.User.UpdateProfile(context.TODO(), &req)
+	grpcCtx, cancel := DefaultGRPCContext()
+	defer cancel()
+	resp, err := clients.User.UpdateProfile(grpcCtx, &req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return

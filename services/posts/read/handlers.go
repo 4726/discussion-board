@@ -13,6 +13,7 @@ type Handlers struct {
 }
 
 func (h *Handlers) GetFullPost(ctx context.Context, in *pb.Id) (*pb.Post, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	var post models.Post
 	if err := h.db.First(&post, in.GetId()).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
@@ -25,6 +26,7 @@ func (h *Handlers) GetFullPost(ctx context.Context, in *pb.Id) (*pb.Post, error)
 }
 
 func (h *Handlers) GetPosts(ctx context.Context, in *pb.GetPostsQuery) (*pb.MultiplePosts, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	var sortType string
 
 	switch in.GetSort() {
@@ -66,6 +68,7 @@ func (h *Handlers) GetPosts(ctx context.Context, in *pb.GetPostsQuery) (*pb.Mult
 }
 
 func (h *Handlers) GetPostsById(ctx context.Context, in *pb.Ids) (*pb.MultiplePosts, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	posts := []models.Post{}
 	selectFields := []string{"id", "user_id", "title", "likes", "created_at", "updated_at"}
 	if err := h.db.Preload("Comments").Select(selectFields).

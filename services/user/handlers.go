@@ -20,6 +20,7 @@ type Handlers struct {
 }
 
 func (h *Handlers) GetProfile(ctx context.Context, in *pb.UserId) (*pb.Profile, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	profile := Profile{}
 	if err := h.db.First(&profile, in.GetUserId()).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
@@ -37,6 +38,7 @@ func (h *Handlers) GetProfile(ctx context.Context, in *pb.UserId) (*pb.Profile, 
 }
 
 func (h *Handlers) Login(ctx context.Context, in *pb.LoginCredentials) (*pb.UserId, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	auth := Auth{}
 	if err := h.db.Where("username = ?", in.GetUsername()).First(&auth).Error; err != nil {
 		return nil, err
@@ -50,6 +52,7 @@ func (h *Handlers) Login(ctx context.Context, in *pb.LoginCredentials) (*pb.User
 }
 
 func (h *Handlers) CreateAccount(ctx context.Context, in *pb.LoginCredentials) (*pb.UserId, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	match, err := validUsername(in.GetUsername())
 	if err != nil {
 		return nil, err
@@ -113,6 +116,7 @@ func (h *Handlers) CreateAccount(ctx context.Context, in *pb.LoginCredentials) (
 }
 
 func (h *Handlers) UpdateProfile(ctx context.Context, in *pb.UpdateProfileRequest) (*pb.UpdateProfileResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	updates := map[string]interface{}{}
 	updates["Bio"] = in.GetBio()
 	updates["AvatarID"] = in.GetAvatarId()
@@ -126,6 +130,7 @@ func (h *Handlers) UpdateProfile(ctx context.Context, in *pb.UpdateProfileReques
 }
 
 func (h *Handlers) ChangePassword(ctx context.Context, in *pb.ChangePasswordRequest) (*pb.ChangePasswordResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	tx := h.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {

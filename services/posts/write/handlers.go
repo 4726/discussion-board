@@ -19,6 +19,7 @@ type Handlers struct {
 }
 
 func (h *Handlers) CreatePost(ctx context.Context, in *pb.PostRequest) (*pb.PostId, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	created := time.Now()
 	post := models.Post{
 		UserID:    in.GetUserId(),
@@ -37,6 +38,7 @@ func (h *Handlers) CreatePost(ctx context.Context, in *pb.PostRequest) (*pb.Post
 }
 
 func (h *Handlers) DeletePost(ctx context.Context, in *pb.DeletePostRequest) (*pb.DeletePostResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	post := models.Post{ID: in.GetPostId()}
 
 	if in.GetUserId() != 0 {
@@ -55,6 +57,7 @@ func (h *Handlers) DeletePost(ctx context.Context, in *pb.DeletePostRequest) (*p
 }
 
 func (h *Handlers) SetPostLikes(ctx context.Context, in *pb.SetLikes) (*pb.SetLikesResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	post := models.Post{ID: in.GetId()}
 
 	//uses UpdateColumn() instead of Update() because Update()
@@ -67,6 +70,7 @@ func (h *Handlers) SetPostLikes(ctx context.Context, in *pb.SetLikes) (*pb.SetLi
 }
 
 func (h *Handlers) CreateComment(ctx context.Context, in *pb.CommentRequest) (*pb.CreateCommentResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	created := time.Now()
 	comment := models.Comment{
 		PostID:    in.GetPostId(),
@@ -88,6 +92,7 @@ func (h *Handlers) CreateComment(ctx context.Context, in *pb.CommentRequest) (*p
 }
 
 func (h *Handlers) ClearComment(ctx context.Context, in *pb.ClearCommentRequest) (*pb.ClearCommentResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	comment := models.Comment{ID: in.GetCommentId()}
 
 	if in.GetUserId() != 0 {
@@ -106,6 +111,7 @@ func (h *Handlers) ClearComment(ctx context.Context, in *pb.ClearCommentRequest)
 }
 
 func (h *Handlers) SetCommentLikes(ctx context.Context, in *pb.SetLikes) (*pb.SetLikesResponse, error) {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	comment := models.Comment{ID: in.GetId()}
 
 	if err := h.db.Model(&comment).Update("Likes", in.GetLikes()).Error; err != nil {
@@ -116,6 +122,7 @@ func (h *Handlers) SetCommentLikes(ctx context.Context, in *pb.SetLikes) (*pb.Se
 }
 
 func addCommentToDB(db *gorm.DB, comment *models.Comment) error {
+	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
 	post := models.Post{ID: comment.PostID}
 
 	tx := db.Begin()
