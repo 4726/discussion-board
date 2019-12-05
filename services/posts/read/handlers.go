@@ -6,6 +6,8 @@ import (
 	"github.com/4726/discussion-board/services/posts/read/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/gorm"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Handlers struct {
@@ -13,20 +15,24 @@ type Handlers struct {
 }
 
 func (h *Handlers) GetFullPost(ctx context.Context, in *pb.Id) (*pb.Post, error) {
-	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
 	var post models.Post
 	if err := h.db.First(&post, in.GetId()).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			return &pb.Post{}, nil
+			return nil, status.Error(codes.NotFound, "post not found")
 		}
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return modelPostToProtoPost(post), nil
 }
 
 func (h *Handlers) GetPosts(ctx context.Context, in *pb.GetPostsQuery) (*pb.MultiplePosts, error) {
-	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
 	var sortType string
 
 	switch in.GetSort() {
@@ -45,7 +51,7 @@ func (h *Handlers) GetPosts(ctx context.Context, in *pb.GetPostsQuery) (*pb.Mult
 	if in.GetUserId() != 0 {
 		posts, err := getPostsUser(h.db, in.GetFrom(), in.GetTotal(), in.GetUserId(), sortType)
 		if err != nil {
-			return nil, err
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 
 		protoPosts := []*pb.Post{}
@@ -57,7 +63,7 @@ func (h *Handlers) GetPosts(ctx context.Context, in *pb.GetPostsQuery) (*pb.Mult
 
 	posts, err := getPosts(h.db, in.GetFrom(), in.GetTotal(), sortType)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	protoPosts := []*pb.Post{}
@@ -68,13 +74,15 @@ func (h *Handlers) GetPosts(ctx context.Context, in *pb.GetPostsQuery) (*pb.Mult
 }
 
 func (h *Handlers) GetPostsById(ctx context.Context, in *pb.Ids) (*pb.MultiplePosts, error) {
-	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
 	posts := []models.Post{}
 	selectFields := []string{"id", "user_id", "title", "likes", "created_at", "updated_at"}
 	if err := h.db.Preload("Comments").Select(selectFields).
 		Where(in.Id).
 		Find(&posts).Error; err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	protoPosts := []*pb.Post{}

@@ -5,6 +5,8 @@ import (
 	"github.com/4726/discussion-board/services/likes/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/gorm"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"time"
 )
 
@@ -13,75 +15,89 @@ type GRPCHandlers struct {
 }
 
 func (h *GRPCHandlers) LikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
-	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
 	like := PostLike{idu.GetId(), idu.GetUserId(), time.Now()}
 
 	if err := h.db.FirstOrCreate(&PostLike{}, &like).Error; err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	var count uint64
 
 	if err := h.db.Where("post_id = ?", like.PostID).Find(&PostLike{}).Count(&count).Error; err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.Total{Total: &count}, nil
 }
 
 func (h *GRPCHandlers) UnlikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
-	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
 	like := PostLike{PostID: idu.GetId(), UserID: idu.GetUserId()}
 
 	if err := h.db.Delete(&like).Error; err != nil {
-		return nil, err
+		if !gorm.IsRecordNotFoundError(err) {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
 	}
 
 	var count uint64
 
 	if err := h.db.Where("post_id = ?", like.PostID).Find(&PostLike{}).Count(&count).Error; err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.Total{Total: &count}, nil
 }
 
 func (h *GRPCHandlers) LikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
-	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
 	like := CommentLike{idu.GetId(), idu.GetUserId(), time.Now()}
 
 	if err := h.db.FirstOrCreate(&CommentLike{}, &like).Error; err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	var count uint64
 
 	if err := h.db.Where("comment_id = ?", like.CommentID).Find(&CommentLike{}).Count(&count).Error; err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.Total{Total: &count}, nil
 }
 
 func (h *GRPCHandlers) UnlikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
-	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
 	like := CommentLike{CommentID: idu.GetId(), UserID: idu.GetUserId()}
 
 	if err := h.db.Delete(&like).Error; err != nil {
-		return nil, err
+		if !gorm.IsRecordNotFoundError(err) {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
 	}
 
 	var count uint64
 
 	if err := h.db.Where("comment_id = ?", like.CommentID).Find(&CommentLike{}).Count(&count).Error; err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.Total{Total: &count}, nil
 }
 
 func (h *GRPCHandlers) GetPostLikes(ctx context.Context, ids *pb.IDs) (*pb.TotalLikes, error) {
-	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
 	likes := []*pb.TotalLikes_IDLikes{}
 
 	for _, v := range ids.Id {
@@ -92,7 +108,7 @@ func (h *GRPCHandlers) GetPostLikes(ctx context.Context, ids *pb.IDs) (*pb.Total
 				likes = append(likes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(v), Total: proto.Uint64(0)})
 				continue
 			}
-			return nil, err
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 
 		likes = append(likes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(v), Total: &count})
@@ -102,7 +118,9 @@ func (h *GRPCHandlers) GetPostLikes(ctx context.Context, ids *pb.IDs) (*pb.Total
 }
 
 func (h *GRPCHandlers) GetCommentLikes(ctx context.Context, ids *pb.IDs) (*pb.TotalLikes, error) {
-	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
 	likes := []*pb.TotalLikes_IDLikes{}
 
 	for _, v := range ids.Id {
@@ -113,7 +131,7 @@ func (h *GRPCHandlers) GetCommentLikes(ctx context.Context, ids *pb.IDs) (*pb.To
 				likes = append(likes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(v), Total: proto.Uint64(0)})
 				continue
 			}
-			return nil, err
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 
 		likes = append(likes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(v), Total: &count})
@@ -123,7 +141,9 @@ func (h *GRPCHandlers) GetCommentLikes(ctx context.Context, ids *pb.IDs) (*pb.To
 }
 
 func (h *GRPCHandlers) PostsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*pb.HaveLikes, error) {
-	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
 	likes := []*pb.HaveLikes_HaveLike{}
 
 	for _, v := range idu.Id {
@@ -134,7 +154,7 @@ func (h *GRPCHandlers) PostsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*p
 				likes = append(likes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(v), HasLike: proto.Bool(false)})
 				continue
 			}
-			return nil, err
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 
 		likes = append(likes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(v), HasLike: proto.Bool(true)})
@@ -144,7 +164,9 @@ func (h *GRPCHandlers) PostsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*p
 }
 
 func (h *GRPCHandlers) CommentsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*pb.HaveLikes, error) {
-	if ctx.Err() == context.Canceled {return nil, fmt.Errorf("client cancelled")}
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
 	likes := []*pb.HaveLikes_HaveLike{}
 
 	for _, v := range idu.Id {
@@ -155,7 +177,7 @@ func (h *GRPCHandlers) CommentsHaveLike(ctx context.Context, idu *pb.IDsUserID) 
 				likes = append(likes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(v), HasLike: proto.Bool(false)})
 				continue
 			}
-			return nil, err
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 
 		likes = append(likes, &pb.HaveLikes_HaveLike{Id: proto.Uint64(v), HasLike: proto.Bool(true)})

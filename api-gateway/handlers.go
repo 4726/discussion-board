@@ -17,6 +17,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 )
 
 var jwtSecretKey = []byte("todosecretkey")
@@ -39,6 +41,10 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	post, err := clients.PostsRead.GetFullPost(grpcCtx, &req)
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
@@ -152,6 +158,10 @@ func DeletePost(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.PostsWrite.DeletePost(grpcCtx, &req)
 	if err != nil {
+		if status.Code(err) == codes.InvalidArgument || status.Code(err) == codes.NotFound {
+			ctx.JSON(http.StatusBadRequest, gin.H{})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
@@ -224,6 +234,7 @@ func UnlikePost(ctx *gin.Context, clients GRPCClients) {
 		grpcCtx, cancel := DefaultGRPCContext()
 		defer cancel()
 		_, _ = clients.PostsWrite.SetPostLikes(grpcCtx, &req2)
+	
 	}()
 
 	ctx.JSON(http.StatusOK, resp)
@@ -245,6 +256,10 @@ func AddComment(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.PostsWrite.CreateComment(grpcCtx, &req)
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.JSON(http.StatusBadRequest, gin.H{})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
@@ -333,6 +348,10 @@ func ClearComment(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.PostsWrite.ClearComment(grpcCtx, &req)
 	if err != nil {
+		if status.Code(err) == codes.InvalidArgument || status.Code(err) == codes.NotFound {
+			ctx.JSON(http.StatusBadRequest, gin.H{})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
@@ -402,6 +421,10 @@ func RegisterPOST(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.User.CreateAccount(grpcCtx, &req)
 	if err != nil {
+		if status.Code(err) == codes.InvalidArgument {
+			ctx.JSON(http.StatusBadRequest, gin.H{})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
@@ -441,6 +464,10 @@ func LoginPOST(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.User.Login(grpcCtx, &req)
 	if err != nil {
+		if status.Code(err) == codes.Unauthenticated {
+			ctx.JSON(http.StatusUnauthorized, gin.H{})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
@@ -471,6 +498,21 @@ func ChangePassword(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.User.ChangePassword(grpcCtx, &req)
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			//user id does not have an account
+			ctx.JSON(http.StatusInternalServerError, gin.H{})
+			return
+		}
+		if status.Code(err) == codes.InvalidArgument {
+			//new password invalid
+			ctx.JSON(http.StatusBadRequest, gin.H{})
+			return
+		}
+		if status.Code(err) == codes.Unauthenticated {
+			//wrong old password
+			ctx.JSON(http.StatusUnauthorized, gin.H{})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
@@ -500,6 +542,10 @@ func GetProfile(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.User.GetProfile(grpcCtx, &req)
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.JSON(http.StatusNotFound, gin.H{})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
@@ -525,6 +571,11 @@ func UpdateProfile(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.User.UpdateProfile(grpcCtx, &req)
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			//user id does not have a profile
+			ctx.JSON(http.StatusInternalServerError, gin.H{})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}

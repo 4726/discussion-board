@@ -58,18 +58,17 @@ func TestGetFullPostNoId(t *testing.T) {
 	assert.Len(t, commentsAfter, 2)
 }
 
-// dont know why failing
-// func TestGetFullPostDoesNotExist(t *testing.T) {
-// 	c, posts := testSetup(t)
+func TestGetFullPostDoesNotExist(t *testing.T) {
+	c, posts := testSetup(t)
 
-// 	req := &pb.Id{Id: proto.Uint64(5)}
-// 	_, err := c.GetFullPost(context.TODO(), req)
-// 	assert.NoError(t, err)
+	req := &pb.Id{Id: proto.Uint64(5)}
+	_, err := c.GetFullPost(context.TODO(), req)
+	assert.Error(t, err)
 
-// 	postsAfter, commentsAfter := queryDBTest(t)
-// 	assertPostsEqual(t, posts, postsAfter)
-// 	assert.Len(t, commentsAfter, 2)
-// }
+	postsAfter, commentsAfter := queryDBTest(t)
+	assertPostsEqual(t, posts, postsAfter)
+	assert.Len(t, commentsAfter, 2)
+}
 
 func TestGetFullPost(t *testing.T) {
 	c, posts := testSetup(t)
