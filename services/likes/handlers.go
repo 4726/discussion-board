@@ -26,11 +26,11 @@ func (h *GRPCHandlers) LikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Tota
 
 	var count uint64
 
-	if err := h.db.Where("post_id = ?", like.PostID).Find(&PostLike{}).Count(&count).Error; err != nil {
+	if err := h.db.Model(&PostLike{}).Where("post_id = ?", like.PostID).Count(&count).Error; err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &pb.Total{Total: &count}, nil
+	return &pb.Total{Total: proto.Uint64(count)}, nil
 }
 
 func (h *GRPCHandlers) UnlikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
@@ -47,11 +47,13 @@ func (h *GRPCHandlers) UnlikePost(ctx context.Context, idu *pb.IDUserID) (*pb.To
 
 	var count uint64
 
-	if err := h.db.Where("post_id = ?", like.PostID).Find(&PostLike{}).Count(&count).Error; err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+	if err := h.db.Model(&PostLike{}).Where("post_id = ?", like.PostID).Count(&count).Error; err != nil {
+		if !gorm.IsRecordNotFoundError(err) {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
 	}
 
-	return &pb.Total{Total: &count}, nil
+	return &pb.Total{Total: proto.Uint64(count)}, nil
 }
 
 func (h *GRPCHandlers) LikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
@@ -66,11 +68,11 @@ func (h *GRPCHandlers) LikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.T
 
 	var count uint64
 
-	if err := h.db.Where("comment_id = ?", like.CommentID).Find(&CommentLike{}).Count(&count).Error; err != nil {
+	if err := h.db.Model(&CommentLike{}).Where("comment_id = ?", like.CommentID).Count(&count).Error; err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &pb.Total{Total: &count}, nil
+	return &pb.Total{Total: proto.Uint64(count)}, nil
 }
 
 func (h *GRPCHandlers) UnlikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
@@ -87,11 +89,13 @@ func (h *GRPCHandlers) UnlikeComment(ctx context.Context, idu *pb.IDUserID) (*pb
 
 	var count uint64
 
-	if err := h.db.Where("comment_id = ?", like.CommentID).Find(&CommentLike{}).Count(&count).Error; err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+	if err := h.db.Model(&CommentLike{}).Where("comment_id = ?", like.CommentID).Count(&count).Error; err != nil {
+		if !gorm.IsRecordNotFoundError(err) {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
 	}
 
-	return &pb.Total{Total: &count}, nil
+	return &pb.Total{Total: proto.Uint64(count)}, nil
 }
 
 func (h *GRPCHandlers) GetPostLikes(ctx context.Context, ids *pb.IDs) (*pb.TotalLikes, error) {
@@ -103,7 +107,7 @@ func (h *GRPCHandlers) GetPostLikes(ctx context.Context, ids *pb.IDs) (*pb.Total
 	for _, v := range ids.Id {
 		var count uint64
 
-		if err := h.db.Where("post_id = ?", v).Find(&PostLike{}).Count(&count).Error; err != nil {
+		if err := h.db.Model(&PostLike{}).Where("post_id = ?", v).Count(&count).Error; err != nil {
 			if gorm.IsRecordNotFoundError(err) {
 				likes = append(likes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(v), Total: proto.Uint64(0)})
 				continue
@@ -126,7 +130,7 @@ func (h *GRPCHandlers) GetCommentLikes(ctx context.Context, ids *pb.IDs) (*pb.To
 	for _, v := range ids.Id {
 		var count uint64
 
-		if err := h.db.Where("comment_id = ?", v).Find(&CommentLike{}).Count(&count).Error; err != nil {
+		if err := h.db.Model(&CommentLike{}).Where("comment_id = ?", v).Count(&count).Error; err != nil {
 			if gorm.IsRecordNotFoundError(err) {
 				likes = append(likes, &pb.TotalLikes_IDLikes{Id: proto.Uint64(v), Total: proto.Uint64(0)})
 				continue

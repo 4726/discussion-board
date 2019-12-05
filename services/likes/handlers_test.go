@@ -81,8 +81,60 @@ func TestLikePost(t *testing.T) {
 	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assert.WithinDuration(t, pLikesAfter[2].CreatedAt, time.Now(), time.Second*10)
 	pLikesAfter[2].CreatedAt = time.Time{}
-	expectedPLikes := append(pLikes, PostLike{*req.Id, *req.UserId, time.Time{}})
+	expectedPLikes := append(pLikes, PostLike{req.GetId(), req.GetUserId(), time.Time{}})
 	assertPostsLikesEqual(t, expectedPLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestUnlikePostNoId(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{UserId: proto.Uint64(1)}
+	_, err := c.UnlikePost(context.TODO(), req)
+	assert.Error(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestUnlikePostNoUserId(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{Id: proto.Uint64(3)}
+	_, err := c.UnlikePost(context.TODO(), req)
+	assert.Error(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestUnlikePostDoesNotExist(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{Id: proto.Uint64(1), UserId: proto.Uint64(3)}
+	resp, err := c.UnlikePost(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.Total{Total: proto.Uint64(2)}
+	assert.Equal(t, expected, resp)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestUnlikePost(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{Id: proto.Uint64(1), UserId: proto.Uint64(1)}
+	resp, err := c.UnlikePost(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.Total{Total: proto.Uint64(1)}
+	assert.Equal(t, expected, resp)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes[1:], pLikesAfter)
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
@@ -121,10 +173,62 @@ func TestLikeComment(t *testing.T) {
 
 	pLikesAfter, cLikesAfter := queryDBTest(t)
 	assertPostsLikesEqual(t, pLikes, pLikesAfter)
-	assert.WithinDuration(t, cLikesAfter[3].CreatedAt, time.Now(), time.Second*10)
-	cLikesAfter[3].CreatedAt = time.Time{}
-	expectedCLikes := append(cLikes, CommentLike{*req.Id, *req.UserId, time.Time{}})
-	assertCommentsLikesEqual(t, expectedCLikes, cLikesAfter)
+	assert.WithinDuration(t, cLikesAfter[2].CreatedAt, time.Now(), time.Second*10)
+	cLikesAfter[2].CreatedAt = time.Time{}
+	newCLike := CommentLike{req.GetId(), req.GetUserId(), time.Time{}}
+	assertCommentsLikesEqual(t, []CommentLike{cLikes[0], cLikes[1], newCLike, cLikes[2]}, cLikesAfter)
+}
+
+func TestUnlikeCommentNoId(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{UserId: proto.Uint64(3)}
+	_, err := c.UnlikeComment(context.TODO(), req)
+	assert.Error(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestUnlikeCommentNoUserId(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{Id: proto.Uint64(3)}
+	_, err := c.UnlikeComment(context.TODO(), req)
+	assert.Error(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestUnlikeCommentDoesNotExist(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{Id: proto.Uint64(1), UserId: proto.Uint64(3)}
+	resp, err := c.UnlikeComment(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.Total{Total: proto.Uint64(2)}
+	assert.Equal(t, expected, resp)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestUnlikeComment(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.IDUserID{Id: proto.Uint64(1), UserId: proto.Uint64(2)}
+	resp, err := c.UnlikeComment(context.TODO(), req)
+	assert.NoError(t, err)
+	expected := &pb.Total{Total: proto.Uint64(1)}
+	assert.Equal(t, expected, resp)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, []CommentLike{cLikes[0], cLikes[2]}, cLikesAfter)
 }
 
 func TestGetMultiplePostLikes(t *testing.T) {
