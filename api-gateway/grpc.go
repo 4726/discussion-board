@@ -1,12 +1,12 @@
 package main
 
 import (
+	"context"
 	"github.com/4726/discussion-board/api-gateway/pb/likes"
 	postsread "github.com/4726/discussion-board/api-gateway/pb/posts-read"
 	postswrite "github.com/4726/discussion-board/api-gateway/pb/posts-write"
 	"github.com/4726/discussion-board/api-gateway/pb/search"
 	"github.com/4726/discussion-board/api-gateway/pb/user"
-	"context"
 	"time"
 )
 
@@ -21,5 +21,5 @@ type GRPCClients struct {
 }
 
 func DefaultGRPCContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(),time.Second * defaultGRPCTimeout)
+	return context.WithTimeout(context.Background(), time.Second*defaultGRPCTimeout)
 }

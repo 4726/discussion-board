@@ -20,16 +20,16 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api := &RestAPI{}
 
 	engine := gin.New()
-	// gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.ReleaseMode)
 	api.engine = engine
 	api.engine.Use(corsMiddleware())
 	api.engine.Use(gin.Recovery())
 	api.engine.Use(log.RequestMiddleware())
 
-	// api.setupGRPCClients()
-	// api.setRoutes()
+	api.setupGRPCClients()
+	api.setRoutes()
 
-	api.setMockRoutes()
+	// api.setMockRoutes()
 	common.AddMonitorHandler(api.engine)
 
 	return api, nil

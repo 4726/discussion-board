@@ -3,9 +3,6 @@ package main
 //just tests route interaction with/without jwt
 //no integration testing
 
-//comment out api.engine.Use(log.RequestMiddleware()) in NewRestAPI()
-//when running tests. not sure why it causes tests to fail
-
 import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -34,7 +31,7 @@ func testJWTNotRequired(t *testing.T, method, route string) {
 }
 
 func testJWTRequired(t *testing.T, method, route string) {
-	opts := statusCodeOpts{http.StatusUnauthorized, http.StatusInternalServerError, true, true}
+	opts := statusCodeOpts{http.StatusUnauthorized, http.StatusBadRequest, true, true}
 	testJWTStatusCode(t, method, route, opts)
 }
 
@@ -94,7 +91,7 @@ func TestJWTRequired(t *testing.T) {
 
 func TestJWTCustom(t *testing.T) {
 	testJWTStatusCode(t, "GET", "/register", statusCodeOpts{http.StatusOK, http.StatusBadRequest, true, false})
-	testJWTStatusCode(t, "POST", "/register", statusCodeOpts{http.StatusInternalServerError, http.StatusBadRequest, true, true})
+	testJWTStatusCode(t, "POST", "/register", statusCodeOpts{http.StatusBadRequest, http.StatusBadRequest, true, true})
 	testJWTStatusCode(t, "GET", "/login", statusCodeOpts{http.StatusOK, http.StatusBadRequest, true, false})
-	testJWTStatusCode(t, "POST", "/login", statusCodeOpts{http.StatusInternalServerError, http.StatusBadRequest, true, true})
+	testJWTStatusCode(t, "POST", "/login", statusCodeOpts{http.StatusBadRequest, http.StatusBadRequest, true, true})
 }

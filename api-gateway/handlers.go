@@ -12,13 +12,14 @@ import (
 	postswrite "github.com/4726/discussion-board/api-gateway/pb/posts-write"
 	"github.com/4726/discussion-board/api-gateway/pb/search"
 	"github.com/4726/discussion-board/api-gateway/pb/user"
+	"github.com/4726/discussion-board/services/common"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/structs"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
-	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var jwtSecretKey = []byte("todosecretkey")
@@ -30,9 +31,9 @@ type JWTClaims struct {
 
 func GetPost(ctx *gin.Context, clients GRPCClients) {
 	postIdParam := ctx.Param("postid")
-	postId, err := strconv.ParseUint(postIdParam, 10, 32)
+	postId, err := strconv.ParseUint(postIdParam, 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{})
+		jsonAndLog(ctx, http.StatusNotFound, gin.H{}, err)
 		return
 	}
 
@@ -42,10 +43,10 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 	post, err := clients.PostsRead.GetFullPost(grpcCtx, &req)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{})
+			jsonAndLog(ctx, http.StatusNotFound, gin.H{}, err)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
@@ -53,7 +54,7 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusOK, post)
+		jsonAndLog(ctx, http.StatusOK, post, err)
 		return
 	}
 
@@ -62,7 +63,7 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 	defer cancel2()
 	resp, err := clients.Likes.PostsHaveLike(grpcCtx2, &req2)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 	m["has_like"] = resp.GetHaveLikes()[0].GetHasLike()
@@ -76,7 +77,7 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 	defer cancel3()
 	resp, err = clients.Likes.CommentsHaveLike(grpcCtx3, &req3)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 	for _, v := range resp.GetHaveLikes() {
@@ -90,7 +91,7 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, m)
+	jsonAndLog(ctx, http.StatusOK, m, "")
 }
 
 func GetPosts(ctx *gin.Context, clients GRPCClients) {
@@ -99,7 +100,7 @@ func GetPosts(ctx *gin.Context, clients GRPCClients) {
 		UserId uint64 `form:"userid"`
 	}{}
 	if err := ctx.BindQuery(&query); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, err)
 		return
 	}
 
@@ -113,16 +114,20 @@ func GetPosts(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	posts, err := clients.PostsRead.GetPosts(grpcCtx, &req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
-	ctx.JSON(http.StatusOK, posts)
+	jsonAndLog(ctx, http.StatusOK, posts, "")
 }
 
 func CreatePost(ctx *gin.Context, clients GRPCClients) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -135,17 +140,21 @@ func CreatePost(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.PostsWrite.CreatePost(grpcCtx, &req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, resp)
+	jsonAndLog(ctx, http.StatusOK, resp, "")
 }
 
 func DeletePost(ctx *gin.Context, clients GRPCClients) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -159,22 +168,26 @@ func DeletePost(ctx *gin.Context, clients GRPCClients) {
 	resp, err := clients.PostsWrite.DeletePost(grpcCtx, &req)
 	if err != nil {
 		if status.Code(err) == codes.InvalidArgument || status.Code(err) == codes.NotFound {
-			ctx.JSON(http.StatusBadRequest, gin.H{})
-			return
+			jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, err)
+		} else {
+			jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 
 	//should also remove from likes service
 
-	ctx.JSON(http.StatusOK, resp)
+	jsonAndLog(ctx, http.StatusOK, resp, "")
 }
 
 func LikePost(ctx *gin.Context, clients GRPCClients) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -187,7 +200,7 @@ func LikePost(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.Likes.LikePost(grpcCtx, &req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
@@ -203,13 +216,17 @@ func LikePost(ctx *gin.Context, clients GRPCClients) {
 		_, _ = clients.PostsWrite.SetPostLikes(grpcCtx, &req2)
 	}()
 
-	ctx.JSON(http.StatusOK, resp)
+	jsonAndLog(ctx, http.StatusOK, resp, "")
 }
 
 func UnlikePost(ctx *gin.Context, clients GRPCClients) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -222,7 +239,7 @@ func UnlikePost(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.Likes.UnlikePost(grpcCtx, &req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
@@ -234,16 +251,20 @@ func UnlikePost(ctx *gin.Context, clients GRPCClients) {
 		grpcCtx, cancel := DefaultGRPCContext()
 		defer cancel()
 		_, _ = clients.PostsWrite.SetPostLikes(grpcCtx, &req2)
-	
+
 	}()
 
-	ctx.JSON(http.StatusOK, resp)
+	jsonAndLog(ctx, http.StatusOK, resp, "")
 }
 
 func AddComment(ctx *gin.Context, clients GRPCClients) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -257,19 +278,23 @@ func AddComment(ctx *gin.Context, clients GRPCClients) {
 	resp, err := clients.PostsWrite.CreateComment(grpcCtx, &req)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			ctx.JSON(http.StatusBadRequest, gin.H{})
-			return
+			jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, err)
+		} else {
+			jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
-	ctx.JSON(http.StatusOK, resp)
+	jsonAndLog(ctx, http.StatusOK, resp, "")
 }
 
 func LikeComment(ctx *gin.Context, clients GRPCClients) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -282,7 +307,7 @@ func LikeComment(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.Likes.LikeComment(grpcCtx, &req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
@@ -296,13 +321,17 @@ func LikeComment(ctx *gin.Context, clients GRPCClients) {
 		_, _ = clients.PostsWrite.SetCommentLikes(grpcCtx, &req2)
 	}()
 
-	ctx.JSON(http.StatusOK, resp)
+	jsonAndLog(ctx, http.StatusOK, resp, "")
 }
 
 func UnlikeComment(ctx *gin.Context, clients GRPCClients) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -315,7 +344,7 @@ func UnlikeComment(ctx *gin.Context, clients GRPCClients) {
 	defer cancel()
 	resp, err := clients.Likes.UnlikeComment(grpcCtx, &req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
@@ -326,16 +355,23 @@ func UnlikeComment(ctx *gin.Context, clients GRPCClients) {
 		}
 		grpcCtx, cancel := DefaultGRPCContext()
 		defer cancel()
-		_, _ = clients.PostsWrite.SetCommentLikes(grpcCtx, &req2)
+		_, err := clients.PostsWrite.SetCommentLikes(grpcCtx, &req2)
+		if err != nil {
+			ctx.Set(common.LogMsgCtxKey, err)
+		}
 	}()
 
-	ctx.JSON(http.StatusOK, resp)
+	jsonAndLog(ctx, http.StatusOK, resp, "")
 }
 
 func ClearComment(ctx *gin.Context, clients GRPCClients) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -349,13 +385,13 @@ func ClearComment(ctx *gin.Context, clients GRPCClients) {
 	resp, err := clients.PostsWrite.ClearComment(grpcCtx, &req)
 	if err != nil {
 		if status.Code(err) == codes.InvalidArgument || status.Code(err) == codes.NotFound {
-			ctx.JSON(http.StatusBadRequest, gin.H{})
+			jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, err)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
-	ctx.JSON(http.StatusOK, resp)
+	jsonAndLog(ctx, http.StatusOK, resp, "")
 }
 
 func Search(ctx *gin.Context, clients GRPCClients) {
@@ -364,7 +400,7 @@ func Search(ctx *gin.Context, clients GRPCClients) {
 		Page uint64 `form:"page" binding:"required"`
 	}{}
 	if err := ctx.BindQuery(&form); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, err)
 		return
 	}
 
@@ -373,14 +409,12 @@ func Search(ctx *gin.Context, clients GRPCClients) {
 		Total: proto.Uint64(10),
 		From:  proto.Uint64(form.Page*10 - 10),
 	}
-	defer ctx.Request.Body.Close()
-	jsonpb.Unmarshal(ctx.Request.Body, &req)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
 	resp, err := clients.Search.Search(grpcCtx, &req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
@@ -391,25 +425,29 @@ func Search(ctx *gin.Context, clients GRPCClients) {
 	defer cancel2()
 	resp2, err := clients.PostsRead.GetPostsById(grpcCtx2, &req2)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, resp2)
+	jsonAndLog(ctx, http.StatusOK, resp2, "")
 }
 
 func RegisterGET(ctx *gin.Context) {
 	if userID, err := getUserId(ctx); err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{"user_id": userID}, "")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	jsonAndLog(ctx, http.StatusOK, gin.H{}, "")
 }
 
 func RegisterPOST(ctx *gin.Context, clients GRPCClients) {
 	if _, err := getUserId(ctx); err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "")
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -422,37 +460,43 @@ func RegisterPOST(ctx *gin.Context, clients GRPCClients) {
 	resp, err := clients.User.CreateAccount(grpcCtx, &req)
 	if err != nil {
 		if status.Code(err) == codes.InvalidArgument {
-			ctx.JSON(http.StatusBadRequest, gin.H{})
+			jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, err)
 			return
+		} else {
+
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
 	jwt, err := generateJWT(resp.GetUserId())
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
 	m := structs.Map(resp)
 	m["jwt"] = jwt
 
-	ctx.JSON(http.StatusOK, m)
+	jsonAndLog(ctx, http.StatusOK, m, "")
 }
 
 func LoginGET(ctx *gin.Context) {
 	if userID, err := getUserId(ctx); err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{"user_id": userID}, "")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{})
+	jsonAndLog(ctx, http.StatusOK, gin.H{}, "")
 }
 
 func LoginPOST(ctx *gin.Context, clients GRPCClients) {
 	if _, err := getUserId(ctx); err == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, err)
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -465,27 +509,31 @@ func LoginPOST(ctx *gin.Context, clients GRPCClients) {
 	resp, err := clients.User.Login(grpcCtx, &req)
 	if err != nil {
 		if status.Code(err) == codes.Unauthenticated {
-			ctx.JSON(http.StatusUnauthorized, gin.H{})
+			jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
 	jwt, err := generateJWT(resp.GetUserId())
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 	m := structs.Map(resp)
 	m["jwt"] = jwt
-	ctx.JSON(http.StatusOK, m)
+	jsonAndLog(ctx, http.StatusOK, m, "")
 }
 
 func ChangePassword(ctx *gin.Context, clients GRPCClients) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -499,25 +547,25 @@ func ChangePassword(ctx *gin.Context, clients GRPCClients) {
 	resp, err := clients.User.ChangePassword(grpcCtx, &req)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			//user id does not have an account
-			ctx.JSON(http.StatusInternalServerError, gin.H{})
+			errMsg := fmt.Sprintf("%v. %v", err.Error(), "user id does not have an account")
+			jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, errMsg)
 			return
 		}
 		if status.Code(err) == codes.InvalidArgument {
-			//new password invalid
-			ctx.JSON(http.StatusBadRequest, gin.H{})
+			errMsg := fmt.Sprintf("%v. %v", err.Error(), "new password invalid")
+			jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, errMsg)
 			return
 		}
 		if status.Code(err) == codes.Unauthenticated {
-			//wrong old password
-			ctx.JSON(http.StatusUnauthorized, gin.H{})
+			errMsg := fmt.Sprintf("%v. %v", err.Error(), "old password invalid")
+			jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, errMsg)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, resp)
+	jsonAndLog(ctx, http.StatusOK, resp, "")
 }
 
 func GetProfile(ctx *gin.Context, clients GRPCClients) {
@@ -526,7 +574,7 @@ func GetProfile(ctx *gin.Context, clients GRPCClients) {
 	profileIdParam := ctx.Param("userid")
 	profileId, err := strconv.ParseUint(profileIdParam, 10, 32)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{})
+		jsonAndLog(ctx, http.StatusNotFound, gin.H{}, err)
 		return
 	}
 
@@ -535,30 +583,32 @@ func GetProfile(ctx *gin.Context, clients GRPCClients) {
 	}
 
 	req := user.UserId{UserId: proto.Uint64(profileId)}
-	defer ctx.Request.Body.Close()
-	jsonpb.Unmarshal(ctx.Request.Body, &req)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
 	resp, err := clients.User.GetProfile(grpcCtx, &req)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{})
+			jsonAndLog(ctx, http.StatusNotFound, gin.H{}, err)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
 	m := structs.Map(resp)
 	m["is_mine"] = isMine
-	ctx.JSON(http.StatusOK, m)
+	jsonAndLog(ctx, http.StatusOK, m, "")
 }
 
 func UpdateProfile(ctx *gin.Context, clients GRPCClients) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{})
+		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
+		return
+	}
+	if ctx.Request.Body == nil {
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "nil request body")
 		return
 	}
 
@@ -572,24 +622,24 @@ func UpdateProfile(ctx *gin.Context, clients GRPCClients) {
 	resp, err := clients.User.UpdateProfile(grpcCtx, &req)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			//user id does not have a profile
-			ctx.JSON(http.StatusInternalServerError, gin.H{})
+			errMsg := fmt.Sprintf("%v. %v", err.Error(), "user does not have a profile")
+			jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, errMsg)
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{})
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, resp)
+	jsonAndLog(ctx, http.StatusOK, resp, "")
 }
 
 func UserIdGET(ctx *gin.Context) {
 	userId, err := getUserId(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{})
+		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "")
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"user_id": userId})
+	jsonAndLog(ctx, http.StatusOK, gin.H{"user_id": userId}, "")
 }
 
 func generateJWT(userId uint64) (string, error) {
@@ -639,4 +689,9 @@ func getUserId(ctx *gin.Context) (uint64, error) {
 
 	//should not happen
 	return 0, fmt.Errorf("wrong claims type")
+}
+
+func jsonAndLog(ctx *gin.Context, code int, obj interface{}, msg interface{}) {
+	ctx.Set(common.LogMsgCtxKey, msg)
+	ctx.JSON(code, obj)
 }

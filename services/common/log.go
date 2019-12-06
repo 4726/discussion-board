@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const LogMsgCtxKey = "common_log_info"
+
 var log = logrus.New()
 
 type Log struct {
@@ -20,14 +22,7 @@ func NewLogger(serviceName string) *Log {
 	})
 	log.SetFormatter(&logrus.JSONFormatter{})
 
-	// file, err := os.OpenFile(fmt.Sprintf("logs/%s.log", serviceName), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	// if err == nil {
-	// 	log.SetOutput(file)
-	// } else {
-	// 	entry.Error(err)
 	log.SetOutput(os.Stdout)
-	// }
-
 	return &Log{entry}
 }
 
@@ -50,7 +45,7 @@ func (l *Log) RequestMiddleware() gin.HandlerFunc {
 		statusCode := c.Writer.Status()
 
 		logMessage := ""
-		i, ok := c.Get("log info")
+		i, ok := c.Get(LogMsgCtxKey)
 		if ok {
 			switch v := i.(type) {
 			case string:
@@ -76,7 +71,7 @@ func (l *Log) RequestMiddleware() gin.HandlerFunc {
 		case v < 500:
 			e.Warn()
 		default:
-			e.Fatal()
+			e.Error()
 		}
 	}
 }
