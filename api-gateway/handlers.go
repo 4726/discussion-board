@@ -175,7 +175,14 @@ func DeletePost(ctx *gin.Context, clients GRPCClients) {
 		return
 	}
 
-	//should also remove from likes service
+	req2 := likes.Id{Id: proto.Uint64(req.GetPostId())}
+	grpcCtx2, cancel2 := DefaultGRPCContext()
+	defer cancel2()
+	_, err = clients.Likes.DeletePost(grpcCtx2, &req2)
+	if err != nil {
+		jsonAndLog(ctx, http.StatusInternalServerError, gin.H{}, err)
+		return
+	}
 
 	jsonAndLog(ctx, http.StatusOK, resp, "")
 }

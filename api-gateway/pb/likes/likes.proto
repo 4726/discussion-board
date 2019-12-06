@@ -9,6 +9,7 @@ service Likes {
  rpc GetCommentLikes(IDs) returns (TotalLikes) {}
  rpc PostsHaveLike(IDsUserID) returns (HaveLikes) {}
  rpc CommentsHaveLike(IDsUserID) returns (HaveLikes) {}
+ rpc DeletePost(Id) returns (DeletePostResponse) {}
 }
 
 message IDUserID {
@@ -44,3 +45,9 @@ message HaveLikes {
     }
     repeated HaveLike have_likes = 1;
 }
+
+message Id {
+    required uint64 id = 1;
+}
+
+message DeletePostResponse {}

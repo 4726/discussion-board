@@ -189,3 +189,15 @@ func (h *GRPCHandlers) CommentsHaveLike(ctx context.Context, idu *pb.IDsUserID) 
 
 	return &pb.HaveLikes{HaveLikes: likes}, nil
 }
+
+func (h *GRPCHandlers) DeletePost(ctx context.Context, in *pb.Id) (*pb.DeletePostResponse, error) {
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
+
+	if err := h.db.Exec("DELETE from post_likes WHERE post_id = ?", in.GetId()).Error; err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.DeletePostResponse{}, nil
+}

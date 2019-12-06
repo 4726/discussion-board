@@ -331,6 +331,42 @@ func TestHasMultipleCommentLikes(t *testing.T) {
 	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
 }
 
+func TestDeleteNoId(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.Id{}
+	_, err := c.DeletePost(context.TODO(), req)
+	assert.Error(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestDeleteDoesNotExist(t *testing.T) {
+	c, pLikes, cLikes := testSetup(t)
+
+	req := &pb.Id{Id: proto.Uint64(2)}
+	_, err := c.DeletePost(context.TODO(), req)
+	assert.NoError(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, pLikes, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
+func TestDelete(t *testing.T) {
+	c, _, cLikes := testSetup(t)
+
+	req := &pb.Id{Id: proto.Uint64(1)}
+	_, err := c.DeletePost(context.TODO(), req)
+	assert.NoError(t, err)
+
+	pLikesAfter, cLikesAfter := queryDBTest(t)
+	assertPostsLikesEqual(t, []PostLike{}, pLikesAfter)
+	assertCommentsLikesEqual(t, cLikes, cLikesAfter)
+}
+
 func assertPostLikesEqual(t testing.TB, expected, actual PostLike) {
 	assert.WithinDuration(t, expected.CreatedAt, actual.CreatedAt, time.Second)
 	expected.CreatedAt, actual.CreatedAt = time.Time{}, time.Time{}
