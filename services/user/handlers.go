@@ -204,6 +204,14 @@ func (h *Handlers) ChangePassword(ctx context.Context, in *pb.ChangePasswordRequ
 	return &pb.ChangePasswordResponse{}, nil
 }
 
+func (h *Handlers) Check(ctx context.Context, in *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
+
+	return &pb.HealthCheckResponse{Status: pb.HealthCheckResponse_SERVING.Enum()}, nil
+}
+
 func validUsername(s string) (bool, error) {
 	match, err := regexp.MatchString("^[A-Za-z0-9]{3,64}$", s)
 	if err != nil {

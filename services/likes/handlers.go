@@ -201,3 +201,11 @@ func (h *GRPCHandlers) DeletePost(ctx context.Context, in *pb.Id) (*pb.DeletePos
 
 	return &pb.DeletePostResponse{}, nil
 }
+
+func (h *GRPCHandlers) Check(ctx context.Context, in *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
+
+	return &pb.HealthCheckResponse{Status: pb.HealthCheckResponse_SERVING.Enum()}, nil
+}

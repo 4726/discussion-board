@@ -1,9 +1,12 @@
 syntax = "proto2";
 
+package pb;
+
 service Media {
-    rpc Upload(UploadRequest) returns (Name) {}
-    rpc Remove(Name) returns (RemoveResponse) {}
-    rpc Info(InfoRequest) returns (InfoResponse) {}
+    rpc Upload(UploadRequest) returns (Name);
+    rpc Remove(Name) returns (RemoveResponse);
+    rpc Info(InfoRequest) returns (InfoResponse);
+    rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
 }
 
 message UploadRequest {
@@ -20,4 +23,15 @@ message InfoRequest {}
 
 message InfoResponse {
     required string StoreAddress = 1;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+    enum ServingStatus {
+        UNKNOWN = 0;
+        SERVING = 1;
+        NOT_SERVING = 2;
+    }
+    required ServingStatus status = 1;
 }

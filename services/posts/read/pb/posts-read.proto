@@ -1,9 +1,13 @@
 syntax = "proto2";
 
+package pb;
+
 service PostsRead {
-    rpc GetFullPost(Id) returns (Post) {}
-    rpc GetPosts(GetPostsQuery) returns (MultiplePosts) {}
-    rpc GetPostsById(Ids) returns (MultiplePosts) {}
+    rpc GetFullPost(Id) returns (Post);
+    rpc GetPosts(GetPostsQuery) returns (MultiplePosts);
+    rpc GetPostsById(Ids) returns (MultiplePosts);
+    rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+
 }
 
 message Id {
@@ -44,4 +48,15 @@ message GetPostsQuery {
 
 message Ids {
     repeated uint64 id = 1;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+    enum ServingStatus {
+        UNKNOWN = 0;
+        SERVING = 1;
+        NOT_SERVING = 2;
+    }
+    required ServingStatus status = 1;
 }

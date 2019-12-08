@@ -188,3 +188,11 @@ func addCommentToDB(db *gorm.DB, comment *models.Comment) error {
 	}
 	return nil
 }
+
+func (h *Handlers) Check(ctx context.Context, in *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
+
+	return &pb.HealthCheckResponse{Status: pb.HealthCheckResponse_SERVING.Enum()}, nil
+}

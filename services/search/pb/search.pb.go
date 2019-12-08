@@ -24,6 +24,49 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
+type HealthCheckResponse_ServingStatus int32
+
+const (
+	HealthCheckResponse_UNKNOWN     HealthCheckResponse_ServingStatus = 0
+	HealthCheckResponse_SERVING     HealthCheckResponse_ServingStatus = 1
+	HealthCheckResponse_NOT_SERVING HealthCheckResponse_ServingStatus = 2
+)
+
+var HealthCheckResponse_ServingStatus_name = map[int32]string{
+	0: "UNKNOWN",
+	1: "SERVING",
+	2: "NOT_SERVING",
+}
+
+var HealthCheckResponse_ServingStatus_value = map[string]int32{
+	"UNKNOWN":     0,
+	"SERVING":     1,
+	"NOT_SERVING": 2,
+}
+
+func (x HealthCheckResponse_ServingStatus) Enum() *HealthCheckResponse_ServingStatus {
+	p := new(HealthCheckResponse_ServingStatus)
+	*p = x
+	return p
+}
+
+func (x HealthCheckResponse_ServingStatus) String() string {
+	return proto.EnumName(HealthCheckResponse_ServingStatus_name, int32(x))
+}
+
+func (x *HealthCheckResponse_ServingStatus) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(HealthCheckResponse_ServingStatus_value, data, "HealthCheckResponse_ServingStatus")
+	if err != nil {
+		return err
+	}
+	*x = HealthCheckResponse_ServingStatus(value)
+	return nil
+}
+
+func (HealthCheckResponse_ServingStatus) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_453745cff914010e, []int{11, 0}
+}
+
 type Post struct {
 	Title                *string  `protobuf:"bytes,1,req,name=title" json:"title,omitempty"`
 	Body                 *string  `protobuf:"bytes,2,req,name=body" json:"body,omitempty"`
@@ -454,47 +497,127 @@ func (m *SetTimestampResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_SetTimestampResponse proto.InternalMessageInfo
 
+type HealthCheckRequest struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *HealthCheckRequest) Reset()         { *m = HealthCheckRequest{} }
+func (m *HealthCheckRequest) String() string { return proto.CompactTextString(m) }
+func (*HealthCheckRequest) ProtoMessage()    {}
+func (*HealthCheckRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_453745cff914010e, []int{10}
+}
+
+func (m *HealthCheckRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_HealthCheckRequest.Unmarshal(m, b)
+}
+func (m *HealthCheckRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_HealthCheckRequest.Marshal(b, m, deterministic)
+}
+func (m *HealthCheckRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HealthCheckRequest.Merge(m, src)
+}
+func (m *HealthCheckRequest) XXX_Size() int {
+	return xxx_messageInfo_HealthCheckRequest.Size(m)
+}
+func (m *HealthCheckRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_HealthCheckRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HealthCheckRequest proto.InternalMessageInfo
+
+type HealthCheckResponse struct {
+	Status               *HealthCheckResponse_ServingStatus `protobuf:"varint,1,req,name=status,enum=pb.HealthCheckResponse_ServingStatus" json:"status,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                           `json:"-"`
+	XXX_unrecognized     []byte                             `json:"-"`
+	XXX_sizecache        int32                              `json:"-"`
+}
+
+func (m *HealthCheckResponse) Reset()         { *m = HealthCheckResponse{} }
+func (m *HealthCheckResponse) String() string { return proto.CompactTextString(m) }
+func (*HealthCheckResponse) ProtoMessage()    {}
+func (*HealthCheckResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_453745cff914010e, []int{11}
+}
+
+func (m *HealthCheckResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_HealthCheckResponse.Unmarshal(m, b)
+}
+func (m *HealthCheckResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_HealthCheckResponse.Marshal(b, m, deterministic)
+}
+func (m *HealthCheckResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HealthCheckResponse.Merge(m, src)
+}
+func (m *HealthCheckResponse) XXX_Size() int {
+	return xxx_messageInfo_HealthCheckResponse.Size(m)
+}
+func (m *HealthCheckResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_HealthCheckResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HealthCheckResponse proto.InternalMessageInfo
+
+func (m *HealthCheckResponse) GetStatus() HealthCheckResponse_ServingStatus {
+	if m != nil && m.Status != nil {
+		return *m.Status
+	}
+	return HealthCheckResponse_UNKNOWN
+}
+
 func init() {
-	proto.RegisterType((*Post)(nil), "Post")
-	proto.RegisterType((*IndexResponse)(nil), "IndexResponse")
-	proto.RegisterType((*SearchQuery)(nil), "SearchQuery")
-	proto.RegisterType((*SearchResult)(nil), "SearchResult")
-	proto.RegisterType((*Likes)(nil), "Likes")
-	proto.RegisterType((*LikesResponse)(nil), "LikesResponse")
-	proto.RegisterType((*Id)(nil), "Id")
-	proto.RegisterType((*DeletePostResponse)(nil), "DeletePostResponse")
-	proto.RegisterType((*Timestamp)(nil), "Timestamp")
-	proto.RegisterType((*SetTimestampResponse)(nil), "SetTimestampResponse")
+	proto.RegisterEnum("pb.HealthCheckResponse_ServingStatus", HealthCheckResponse_ServingStatus_name, HealthCheckResponse_ServingStatus_value)
+	proto.RegisterType((*Post)(nil), "pb.Post")
+	proto.RegisterType((*IndexResponse)(nil), "pb.IndexResponse")
+	proto.RegisterType((*SearchQuery)(nil), "pb.SearchQuery")
+	proto.RegisterType((*SearchResult)(nil), "pb.SearchResult")
+	proto.RegisterType((*Likes)(nil), "pb.Likes")
+	proto.RegisterType((*LikesResponse)(nil), "pb.LikesResponse")
+	proto.RegisterType((*Id)(nil), "pb.Id")
+	proto.RegisterType((*DeletePostResponse)(nil), "pb.DeletePostResponse")
+	proto.RegisterType((*Timestamp)(nil), "pb.Timestamp")
+	proto.RegisterType((*SetTimestampResponse)(nil), "pb.SetTimestampResponse")
+	proto.RegisterType((*HealthCheckRequest)(nil), "pb.HealthCheckRequest")
+	proto.RegisterType((*HealthCheckResponse)(nil), "pb.HealthCheckResponse")
 }
 
 func init() { proto.RegisterFile("search.proto", fileDescriptor_453745cff914010e) }
 
 var fileDescriptor_453745cff914010e = []byte{
-	// 369 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x91, 0xcd, 0x4e, 0xeb, 0x30,
-	0x10, 0x85, 0xf3, 0x7f, 0x6f, 0x87, 0xb6, 0x48, 0x43, 0x80, 0x28, 0x42, 0x28, 0xb2, 0x90, 0xc8,
-	0x06, 0x2f, 0x60, 0xc5, 0x9e, 0x4d, 0x05, 0x0b, 0x48, 0xd9, 0xa3, 0x42, 0x06, 0x11, 0x91, 0x34,
-	0x55, 0xec, 0x4a, 0xf4, 0x21, 0x78, 0x3f, 0x1e, 0x07, 0xd9, 0x6e, 0x9d, 0x16, 0x75, 0x95, 0x99,
-	0xf1, 0xd8, 0xe7, 0x3b, 0x27, 0x30, 0x14, 0x34, 0xeb, 0xde, 0x3e, 0xf8, 0xa2, 0x6b, 0x65, 0xcb,
-	0xbe, 0x5d, 0x08, 0x1e, 0x5b, 0x21, 0x31, 0x86, 0x50, 0x56, 0xb2, 0xa6, 0xc4, 0xcd, 0xbc, 0x7c,
-	0x50, 0x98, 0x06, 0x11, 0x82, 0xd7, 0xb6, 0x5c, 0x25, 0x9e, 0x1e, 0xea, 0x1a, 0x4f, 0xe1, 0xdf,
-	0x52, 0x50, 0xf7, 0x52, 0x95, 0x89, 0x9f, 0x79, 0x79, 0x50, 0x44, 0xaa, 0x9d, 0x94, 0x38, 0x06,
-	0xaf, 0x2a, 0x93, 0x40, 0xcf, 0xbc, 0xaa, 0xc4, 0x33, 0x18, 0xc8, 0xaa, 0x21, 0x21, 0x67, 0xcd,
-	0x22, 0x09, 0x33, 0x37, 0xf7, 0x8b, 0x7e, 0xa0, 0x04, 0xeb, 0xea, 0x93, 0x44, 0x12, 0xe9, 0x13,
-	0xd3, 0xb0, 0x43, 0x18, 0x4d, 0xe6, 0x25, 0x7d, 0x15, 0x24, 0x16, 0xed, 0x5c, 0x10, 0xbb, 0x87,
-	0x83, 0xa9, 0x06, 0x7e, 0x5a, 0x52, 0xb7, 0x52, 0x40, 0x92, 0xba, 0x66, 0x4d, 0xa9, 0x6b, 0x8d,
-	0xde, 0xca, 0x59, 0xad, 0x29, 0x83, 0xc2, 0x34, 0x6a, 0xf3, 0xbd, 0x6b, 0x9b, 0xc4, 0xcf, 0xdc,
-	0x3c, 0x28, 0x74, 0xcd, 0xce, 0x61, 0x68, 0x1e, 0x2b, 0x48, 0x2c, 0x6b, 0xb9, 0x26, 0x76, 0x33,
-	0xdf, 0x10, 0xb3, 0x2b, 0x08, 0x1f, 0x14, 0x86, 0x3d, 0xd8, 0x58, 0xb1, 0xb0, 0x4a, 0x62, 0x1b,
-	0x56, 0xaf, 0x5b, 0xd8, 0x18, 0x3c, 0x9b, 0x83, 0xbd, 0xcc, 0x62, 0xc0, 0x3b, 0xaa, 0x49, 0x92,
-	0x0a, 0xda, 0xee, 0xde, 0xc2, 0xe0, 0xd9, 0x86, 0xf1, 0x57, 0x6f, 0x27, 0x3a, 0xa3, 0xd9, 0x0f,
-	0xd8, 0x09, 0xc4, 0x53, 0x92, 0xf6, 0xf6, 0xe6, 0xc9, 0xeb, 0x1f, 0x17, 0x22, 0xe3, 0x0f, 0x33,
-	0x08, 0x75, 0x8e, 0x18, 0x72, 0xa5, 0x9a, 0x8e, 0xf9, 0x6e, 0xac, 0x0e, 0x5e, 0xda, 0xdd, 0x21,
-	0xdf, 0x4a, 0x38, 0x1d, 0xf1, 0xed, 0x88, 0x98, 0x83, 0x17, 0xf0, 0x7f, 0x4a, 0xd2, 0xe4, 0x12,
-	0x71, 0xfd, 0x4d, 0xc7, 0x7c, 0xd7, 0xb8, 0x83, 0x39, 0x40, 0x6f, 0x12, 0x7d, 0x3e, 0x29, 0xd3,
-	0x23, 0xbe, 0xc7, 0xb6, 0x83, 0x37, 0xea, 0x27, 0xf4, 0xf4, 0x08, 0xdc, 0xd6, 0xe9, 0x31, 0xdf,
-	0x67, 0x8c, 0x39, 0xbf, 0x01, 0x00, 0x00, 0xff, 0xff, 0xc2, 0x67, 0x04, 0x7e, 0xb6, 0x02, 0x00,
-	0x00,
+	// 487 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x52, 0x5d, 0x6f, 0xd3, 0x30,
+	0x14, 0x25, 0x69, 0x9a, 0xad, 0x77, 0xeb, 0x5a, 0x2e, 0x55, 0x17, 0x45, 0x08, 0x45, 0x11, 0x48,
+	0x91, 0x80, 0x3e, 0xec, 0x85, 0x0f, 0x89, 0x27, 0x40, 0x50, 0x0d, 0x65, 0xe0, 0x0c, 0x78, 0x9c,
+	0xd2, 0xe5, 0x42, 0xa3, 0xa5, 0x4d, 0x88, 0x1d, 0xc4, 0x7e, 0x04, 0x12, 0xbf, 0x82, 0xdf, 0x89,
+	0x6c, 0x77, 0x4e, 0x43, 0xe1, 0x29, 0xf7, 0xe3, 0xd8, 0xe7, 0xe4, 0x1c, 0xc3, 0x21, 0xa7, 0xb4,
+	0xbe, 0x5c, 0xce, 0xaa, 0xba, 0x14, 0x25, 0xda, 0xd5, 0x22, 0xfc, 0x69, 0x81, 0xf3, 0xbe, 0xe4,
+	0x02, 0x27, 0xd0, 0x17, 0xb9, 0x28, 0xc8, 0xb3, 0x02, 0x3b, 0x1a, 0x30, 0xdd, 0x20, 0x82, 0xb3,
+	0x28, 0xb3, 0x6b, 0xcf, 0x56, 0x43, 0x55, 0xe3, 0x31, 0xec, 0x35, 0x9c, 0xea, 0x8b, 0x3c, 0xf3,
+	0x7a, 0x81, 0x1d, 0x39, 0xcc, 0x95, 0xed, 0x3c, 0xc3, 0x23, 0xb0, 0xf3, 0xcc, 0x73, 0xd4, 0xcc,
+	0xce, 0x33, 0xbc, 0x0b, 0x03, 0x91, 0xaf, 0x88, 0x8b, 0x74, 0x55, 0x79, 0xfd, 0xc0, 0x8a, 0x7a,
+	0xac, 0x1d, 0x48, 0xc2, 0x22, 0xbf, 0x22, 0xee, 0xb9, 0x6a, 0xa3, 0x9b, 0x70, 0x04, 0xc3, 0xf9,
+	0x3a, 0xa3, 0x1f, 0x8c, 0x78, 0x55, 0xae, 0x39, 0x85, 0xa7, 0x70, 0x90, 0x28, 0xd1, 0x1f, 0x1a,
+	0xaa, 0xaf, 0xa5, 0x20, 0x41, 0xf5, 0x6a, 0xa3, 0x52, 0xd5, 0x4a, 0x7a, 0x29, 0xd2, 0x42, 0xa9,
+	0x74, 0x98, 0x6e, 0x24, 0xf2, 0x4b, 0x5d, 0xae, 0xbc, 0x5e, 0x60, 0x45, 0x0e, 0x53, 0x75, 0x78,
+	0x0f, 0x0e, 0xf5, 0x65, 0x8c, 0x78, 0x53, 0x88, 0x8d, 0x62, 0x2b, 0xe8, 0x69, 0xc5, 0xe1, 0x63,
+	0xe8, 0xbf, 0x93, 0x32, 0xcc, 0xe2, 0xe6, 0x57, 0x8c, 0x58, 0x49, 0xb1, 0x2d, 0x56, 0xc1, 0x8d,
+	0xd8, 0x09, 0xd8, 0xc6, 0x07, 0x73, 0x38, 0x9c, 0x00, 0xbe, 0xa2, 0x82, 0x04, 0x49, 0xa3, 0x0d,
+	0xf6, 0x19, 0x0c, 0xce, 0x8d, 0x19, 0x7f, 0xf3, 0x75, 0xac, 0xd3, 0x9c, 0xed, 0x20, 0x9c, 0xc2,
+	0x24, 0x21, 0x61, 0x4e, 0x6f, 0xd1, 0xe3, 0x5b, 0x4a, 0x0b, 0xb1, 0x7c, 0xb9, 0xa4, 0xcb, 0x2b,
+	0x46, 0xdf, 0x1a, 0xe2, 0x22, 0xfc, 0x65, 0xc1, 0x9d, 0xce, 0x58, 0xa3, 0xf1, 0x05, 0xb8, 0x5c,
+	0xa4, 0xa2, 0xe1, 0x8a, 0xf7, 0xe8, 0xe4, 0xc1, 0xac, 0x5a, 0xcc, 0xfe, 0x01, 0x9c, 0x25, 0x54,
+	0x7f, 0xcf, 0xd7, 0x5f, 0x13, 0x05, 0x66, 0x9b, 0x43, 0xe1, 0x73, 0x18, 0x76, 0x16, 0x78, 0x00,
+	0x7b, 0x1f, 0xe3, 0xd3, 0xf8, 0xec, 0x73, 0x3c, 0xbe, 0x25, 0x9b, 0xe4, 0x35, 0xfb, 0x34, 0x8f,
+	0xdf, 0x8c, 0x2d, 0x1c, 0xc1, 0x41, 0x7c, 0x76, 0x7e, 0x71, 0x33, 0xb0, 0x4f, 0x7e, 0xdb, 0xe0,
+	0xea, 0x20, 0xf0, 0x3e, 0xf4, 0x55, 0xe0, 0xb8, 0x2f, 0xe9, 0xa5, 0x43, 0xfe, 0x6d, 0x59, 0x75,
+	0x5e, 0x01, 0x3e, 0x34, 0xf8, 0x91, 0x5c, 0x6e, 0xbd, 0x08, 0x7f, 0xdc, 0x0e, 0x36, 0xa9, 0x46,
+	0xb0, 0x9f, 0x90, 0xd0, 0x41, 0x0e, 0xe4, 0x56, 0x95, 0xfa, 0xda, 0x4e, 0x5e, 0xf8, 0x08, 0xa0,
+	0x4d, 0x06, 0x5d, 0xc5, 0x9b, 0xf9, 0x53, 0xf9, 0xdd, 0x4d, 0x0c, 0x9f, 0xc8, 0xd7, 0xd3, 0xda,
+	0x8e, 0x43, 0x89, 0x33, 0xad, 0xef, 0x69, 0x21, 0xbb, 0xb9, 0xe0, 0x53, 0xe8, 0x2b, 0x47, 0x71,
+	0xba, 0x63, 0xb1, 0x8a, 0xc8, 0x3f, 0xfe, 0x8f, 0xf5, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff, 0x6d,
+	0x05, 0x23, 0xde, 0xb1, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -514,6 +637,7 @@ type SearchClient interface {
 	SetLikes(ctx context.Context, in *Likes, opts ...grpc.CallOption) (*LikesResponse, error)
 	DeletePost(ctx context.Context, in *Id, opts ...grpc.CallOption) (*DeletePostResponse, error)
 	SetTimestamp(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (*SetTimestampResponse, error)
+	Check(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 }
 
 type searchClient struct {
@@ -526,7 +650,7 @@ func NewSearchClient(cc *grpc.ClientConn) SearchClient {
 
 func (c *searchClient) Index(ctx context.Context, in *Post, opts ...grpc.CallOption) (*IndexResponse, error) {
 	out := new(IndexResponse)
-	err := c.cc.Invoke(ctx, "/Search/Index", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Search/Index", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -535,7 +659,7 @@ func (c *searchClient) Index(ctx context.Context, in *Post, opts ...grpc.CallOpt
 
 func (c *searchClient) Search(ctx context.Context, in *SearchQuery, opts ...grpc.CallOption) (*SearchResult, error) {
 	out := new(SearchResult)
-	err := c.cc.Invoke(ctx, "/Search/Search", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Search/Search", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -544,7 +668,7 @@ func (c *searchClient) Search(ctx context.Context, in *SearchQuery, opts ...grpc
 
 func (c *searchClient) SetLikes(ctx context.Context, in *Likes, opts ...grpc.CallOption) (*LikesResponse, error) {
 	out := new(LikesResponse)
-	err := c.cc.Invoke(ctx, "/Search/SetLikes", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Search/SetLikes", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -553,7 +677,7 @@ func (c *searchClient) SetLikes(ctx context.Context, in *Likes, opts ...grpc.Cal
 
 func (c *searchClient) DeletePost(ctx context.Context, in *Id, opts ...grpc.CallOption) (*DeletePostResponse, error) {
 	out := new(DeletePostResponse)
-	err := c.cc.Invoke(ctx, "/Search/DeletePost", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Search/DeletePost", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -562,7 +686,16 @@ func (c *searchClient) DeletePost(ctx context.Context, in *Id, opts ...grpc.Call
 
 func (c *searchClient) SetTimestamp(ctx context.Context, in *Timestamp, opts ...grpc.CallOption) (*SetTimestampResponse, error) {
 	out := new(SetTimestampResponse)
-	err := c.cc.Invoke(ctx, "/Search/SetTimestamp", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Search/SetTimestamp", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *searchClient) Check(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
+	out := new(HealthCheckResponse)
+	err := c.cc.Invoke(ctx, "/pb.Search/Check", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -576,6 +709,7 @@ type SearchServer interface {
 	SetLikes(context.Context, *Likes) (*LikesResponse, error)
 	DeletePost(context.Context, *Id) (*DeletePostResponse, error)
 	SetTimestamp(context.Context, *Timestamp) (*SetTimestampResponse, error)
+	Check(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error)
 }
 
 // UnimplementedSearchServer can be embedded to have forward compatible implementations.
@@ -597,6 +731,9 @@ func (*UnimplementedSearchServer) DeletePost(ctx context.Context, req *Id) (*Del
 func (*UnimplementedSearchServer) SetTimestamp(ctx context.Context, req *Timestamp) (*SetTimestampResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetTimestamp not implemented")
 }
+func (*UnimplementedSearchServer) Check(ctx context.Context, req *HealthCheckRequest) (*HealthCheckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
+}
 
 func RegisterSearchServer(s *grpc.Server, srv SearchServer) {
 	s.RegisterService(&_Search_serviceDesc, srv)
@@ -612,7 +749,7 @@ func _Search_Index_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Search/Index",
+		FullMethod: "/pb.Search/Index",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SearchServer).Index(ctx, req.(*Post))
@@ -630,7 +767,7 @@ func _Search_Search_Handler(srv interface{}, ctx context.Context, dec func(inter
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Search/Search",
+		FullMethod: "/pb.Search/Search",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SearchServer).Search(ctx, req.(*SearchQuery))
@@ -648,7 +785,7 @@ func _Search_SetLikes_Handler(srv interface{}, ctx context.Context, dec func(int
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Search/SetLikes",
+		FullMethod: "/pb.Search/SetLikes",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SearchServer).SetLikes(ctx, req.(*Likes))
@@ -666,7 +803,7 @@ func _Search_DeletePost_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Search/DeletePost",
+		FullMethod: "/pb.Search/DeletePost",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SearchServer).DeletePost(ctx, req.(*Id))
@@ -684,7 +821,7 @@ func _Search_SetTimestamp_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Search/SetTimestamp",
+		FullMethod: "/pb.Search/SetTimestamp",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SearchServer).SetTimestamp(ctx, req.(*Timestamp))
@@ -692,8 +829,26 @@ func _Search_SetTimestamp_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Search_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthCheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SearchServer).Check(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Search/Check",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SearchServer).Check(ctx, req.(*HealthCheckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Search_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "Search",
+	ServiceName: "pb.Search",
 	HandlerType: (*SearchServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -715,6 +870,10 @@ var _Search_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetTimestamp",
 			Handler:    _Search_SetTimestamp_Handler,
+		},
+		{
+			MethodName: "Check",
+			Handler:    _Search_Check_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

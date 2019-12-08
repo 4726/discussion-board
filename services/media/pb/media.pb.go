@@ -24,6 +24,49 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
+type HealthCheckResponse_ServingStatus int32
+
+const (
+	HealthCheckResponse_UNKNOWN     HealthCheckResponse_ServingStatus = 0
+	HealthCheckResponse_SERVING     HealthCheckResponse_ServingStatus = 1
+	HealthCheckResponse_NOT_SERVING HealthCheckResponse_ServingStatus = 2
+)
+
+var HealthCheckResponse_ServingStatus_name = map[int32]string{
+	0: "UNKNOWN",
+	1: "SERVING",
+	2: "NOT_SERVING",
+}
+
+var HealthCheckResponse_ServingStatus_value = map[string]int32{
+	"UNKNOWN":     0,
+	"SERVING":     1,
+	"NOT_SERVING": 2,
+}
+
+func (x HealthCheckResponse_ServingStatus) Enum() *HealthCheckResponse_ServingStatus {
+	p := new(HealthCheckResponse_ServingStatus)
+	*p = x
+	return p
+}
+
+func (x HealthCheckResponse_ServingStatus) String() string {
+	return proto.EnumName(HealthCheckResponse_ServingStatus_name, int32(x))
+}
+
+func (x *HealthCheckResponse_ServingStatus) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(HealthCheckResponse_ServingStatus_value, data, "HealthCheckResponse_ServingStatus")
+	if err != nil {
+		return err
+	}
+	*x = HealthCheckResponse_ServingStatus(value)
+	return nil
+}
+
+func (HealthCheckResponse_ServingStatus) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_07eb54b56db72a97, []int{6, 0}
+}
+
 type UploadRequest struct {
 	Media                []byte   `protobuf:"bytes,1,req,name=media" json:"media,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -203,31 +246,111 @@ func (m *InfoResponse) GetStoreAddress() string {
 	return ""
 }
 
+type HealthCheckRequest struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *HealthCheckRequest) Reset()         { *m = HealthCheckRequest{} }
+func (m *HealthCheckRequest) String() string { return proto.CompactTextString(m) }
+func (*HealthCheckRequest) ProtoMessage()    {}
+func (*HealthCheckRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_07eb54b56db72a97, []int{5}
+}
+
+func (m *HealthCheckRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_HealthCheckRequest.Unmarshal(m, b)
+}
+func (m *HealthCheckRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_HealthCheckRequest.Marshal(b, m, deterministic)
+}
+func (m *HealthCheckRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HealthCheckRequest.Merge(m, src)
+}
+func (m *HealthCheckRequest) XXX_Size() int {
+	return xxx_messageInfo_HealthCheckRequest.Size(m)
+}
+func (m *HealthCheckRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_HealthCheckRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HealthCheckRequest proto.InternalMessageInfo
+
+type HealthCheckResponse struct {
+	Status               *HealthCheckResponse_ServingStatus `protobuf:"varint,1,req,name=status,enum=pb.HealthCheckResponse_ServingStatus" json:"status,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                           `json:"-"`
+	XXX_unrecognized     []byte                             `json:"-"`
+	XXX_sizecache        int32                              `json:"-"`
+}
+
+func (m *HealthCheckResponse) Reset()         { *m = HealthCheckResponse{} }
+func (m *HealthCheckResponse) String() string { return proto.CompactTextString(m) }
+func (*HealthCheckResponse) ProtoMessage()    {}
+func (*HealthCheckResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_07eb54b56db72a97, []int{6}
+}
+
+func (m *HealthCheckResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_HealthCheckResponse.Unmarshal(m, b)
+}
+func (m *HealthCheckResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_HealthCheckResponse.Marshal(b, m, deterministic)
+}
+func (m *HealthCheckResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HealthCheckResponse.Merge(m, src)
+}
+func (m *HealthCheckResponse) XXX_Size() int {
+	return xxx_messageInfo_HealthCheckResponse.Size(m)
+}
+func (m *HealthCheckResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_HealthCheckResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HealthCheckResponse proto.InternalMessageInfo
+
+func (m *HealthCheckResponse) GetStatus() HealthCheckResponse_ServingStatus {
+	if m != nil && m.Status != nil {
+		return *m.Status
+	}
+	return HealthCheckResponse_UNKNOWN
+}
+
 func init() {
-	proto.RegisterType((*UploadRequest)(nil), "UploadRequest")
-	proto.RegisterType((*Name)(nil), "Name")
-	proto.RegisterType((*RemoveResponse)(nil), "RemoveResponse")
-	proto.RegisterType((*InfoRequest)(nil), "InfoRequest")
-	proto.RegisterType((*InfoResponse)(nil), "InfoResponse")
+	proto.RegisterEnum("pb.HealthCheckResponse_ServingStatus", HealthCheckResponse_ServingStatus_name, HealthCheckResponse_ServingStatus_value)
+	proto.RegisterType((*UploadRequest)(nil), "pb.UploadRequest")
+	proto.RegisterType((*Name)(nil), "pb.Name")
+	proto.RegisterType((*RemoveResponse)(nil), "pb.RemoveResponse")
+	proto.RegisterType((*InfoRequest)(nil), "pb.InfoRequest")
+	proto.RegisterType((*InfoResponse)(nil), "pb.InfoResponse")
+	proto.RegisterType((*HealthCheckRequest)(nil), "pb.HealthCheckRequest")
+	proto.RegisterType((*HealthCheckResponse)(nil), "pb.HealthCheckResponse")
 }
 
 func init() { proto.RegisterFile("media.proto", fileDescriptor_07eb54b56db72a97) }
 
 var fileDescriptor_07eb54b56db72a97 = []byte{
-	// 200 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0xce, 0xc1, 0x8a, 0x83, 0x30,
-	0x10, 0x06, 0x60, 0x77, 0x51, 0x61, 0xc7, 0xe8, 0x2e, 0xc3, 0x1e, 0x96, 0x9c, 0x76, 0x07, 0x84,
-	0x3d, 0xe5, 0xe0, 0x1b, 0xf4, 0xd8, 0x43, 0x7b, 0x48, 0xe9, 0x03, 0x04, 0x32, 0x85, 0x42, 0x63,
-	0xac, 0xd1, 0x3e, 0x7f, 0xd1, 0x78, 0xd0, 0xde, 0x32, 0xff, 0x0f, 0x7f, 0x3e, 0x28, 0x1c, 0xdb,
-	0xab, 0x51, 0x5d, 0xef, 0x07, 0x4f, 0x35, 0x94, 0xe7, 0xee, 0xe6, 0x8d, 0xd5, 0x7c, 0x1f, 0x39,
-	0x0c, 0xf8, 0x0d, 0xd9, 0xdc, 0xff, 0xbc, 0xfd, 0xbe, 0xff, 0x0b, 0x1d, 0x0f, 0x92, 0x90, 0x1e,
-	0x8d, 0x63, 0x44, 0x48, 0x5b, 0xe3, 0x78, 0x2e, 0x3f, 0xf4, 0xfc, 0xa6, 0x2f, 0xa8, 0x34, 0x3b,
-	0xff, 0x60, 0xcd, 0xa1, 0xf3, 0x6d, 0x60, 0x2a, 0xa1, 0xd8, 0xb7, 0x17, 0xbf, 0x4c, 0x52, 0x03,
-	0x22, 0x9e, 0xb1, 0x46, 0x02, 0x71, 0x1a, 0x7c, 0xcf, 0x3b, 0x6b, 0x7b, 0x0e, 0x61, 0x19, 0xdb,
-	0x64, 0xcd, 0x08, 0xd9, 0x61, 0xfa, 0x19, 0xff, 0x20, 0x8f, 0x40, 0xac, 0xd4, 0x46, 0x2a, 0x33,
-	0x35, 0x91, 0x28, 0x41, 0x82, 0x3c, 0x02, 0x30, 0x46, 0xf2, 0x53, 0xbd, 0x80, 0x12, 0xac, 0x21,
-	0x9d, 0x0c, 0x28, 0xd4, 0x4a, 0x26, 0x4b, 0xb5, 0x86, 0x51, 0xf2, 0x0c, 0x00, 0x00, 0xff, 0xff,
-	0xb3, 0xe8, 0xa4, 0xf8, 0x1c, 0x01, 0x00, 0x00,
+	// 314 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x90, 0xcf, 0x4a, 0xf3, 0x40,
+	0x14, 0xc5, 0xbf, 0x94, 0xb6, 0x9f, 0xde, 0xf4, 0x4f, 0xbc, 0x16, 0x95, 0xac, 0x64, 0xa0, 0xa2,
+	0x9b, 0x2c, 0xb2, 0x12, 0xc1, 0x85, 0x88, 0x68, 0x11, 0x53, 0x98, 0x58, 0x5d, 0x4a, 0x6a, 0xae,
+	0xb6, 0xd8, 0x64, 0x62, 0x66, 0xda, 0xe7, 0xf0, 0x7d, 0x7c, 0x39, 0x99, 0x99, 0x54, 0x0d, 0xea,
+	0x6e, 0xee, 0x39, 0xe7, 0x9e, 0xe1, 0xfe, 0xc0, 0xcd, 0x28, 0x9d, 0x27, 0x41, 0x51, 0x0a, 0x25,
+	0xb0, 0x51, 0x4c, 0xd9, 0x10, 0xba, 0x93, 0x62, 0x21, 0x92, 0x94, 0xd3, 0xeb, 0x92, 0xa4, 0xc2,
+	0x01, 0xb4, 0x4c, 0x66, 0xcf, 0xd9, 0x6f, 0x1c, 0x76, 0xb8, 0x1d, 0x98, 0x0f, 0xcd, 0x28, 0xc9,
+	0x08, 0x11, 0x9a, 0x79, 0x92, 0x91, 0x31, 0x37, 0xb9, 0x79, 0x33, 0x0f, 0x7a, 0x9c, 0x32, 0xb1,
+	0x22, 0x4e, 0xb2, 0x10, 0xb9, 0x24, 0xd6, 0x05, 0x77, 0x94, 0x3f, 0x89, 0xaa, 0x92, 0x85, 0xd0,
+	0xb1, 0xa3, 0xb5, 0x91, 0x41, 0x27, 0x56, 0xa2, 0xa4, 0xb3, 0x34, 0x2d, 0x49, 0xca, 0xaa, 0xac,
+	0xa6, 0xb1, 0x01, 0xe0, 0x15, 0x25, 0x0b, 0x35, 0x3b, 0x9f, 0xd1, 0xe3, 0xcb, 0xba, 0xe9, 0xcd,
+	0x81, 0xed, 0x9a, 0x5c, 0x35, 0x9e, 0x42, 0x5b, 0xaa, 0x44, 0x2d, 0x6d, 0x57, 0x2f, 0x1c, 0x06,
+	0xc5, 0x34, 0xf8, 0x25, 0x18, 0xc4, 0x54, 0xae, 0xe6, 0xf9, 0x73, 0x6c, 0xc2, 0xbc, 0x5a, 0x62,
+	0x27, 0xd0, 0xad, 0x19, 0xe8, 0xc2, 0xff, 0x49, 0x74, 0x1d, 0x8d, 0xef, 0x23, 0xef, 0x9f, 0x1e,
+	0xe2, 0x0b, 0x7e, 0x37, 0x8a, 0x2e, 0x3d, 0x07, 0xfb, 0xe0, 0x46, 0xe3, 0xdb, 0x87, 0xb5, 0xd0,
+	0x08, 0xdf, 0x1d, 0x68, 0xdd, 0x68, 0x46, 0x38, 0x84, 0xb6, 0x45, 0x89, 0x5b, 0xfa, 0xfb, 0x1a,
+	0x56, 0x7f, 0x43, 0x4b, 0x06, 0xe1, 0x01, 0xb4, 0x2d, 0x2e, 0xfc, 0xd4, 0x7c, 0xd4, 0xaf, 0x3a,
+	0x44, 0x3c, 0x82, 0xa6, 0xa6, 0x86, 0x7d, 0xed, 0x7d, 0xc3, 0xe9, 0x7b, 0x5f, 0x42, 0x15, 0x3d,
+	0x86, 0x96, 0x39, 0x13, 0x77, 0x7e, 0xdc, 0x6d, 0x57, 0x76, 0xff, 0xe0, 0xf1, 0x11, 0x00, 0x00,
+	0xff, 0xff, 0x20, 0x8c, 0x23, 0xf6, 0x10, 0x02, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -245,6 +368,7 @@ type MediaClient interface {
 	Upload(ctx context.Context, in *UploadRequest, opts ...grpc.CallOption) (*Name, error)
 	Remove(ctx context.Context, in *Name, opts ...grpc.CallOption) (*RemoveResponse, error)
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
+	Check(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 }
 
 type mediaClient struct {
@@ -257,7 +381,7 @@ func NewMediaClient(cc *grpc.ClientConn) MediaClient {
 
 func (c *mediaClient) Upload(ctx context.Context, in *UploadRequest, opts ...grpc.CallOption) (*Name, error) {
 	out := new(Name)
-	err := c.cc.Invoke(ctx, "/Media/Upload", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Media/Upload", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +390,7 @@ func (c *mediaClient) Upload(ctx context.Context, in *UploadRequest, opts ...grp
 
 func (c *mediaClient) Remove(ctx context.Context, in *Name, opts ...grpc.CallOption) (*RemoveResponse, error) {
 	out := new(RemoveResponse)
-	err := c.cc.Invoke(ctx, "/Media/Remove", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Media/Remove", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +399,16 @@ func (c *mediaClient) Remove(ctx context.Context, in *Name, opts ...grpc.CallOpt
 
 func (c *mediaClient) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error) {
 	out := new(InfoResponse)
-	err := c.cc.Invoke(ctx, "/Media/Info", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Media/Info", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mediaClient) Check(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
+	out := new(HealthCheckResponse)
+	err := c.cc.Invoke(ctx, "/pb.Media/Check", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -287,6 +420,7 @@ type MediaServer interface {
 	Upload(context.Context, *UploadRequest) (*Name, error)
 	Remove(context.Context, *Name) (*RemoveResponse, error)
 	Info(context.Context, *InfoRequest) (*InfoResponse, error)
+	Check(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error)
 }
 
 // UnimplementedMediaServer can be embedded to have forward compatible implementations.
@@ -301,6 +435,9 @@ func (*UnimplementedMediaServer) Remove(ctx context.Context, req *Name) (*Remove
 }
 func (*UnimplementedMediaServer) Info(ctx context.Context, req *InfoRequest) (*InfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Info not implemented")
+}
+func (*UnimplementedMediaServer) Check(ctx context.Context, req *HealthCheckRequest) (*HealthCheckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
 }
 
 func RegisterMediaServer(s *grpc.Server, srv MediaServer) {
@@ -317,7 +454,7 @@ func _Media_Upload_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Media/Upload",
+		FullMethod: "/pb.Media/Upload",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MediaServer).Upload(ctx, req.(*UploadRequest))
@@ -335,7 +472,7 @@ func _Media_Remove_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Media/Remove",
+		FullMethod: "/pb.Media/Remove",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MediaServer).Remove(ctx, req.(*Name))
@@ -353,7 +490,7 @@ func _Media_Info_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Media/Info",
+		FullMethod: "/pb.Media/Info",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MediaServer).Info(ctx, req.(*InfoRequest))
@@ -361,8 +498,26 @@ func _Media_Info_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Media_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthCheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MediaServer).Check(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Media/Check",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MediaServer).Check(ctx, req.(*HealthCheckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Media_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "Media",
+	ServiceName: "pb.Media",
 	HandlerType: (*MediaServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -376,6 +531,10 @@ var _Media_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Info",
 			Handler:    _Media_Info_Handler,
+		},
+		{
+			MethodName: "Check",
+			Handler:    _Media_Check_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

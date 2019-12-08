@@ -52,3 +52,11 @@ func (h *Handlers) Info(ctx context.Context, in *pb.InfoRequest) (*pb.InfoRespon
 	addr := fmt.Sprintf("%s/%s/", h.mc.EndpointURL().String(), bucketName)
 	return &pb.InfoResponse{StoreAddress: proto.String(addr)}, nil
 }
+
+func (h *Handlers) Check(ctx context.Context, in *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "client cancelled")
+	}
+
+	return &pb.HealthCheckResponse{Status: pb.HealthCheckResponse_SERVING.Enum()}, nil
+}
