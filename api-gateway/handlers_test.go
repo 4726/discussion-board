@@ -18,7 +18,7 @@ type statusCodeOpts struct {
 }
 
 func getNewRestAPI(t *testing.T) *RestAPI {
-	cfg, err := ConfigFromJSON("config_test.json")
+	cfg, err := ConfigFromFile("config_test.json")
 	assert.NoError(t, err)
 	api, err := NewRestAPI(cfg)
 	assert.NoError(t, err)

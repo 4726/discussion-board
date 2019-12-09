@@ -16,7 +16,7 @@ var testGRPCApi *GRPCApi
 var testAddr string
 
 func TestMain(m *testing.M) {
-	cfg, err := ConfigFromJSON("config_test.json")
+	cfg, err := ConfigFromFile("config_test.json")
 	if err != nil {
 		panic(err)
 	}
