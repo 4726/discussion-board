@@ -12,6 +12,8 @@ import {Post, PostComment} from '../interfaces.service';
 export class GetPostComponent implements OnInit {
   post: Post
   error: string;
+  signedIn: boolean;
+  commentBody: string;
 
   constructor(
     private gatewayService: GatewayService,
@@ -31,6 +33,16 @@ export class GetPostComponent implements OnInit {
         (data: Post) => this.post = data,
         error => this.error = error
       );
+
+    this.gatewayService.getUserID()
+      .subscribe(
+        res => {
+          this.signedIn = true
+        },
+        err => {
+          this.signedIn = false
+        }
+    )
   }
 
   onLikePost() {
@@ -77,6 +89,13 @@ export class GetPostComponent implements OnInit {
         },
         error => this.error = error
       )
+  }
+
+  onCreateComment() {
+    if (this.commentBody != "") {
+      this.gatewayService.addComment(this.post.ID, this.commentBody)
+      location.reload()
+    }
   }
 
   private findComment(commentID: number): PostComment {

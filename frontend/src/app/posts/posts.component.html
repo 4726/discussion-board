@@ -1,5 +1,9 @@
 <h3>Posts</h3>
 
+<button mat-flat-button color="primary" (click)="onCreatePost()">
+  Create Post
+</button>
+
 <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
   <ng-container matColumnDef="title">
     <th mat-header-cell *matHeaderCellDef> Title </th>

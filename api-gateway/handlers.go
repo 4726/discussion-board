@@ -30,14 +30,14 @@ type JWTClaims struct {
 }
 
 func GetPost(ctx *gin.Context, clients GRPCClients) {
-	postIdParam := ctx.Param("postid")
-	postId, err := strconv.ParseUint(postIdParam, 10, 64)
+	postIDParam := ctx.Param("postid")
+	postID, err := strconv.ParseUint(postIDParam, 10, 64)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusNotFound, gin.H{}, err)
 		return
 	}
 
-	req := postsread.Id{Id: proto.Uint64(postId)}
+	req := postsread.Id{Id: proto.Uint64(postID)}
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
 	post, err := clients.PostsRead.GetFullPost(grpcCtx, &req)
@@ -52,13 +52,13 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 
 	m := structs.Map(post)
 
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusOK, post, err)
 		return
 	}
 
-	req2 := likes.IDsUserID{UserId: proto.Uint64(userId), Id: []uint64{post.GetId()}}
+	req2 := likes.IDsUserID{UserId: proto.Uint64(userID), Id: []uint64{post.GetId()}}
 	grpcCtx2, cancel2 := DefaultGRPCContext()
 	defer cancel2()
 	resp, err := clients.Likes.PostsHaveLike(grpcCtx2, &req2)
@@ -72,7 +72,7 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 	for _, v := range post.GetComments() {
 		commentIds = append(commentIds, v.GetId())
 	}
-	req3 := likes.IDsUserID{UserId: proto.Uint64(userId), Id: commentIds}
+	req3 := likes.IDsUserID{UserId: proto.Uint64(userID), Id: commentIds}
 	grpcCtx3, cancel3 := DefaultGRPCContext()
 	defer cancel3()
 	resp, err = clients.Likes.CommentsHaveLike(grpcCtx3, &req3)
@@ -97,7 +97,7 @@ func GetPost(ctx *gin.Context, clients GRPCClients) {
 func GetPosts(ctx *gin.Context, clients GRPCClients) {
 	query := struct {
 		Page   uint64 `form:"page" binding:"required"`
-		UserId uint64 `form:"userid"`
+		UserID uint64 `form:"userid"`
 	}{}
 	if err := ctx.BindQuery(&query); err != nil {
 		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, err)
@@ -107,7 +107,7 @@ func GetPosts(ctx *gin.Context, clients GRPCClients) {
 	req := postsread.GetPostsQuery{
 		From:   proto.Uint64(query.Page*10 - 10),
 		Total:  proto.Uint64(10),
-		UserId: proto.Uint64(query.UserId),
+		UserId: proto.Uint64(query.UserID),
 		Sort:   proto.String(""),
 	}
 	grpcCtx, cancel := DefaultGRPCContext()
@@ -121,7 +121,7 @@ func GetPosts(ctx *gin.Context, clients GRPCClients) {
 }
 
 func CreatePost(ctx *gin.Context, clients GRPCClients) {
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
 		return
@@ -134,7 +134,7 @@ func CreatePost(ctx *gin.Context, clients GRPCClients) {
 	req := postswrite.PostRequest{}
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
-	req.UserId = proto.Uint64(userId)
+	req.UserId = proto.Uint64(userID)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
@@ -152,7 +152,7 @@ func CreatePost(ctx *gin.Context, clients GRPCClients) {
 }
 
 func DeletePost(ctx *gin.Context, clients GRPCClients) {
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
 		return
@@ -165,7 +165,7 @@ func DeletePost(ctx *gin.Context, clients GRPCClients) {
 	req := postswrite.DeletePostRequest{}
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
-	req.UserId = proto.Uint64(userId)
+	req.UserId = proto.Uint64(userID)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
@@ -192,7 +192,7 @@ func DeletePost(ctx *gin.Context, clients GRPCClients) {
 }
 
 func LikePost(ctx *gin.Context, clients GRPCClients) {
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
 		return
@@ -205,7 +205,7 @@ func LikePost(ctx *gin.Context, clients GRPCClients) {
 	req := likes.IDUserID{}
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
-	req.UserId = proto.Uint64(userId)
+	req.UserId = proto.Uint64(userID)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
@@ -235,7 +235,7 @@ func LikePost(ctx *gin.Context, clients GRPCClients) {
 }
 
 func UnlikePost(ctx *gin.Context, clients GRPCClients) {
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
 		return
@@ -248,7 +248,7 @@ func UnlikePost(ctx *gin.Context, clients GRPCClients) {
 	req := likes.IDUserID{}
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
-	req.UserId = proto.Uint64(userId)
+	req.UserId = proto.Uint64(userID)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
@@ -277,7 +277,7 @@ func UnlikePost(ctx *gin.Context, clients GRPCClients) {
 }
 
 func AddComment(ctx *gin.Context, clients GRPCClients) {
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
 		return
@@ -290,7 +290,7 @@ func AddComment(ctx *gin.Context, clients GRPCClients) {
 	req := postswrite.CommentRequest{}
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
-	req.UserId = proto.Uint64(userId)
+	req.UserId = proto.Uint64(userID)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
@@ -309,7 +309,7 @@ func AddComment(ctx *gin.Context, clients GRPCClients) {
 }
 
 func LikeComment(ctx *gin.Context, clients GRPCClients) {
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
 		return
@@ -322,7 +322,7 @@ func LikeComment(ctx *gin.Context, clients GRPCClients) {
 	req := likes.IDUserID{}
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
-	req.UserId = proto.Uint64(userId)
+	req.UserId = proto.Uint64(userID)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
@@ -350,7 +350,7 @@ func LikeComment(ctx *gin.Context, clients GRPCClients) {
 }
 
 func UnlikeComment(ctx *gin.Context, clients GRPCClients) {
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
 		return
@@ -363,7 +363,7 @@ func UnlikeComment(ctx *gin.Context, clients GRPCClients) {
 	req := likes.IDUserID{}
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
-	req.UserId = proto.Uint64(userId)
+	req.UserId = proto.Uint64(userID)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
@@ -394,7 +394,7 @@ func UnlikeComment(ctx *gin.Context, clients GRPCClients) {
 }
 
 func ClearComment(ctx *gin.Context, clients GRPCClients) {
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
 		return
@@ -407,7 +407,7 @@ func ClearComment(ctx *gin.Context, clients GRPCClients) {
 	req := postswrite.ClearCommentRequest{}
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
-	req.UserId = proto.Uint64(userId)
+	req.UserId = proto.Uint64(userID)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
@@ -462,7 +462,7 @@ func Search(ctx *gin.Context, clients GRPCClients) {
 }
 
 func RegisterGET(ctx *gin.Context) {
-	if userID, err := getUserId(ctx); err == nil {
+	if userID, err := getUserID(ctx); err == nil {
 		jsonAndLog(ctx, http.StatusBadRequest, gin.H{"user_id": userID}, "")
 		return
 	}
@@ -471,7 +471,7 @@ func RegisterGET(ctx *gin.Context) {
 }
 
 func RegisterPOST(ctx *gin.Context, clients GRPCClients) {
-	if _, err := getUserId(ctx); err == nil {
+	if _, err := getUserID(ctx); err == nil {
 		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "")
 		return
 	}
@@ -509,7 +509,7 @@ func RegisterPOST(ctx *gin.Context, clients GRPCClients) {
 }
 
 func LoginGET(ctx *gin.Context) {
-	if userID, err := getUserId(ctx); err == nil {
+	if userID, err := getUserID(ctx); err == nil {
 		jsonAndLog(ctx, http.StatusBadRequest, gin.H{"user_id": userID}, "")
 		return
 	}
@@ -518,7 +518,7 @@ func LoginGET(ctx *gin.Context) {
 }
 
 func LoginPOST(ctx *gin.Context, clients GRPCClients) {
-	if _, err := getUserId(ctx); err == nil {
+	if _, err := getUserID(ctx); err == nil {
 		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, err)
 		return
 	}
@@ -555,7 +555,7 @@ func LoginPOST(ctx *gin.Context, clients GRPCClients) {
 }
 
 func ChangePassword(ctx *gin.Context, clients GRPCClients) {
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
 		return
@@ -568,7 +568,7 @@ func ChangePassword(ctx *gin.Context, clients GRPCClients) {
 	req := user.ChangePasswordRequest{}
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
-	req.UserId = proto.Uint64(userId)
+	req.UserId = proto.Uint64(userID)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
@@ -602,19 +602,19 @@ func ChangePassword(ctx *gin.Context, clients GRPCClients) {
 
 func GetProfile(ctx *gin.Context, clients GRPCClients) {
 	isMine := false
-	userId, _ := getUserId(ctx)
-	profileIdParam := ctx.Param("userid")
-	profileId, err := strconv.ParseUint(profileIdParam, 10, 32)
+	userID, _ := getUserID(ctx)
+	profileIDParam := ctx.Param("userid")
+	profileID, err := strconv.ParseUint(profileIDParam, 10, 32)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusNotFound, gin.H{}, err)
 		return
 	}
 
-	if profileId == userId {
+	if profileID == userID {
 		isMine = true
 	}
 
-	req := user.UserId{UserId: proto.Uint64(profileId)}
+	req := user.UserId{UserId: proto.Uint64(profileID)}
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
@@ -634,7 +634,7 @@ func GetProfile(ctx *gin.Context, clients GRPCClients) {
 }
 
 func UpdateProfile(ctx *gin.Context, clients GRPCClients) {
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusUnauthorized, gin.H{}, err)
 		return
@@ -647,7 +647,7 @@ func UpdateProfile(ctx *gin.Context, clients GRPCClients) {
 	req := user.UpdateProfileRequest{}
 	defer ctx.Request.Body.Close()
 	jsonpb.Unmarshal(ctx.Request.Body, &req)
-	req.UserId = proto.Uint64(userId)
+	req.UserId = proto.Uint64(userID)
 
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
@@ -668,20 +668,20 @@ func UpdateProfile(ctx *gin.Context, clients GRPCClients) {
 }
 
 func UserIdGET(ctx *gin.Context) {
-	userId, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		jsonAndLog(ctx, http.StatusBadRequest, gin.H{}, "")
 	}
 
-	jsonAndLog(ctx, http.StatusOK, gin.H{"user_id": userId}, "")
+	jsonAndLog(ctx, http.StatusOK, gin.H{"user_id": userID}, "")
 }
 
-func generateJWT(userId uint64) (string, error) {
+func generateJWT(userID uint64) (string, error) {
 	claims := JWTClaims{
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour).Unix(),
 		},
-		userId,
+		userID,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -690,7 +690,7 @@ func generateJWT(userId uint64) (string, error) {
 
 //jwt must be stored in authorization bearer
 //format: Authorization: Bearer <token>
-func getUserId(ctx *gin.Context) (uint64, error) {
+func getUserID(ctx *gin.Context) (uint64, error) {
 	authHeader := ctx.GetHeader("Authorization")
 	splitTokens := strings.Split(authHeader, "Bearer ")
 	if len(splitTokens) != 2 {
@@ -714,11 +714,11 @@ func getUserId(ctx *gin.Context) (uint64, error) {
 	}
 
 	if claims, ok := token.Claims.(*JWTClaims); ok {
-		userId := claims.UserID
-		if userId < 1 {
+		userID := claims.UserID
+		if userID < 1 {
 			return 0, fmt.Errorf("invalid userid")
 		}
-		return uint64(userId), nil
+		return uint64(userID), nil
 	}
 
 	//should not happen

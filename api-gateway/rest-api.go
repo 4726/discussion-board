@@ -26,7 +26,7 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api.engine.Use(gin.Recovery())
 	api.engine.Use(log.RequestMiddleware())
 
-	api.setupGRPCClients()
+	api.setupGRPCClients(cfg)
 	api.setRoutes()
 
 	// api.setMockRoutes()
@@ -207,19 +207,19 @@ func corsMiddleware() gin.HandlerFunc {
 	}
 }
 
-func (a *RestAPI) setupGRPCClients() {
-	userConn, _ := grpc.Dial(UserServiceAddr(), grpc.WithInsecure())
+func (a *RestAPI) setupGRPCClients(cfg Config) {
+	userConn, _ := grpc.Dial(cfg.ServiceAddrs.User, grpc.WithInsecure())
 	userClient := user.NewUserClient(userConn)
 
-	searchConn, _ := grpc.Dial(SearchServiceAddr(), grpc.WithInsecure())
+	searchConn, _ := grpc.Dial(cfg.ServiceAddrs.Search, grpc.WithInsecure())
 	searchClient := search.NewSearchClient(searchConn)
 
-	likesConn, _ := grpc.Dial(LikesServiceAddr(), grpc.WithInsecure())
+	likesConn, _ := grpc.Dial(cfg.ServiceAddrs.Likes, grpc.WithInsecure())
 	likesClient := likes.NewLikesClient(likesConn)
-	postreadConn, _ := grpc.Dial(PostsReadServiceAddr(), grpc.WithInsecure())
+	postreadConn, _ := grpc.Dial(cfg.ServiceAddrs.PostsRead, grpc.WithInsecure())
 	postsreadClient := postsread.NewPostsReadClient(postreadConn)
 
-	postWriteConn, _ := grpc.Dial(PostsWriteServiceAddr(), grpc.WithInsecure())
+	postWriteConn, _ := grpc.Dial(cfg.ServiceAddrs.PostsWrite, grpc.WithInsecure())
 	postswriteClient := postswrite.NewPostsWriteClient(postWriteConn)
 
 	a.grpcClients = GRPCClients{

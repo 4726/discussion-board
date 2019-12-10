@@ -46,3 +46,13 @@
         </mat-card>
     </li>
 </ol>
+
+<div *ngIf="signedIn">
+    <mat-form-field class="full-width">
+        <mat-label>Comment</mat-label>
+        <textarea matInput placeholder="Comment" [(ngModel)]='commentBody'></textarea>
+    </mat-form-field>
+    <mat-card-actions>
+        <button mat-raised-button (click)="onCreateComment()">Comment</button>
+    </mat-card-actions>
+</div>

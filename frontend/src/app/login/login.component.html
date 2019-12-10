@@ -3,20 +3,16 @@
 <form [formGroup]="loginForm" 
     (ngSubmit)="onSubmit(loginForm.value)">
 
-    <div>
-        <label for="username">
-          Username
-        </label>
-        <input id="username" type="text" formControlName="username">
-      </div>
-    
-      <div>
-        <label for="password">
-          Password
-        </label>
-        <input id="password" type="text" formControlName="password">
-      </div>
-
-    <button class="button" type="submit">Login</button>
+    <mat-form-field class="full-width">
+        <mat-label>Username</mat-label>
+        <textarea matInput formControlName="username" placeholder="Username"></textarea>
+      </mat-form-field>
+      <br>
+      <mat-form-field class="full-width">
+        <mat-label>Password</mat-label>
+        <textarea matInput formControlName="password" placeholder="Password"></textarea>
+      </mat-form-field>
+      <br>
+    <button mat-flat-button color="primary" type="submit">Login</button>
   
 </form>

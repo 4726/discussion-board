@@ -85,7 +85,7 @@ func GetPostsMock(ctx *gin.Context) {
 }
 
 func CreatePostMock(ctx *gin.Context) {
-	_, err := getUserId(ctx)
+	_, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
@@ -95,7 +95,7 @@ func CreatePostMock(ctx *gin.Context) {
 }
 
 func DeletePostMock(ctx *gin.Context) {
-	_, err := getUserId(ctx)
+	_, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
@@ -104,7 +104,7 @@ func DeletePostMock(ctx *gin.Context) {
 }
 
 func LikePostMock(ctx *gin.Context) {
-	_, err := getUserId(ctx)
+	_, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
@@ -114,7 +114,7 @@ func LikePostMock(ctx *gin.Context) {
 }
 
 func UnlikePostMock(ctx *gin.Context) {
-	_, err := getUserId(ctx)
+	_, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
@@ -124,7 +124,7 @@ func UnlikePostMock(ctx *gin.Context) {
 }
 
 func AddCommentMock(ctx *gin.Context) {
-	_, err := getUserId(ctx)
+	_, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
@@ -133,7 +133,7 @@ func AddCommentMock(ctx *gin.Context) {
 }
 
 func LikeCommentMock(ctx *gin.Context) {
-	_, err := getUserId(ctx)
+	_, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
@@ -143,7 +143,7 @@ func LikeCommentMock(ctx *gin.Context) {
 }
 
 func UnlikeCommentMock(ctx *gin.Context) {
-	_, err := getUserId(ctx)
+	_, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
@@ -153,7 +153,7 @@ func UnlikeCommentMock(ctx *gin.Context) {
 }
 
 func ClearCommentMock(ctx *gin.Context) {
-	_, err := getUserId(ctx)
+	_, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
@@ -187,7 +187,7 @@ func SearchMock(ctx *gin.Context) {
 }
 
 func RegisterGETMock(ctx *gin.Context) {
-	userID, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
 		return
@@ -197,7 +197,7 @@ func RegisterGETMock(ctx *gin.Context) {
 }
 
 func RegisterPOSTMock(ctx *gin.Context) {
-	if userID, err := getUserId(ctx); err == nil {
+	if userID, err := getUserID(ctx); err == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
 		return
 	}
@@ -210,7 +210,7 @@ func RegisterPOSTMock(ctx *gin.Context) {
 }
 
 func LoginGETMock(ctx *gin.Context) {
-	if userID, err := getUserId(ctx); err == nil {
+	if userID, err := getUserID(ctx); err == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
 		return
 	}
@@ -219,7 +219,7 @@ func LoginGETMock(ctx *gin.Context) {
 }
 
 func LoginPOSTMock(ctx *gin.Context) {
-	if userID, err := getUserId(ctx); err == nil {
+	if userID, err := getUserID(ctx); err == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"user_id": userID})
 		return
 	}
@@ -232,7 +232,7 @@ func LoginPOSTMock(ctx *gin.Context) {
 }
 
 func ChangePasswordMock(ctx *gin.Context) {
-	_, err := getUserId(ctx)
+	_, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
@@ -261,7 +261,7 @@ func GetProfileMock(ctx *gin.Context) {
 }
 
 func UpdateProfileMock(ctx *gin.Context) {
-	_, err := getUserId(ctx)
+	_, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{})
 		return
@@ -271,7 +271,7 @@ func UpdateProfileMock(ctx *gin.Context) {
 }
 
 func UserIdGETMock(ctx *gin.Context) {
-	userID, err := getUserId(ctx)
+	userID, err := getUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{})
 	}

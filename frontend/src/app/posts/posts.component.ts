@@ -62,4 +62,8 @@ export class PostsComponent implements OnInit {
   onRowClick(postID: number) {
     this.router.navigate([`post/${postID}`])
   }
+
+  onCreatePost() {
+    this.router.navigate(['post/create'])
+  }
 }
