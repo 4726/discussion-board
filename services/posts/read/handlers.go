@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/4726/discussion-board/services/posts/models"
 	"github.com/4726/discussion-board/services/posts/read/pb"
 	"github.com/golang/protobuf/proto"

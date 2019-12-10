@@ -1,9 +1,10 @@
 package main
 
 import (
+	"net"
+
 	"github.com/4726/discussion-board/services/search/pb"
 	"google.golang.org/grpc"
-	"net"
 )
 
 type Api struct {

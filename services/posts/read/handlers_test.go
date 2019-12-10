@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/4726/discussion-board/services/posts/models"
 	"github.com/4726/discussion-board/services/posts/read/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
-	"os"
-	"testing"
-	"time"
 )
 
 var testApi *Api

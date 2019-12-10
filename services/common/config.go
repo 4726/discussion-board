@@ -1,10 +1,11 @@
 package common
 
 import (
-	"github.com/spf13/viper"
-	"path/filepath"
-	"io/ioutil"
 	"bytes"
+	"io/ioutil"
+	"path/filepath"
+
+	"github.com/spf13/viper"
 )
 
 func LoadConfig(filePath, appName string, obj interface{}) error {

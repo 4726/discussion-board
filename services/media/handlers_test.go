@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/4726/discussion-board/services/media/pb"
-	"github.com/golang/protobuf/proto"
-	"github.com/minio/minio-go/v6"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/4726/discussion-board/services/media/pb"
+	"github.com/golang/protobuf/proto"
+	"github.com/minio/minio-go/v6"
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
 )
 
 var testApi *Api

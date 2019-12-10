@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
+	"regexp"
+	"time"
+
 	"github.com/4726/discussion-board/services/user/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"regexp"
-	"time"
 )
 
 const (

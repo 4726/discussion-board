@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/4726/discussion-board/services/posts/models"
 	"github.com/4726/discussion-board/services/posts/read/pb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
-	"net"
 )
 
 type Api struct {

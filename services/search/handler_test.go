@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"google.golang.org/grpc"
 	"os"
 	"testing"
 	"time"
+
+	"google.golang.org/grpc"
 
 	"github.com/4726/discussion-board/services/search/pb"
 	"github.com/golang/protobuf/proto"

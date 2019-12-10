@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/4726/discussion-board/services/media/pb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/minio/minio-go/v6"
 	"google.golang.org/grpc"
-	"net"
 )
 
 const (

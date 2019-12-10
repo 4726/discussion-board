@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/4726/discussion-board/services/search/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
