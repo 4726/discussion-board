@@ -5,10 +5,11 @@ import (
 	"net"
 
 	"github.com/4726/discussion-board/services/posts/models"
-	"github.com/4726/discussion-board/services/posts/write/pb"
+	pb "github.com/4726/discussion-board/services/posts/write/pb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
+	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 )
 
 type Api struct {
@@ -28,7 +29,7 @@ func NewApi(cfg Config) (*Api, error) {
 	// deleting a post will also delete all of the post's comments
 	db.Model(&models.Comment{}).AddForeignKey("post_id", "posts(id)", "CASCADE", "CASCADE")
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
 	handlers := &Handlers{db}
 	pb.RegisterPostsWriteServer(server, handlers)
 

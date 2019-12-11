@@ -1,12 +1,16 @@
 syntax = "proto2";
 
+package postswrite;
+
 service PostsWrite {
-    rpc CreatePost(PostRequest) returns (PostId) {}
-    rpc DeletePost(DeletePostRequest) returns (DeletePostResponse) {}
-    rpc SetPostLikes(SetLikes) returns (SetLikesResponse) {}
-    rpc CreateComment(CommentRequest) returns (CreateCommentResponse) {}
-    rpc ClearComment(ClearCommentRequest) returns (ClearCommentResponse) {}
-    rpc SetCommentLikes(SetLikes) returns (SetLikesResponse) {}
+    rpc CreatePost(PostRequest) returns (PostId);
+    rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+    rpc SetPostLikes(SetLikes) returns (SetLikesResponse);
+    rpc CreateComment(CommentRequest) returns (CreateCommentResponse);
+    rpc ClearComment(ClearCommentRequest) returns (ClearCommentResponse);
+    rpc SetCommentLikes(SetLikes) returns (SetLikesResponse);
+    rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+
 }
 
 message PostRequest {
@@ -48,3 +52,14 @@ message ClearCommentRequest {
 }
 
 message ClearCommentResponse {}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+    enum ServingStatus {
+        UNKNOWN = 0;
+        SERVING = 1;
+        NOT_SERVING = 2;
+    }
+    required ServingStatus status = 1;
+}

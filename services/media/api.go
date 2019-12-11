@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/4726/discussion-board/services/media/pb"
+	pb "github.com/4726/discussion-board/services/media/pb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/minio/minio-go/v6"
 	"google.golang.org/grpc"
+	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 )
 
 const (
@@ -27,7 +28,7 @@ func NewApi(cfg Config) (*Api, error) {
 		return nil, err
 	}
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
 	handlers := &Handlers{mc}
 	pb.RegisterMediaServer(server, handlers)
 

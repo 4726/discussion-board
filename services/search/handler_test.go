@@ -10,7 +10,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/4726/discussion-board/services/search/pb"
+	pb "github.com/4726/discussion-board/services/search/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/olivere/elastic/v7"
 	"github.com/stretchr/testify/assert"

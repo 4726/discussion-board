@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/4726/discussion-board/services/likes/pb"
+	pb "github.com/4726/discussion-board/services/likes/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 )
 
-var testGRPCApi *GRPCApi
+var testGRPCApi *Api
 var testAddr string
 
 func TestMain(m *testing.M) {
@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	api, err := NewGRPCApi(cfg)
+	api, err := NewApi(cfg)
 	if err != nil {
 		panic(err)
 	}

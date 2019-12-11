@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/4726/discussion-board/services/posts/models"
-	"github.com/4726/discussion-board/services/posts/read/pb"
+	pb "github.com/4726/discussion-board/services/posts/read/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc/codes"

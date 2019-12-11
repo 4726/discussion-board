@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package pb;
+package likes;
 
 service Likes {
  rpc LikePost(IDUserID) returns (Total);

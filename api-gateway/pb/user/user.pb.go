@@ -6,12 +6,11 @@ package user
 import (
 	context "context"
 	fmt "fmt"
-	math "math"
-
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -24,6 +23,49 @@ var _ = math.Inf
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+
+type HealthCheckResponse_ServingStatus int32
+
+const (
+	HealthCheckResponse_UNKNOWN     HealthCheckResponse_ServingStatus = 0
+	HealthCheckResponse_SERVING     HealthCheckResponse_ServingStatus = 1
+	HealthCheckResponse_NOT_SERVING HealthCheckResponse_ServingStatus = 2
+)
+
+var HealthCheckResponse_ServingStatus_name = map[int32]string{
+	0: "UNKNOWN",
+	1: "SERVING",
+	2: "NOT_SERVING",
+}
+
+var HealthCheckResponse_ServingStatus_value = map[string]int32{
+	"UNKNOWN":     0,
+	"SERVING":     1,
+	"NOT_SERVING": 2,
+}
+
+func (x HealthCheckResponse_ServingStatus) Enum() *HealthCheckResponse_ServingStatus {
+	p := new(HealthCheckResponse_ServingStatus)
+	*p = x
+	return p
+}
+
+func (x HealthCheckResponse_ServingStatus) String() string {
+	return proto.EnumName(HealthCheckResponse_ServingStatus_name, int32(x))
+}
+
+func (x *HealthCheckResponse_ServingStatus) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(HealthCheckResponse_ServingStatus_value, data, "HealthCheckResponse_ServingStatus")
+	if err != nil {
+		return err
+	}
+	*x = HealthCheckResponse_ServingStatus(value)
+	return nil
+}
+
+func (HealthCheckResponse_ServingStatus) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_116e343673f7ffaf, []int{8, 0}
+}
 
 type UserId struct {
 	UserId               *uint64  `protobuf:"varint,1,req,name=user_id,json=userId" json:"user_id,omitempty"`
@@ -346,42 +388,122 @@ func (m *ChangePasswordResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ChangePasswordResponse proto.InternalMessageInfo
 
+type HealthCheckRequest struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *HealthCheckRequest) Reset()         { *m = HealthCheckRequest{} }
+func (m *HealthCheckRequest) String() string { return proto.CompactTextString(m) }
+func (*HealthCheckRequest) ProtoMessage()    {}
+func (*HealthCheckRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_116e343673f7ffaf, []int{7}
+}
+
+func (m *HealthCheckRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_HealthCheckRequest.Unmarshal(m, b)
+}
+func (m *HealthCheckRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_HealthCheckRequest.Marshal(b, m, deterministic)
+}
+func (m *HealthCheckRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HealthCheckRequest.Merge(m, src)
+}
+func (m *HealthCheckRequest) XXX_Size() int {
+	return xxx_messageInfo_HealthCheckRequest.Size(m)
+}
+func (m *HealthCheckRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_HealthCheckRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HealthCheckRequest proto.InternalMessageInfo
+
+type HealthCheckResponse struct {
+	Status               *HealthCheckResponse_ServingStatus `protobuf:"varint,1,req,name=status,enum=user.HealthCheckResponse_ServingStatus" json:"status,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                           `json:"-"`
+	XXX_unrecognized     []byte                             `json:"-"`
+	XXX_sizecache        int32                              `json:"-"`
+}
+
+func (m *HealthCheckResponse) Reset()         { *m = HealthCheckResponse{} }
+func (m *HealthCheckResponse) String() string { return proto.CompactTextString(m) }
+func (*HealthCheckResponse) ProtoMessage()    {}
+func (*HealthCheckResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_116e343673f7ffaf, []int{8}
+}
+
+func (m *HealthCheckResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_HealthCheckResponse.Unmarshal(m, b)
+}
+func (m *HealthCheckResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_HealthCheckResponse.Marshal(b, m, deterministic)
+}
+func (m *HealthCheckResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HealthCheckResponse.Merge(m, src)
+}
+func (m *HealthCheckResponse) XXX_Size() int {
+	return xxx_messageInfo_HealthCheckResponse.Size(m)
+}
+func (m *HealthCheckResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_HealthCheckResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HealthCheckResponse proto.InternalMessageInfo
+
+func (m *HealthCheckResponse) GetStatus() HealthCheckResponse_ServingStatus {
+	if m != nil && m.Status != nil {
+		return *m.Status
+	}
+	return HealthCheckResponse_UNKNOWN
+}
+
 func init() {
-	proto.RegisterType((*UserId)(nil), "UserId")
-	proto.RegisterType((*Profile)(nil), "Profile")
-	proto.RegisterType((*LoginCredentials)(nil), "LoginCredentials")
-	proto.RegisterType((*UpdateProfileRequest)(nil), "UpdateProfileRequest")
-	proto.RegisterType((*UpdateProfileResponse)(nil), "UpdateProfileResponse")
-	proto.RegisterType((*ChangePasswordRequest)(nil), "ChangePasswordRequest")
-	proto.RegisterType((*ChangePasswordResponse)(nil), "ChangePasswordResponse")
+	proto.RegisterEnum("user.HealthCheckResponse_ServingStatus", HealthCheckResponse_ServingStatus_name, HealthCheckResponse_ServingStatus_value)
+	proto.RegisterType((*UserId)(nil), "user.UserId")
+	proto.RegisterType((*Profile)(nil), "user.Profile")
+	proto.RegisterType((*LoginCredentials)(nil), "user.LoginCredentials")
+	proto.RegisterType((*UpdateProfileRequest)(nil), "user.UpdateProfileRequest")
+	proto.RegisterType((*UpdateProfileResponse)(nil), "user.UpdateProfileResponse")
+	proto.RegisterType((*ChangePasswordRequest)(nil), "user.ChangePasswordRequest")
+	proto.RegisterType((*ChangePasswordResponse)(nil), "user.ChangePasswordResponse")
+	proto.RegisterType((*HealthCheckRequest)(nil), "user.HealthCheckRequest")
+	proto.RegisterType((*HealthCheckResponse)(nil), "user.HealthCheckResponse")
 }
 
 func init() { proto.RegisterFile("user.proto", fileDescriptor_116e343673f7ffaf) }
 
 var fileDescriptor_116e343673f7ffaf = []byte{
-	// 347 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x51, 0xcb, 0x6e, 0xe2, 0x30,
-	0x14, 0x0d, 0x81, 0x21, 0xe1, 0x4a, 0x8c, 0x18, 0x6b, 0x80, 0x4c, 0x66, 0x03, 0x96, 0x2a, 0xb1,
-	0xa9, 0x17, 0xfd, 0x82, 0x56, 0x59, 0x54, 0x54, 0x5d, 0x20, 0x24, 0xb6, 0x45, 0x2e, 0xbe, 0xd0,
-	0x48, 0xc1, 0x4e, 0x63, 0xa7, 0xfc, 0x41, 0xbf, 0xbb, 0x72, 0x1e, 0xad, 0x88, 0x82, 0xd8, 0xd9,
-	0xe7, 0xbe, 0xce, 0x03, 0x20, 0xd7, 0x98, 0xb1, 0x34, 0x53, 0x46, 0xd1, 0x39, 0xf4, 0x37, 0x1a,
-	0xb3, 0xa5, 0x20, 0x53, 0xf0, 0x2c, 0xbe, 0x8d, 0x45, 0xd0, 0x99, 0xb9, 0x8b, 0xde, 0xba, 0x9f,
-	0x17, 0x05, 0x7a, 0x04, 0x6f, 0x95, 0xa9, 0x7d, 0x9c, 0xe0, 0xc5, 0x1e, 0x12, 0x82, 0x6f, 0x5f,
-	0x92, 0x1f, 0x31, 0x70, 0x67, 0xee, 0x62, 0xb0, 0xfe, 0xfe, 0x93, 0x11, 0x74, 0x5f, 0x63, 0x15,
-	0x74, 0x0b, 0xd8, 0x3e, 0xc9, 0x7f, 0x18, 0xf0, 0x0f, 0x6e, 0x78, 0xb1, 0xa8, 0x57, 0xb6, 0x97,
-	0xc0, 0x52, 0xd0, 0x27, 0x18, 0x3d, 0xab, 0x43, 0x2c, 0xa3, 0x0c, 0x05, 0x4a, 0x13, 0xf3, 0x44,
-	0x9f, 0xad, 0xef, 0x34, 0xd6, 0x87, 0xe0, 0xa7, 0x5c, 0xeb, 0x93, 0xca, 0x44, 0x7d, 0xba, 0xfe,
-	0xd3, 0x17, 0xf8, 0xbb, 0x49, 0x05, 0x37, 0x58, 0x09, 0x58, 0xe3, 0x7b, 0x8e, 0xda, 0x5c, 0xd6,
-	0x51, 0x71, 0x75, 0x67, 0x9d, 0x56, 0xae, 0xdd, 0x02, 0xff, 0xe1, 0x3a, 0x85, 0x71, 0x63, 0xbf,
-	0x4e, 0x95, 0xd4, 0x48, 0xf7, 0x30, 0x8e, 0xde, 0xb8, 0x3c, 0xe0, 0xaa, 0xa2, 0x72, 0xf5, 0xf2,
-	0x3f, 0xf0, 0x55, 0x22, 0xb6, 0x96, 0x7a, 0x25, 0xc3, 0x53, 0x89, 0xb0, 0xe3, 0xb6, 0x24, 0xf1,
-	0x54, 0x96, 0x4a, 0x17, 0x3d, 0x89, 0x27, 0x5b, 0xa2, 0x01, 0x4c, 0x9a, 0x77, 0x4a, 0x06, 0x77,
-	0x9f, 0x2e, 0xf4, 0x6c, 0xb2, 0x64, 0x0e, 0xf0, 0x88, 0xa6, 0x4e, 0xd0, 0x63, 0x65, 0xdc, 0xa1,
-	0xcf, 0x2a, 0x88, 0x3a, 0xe4, 0x06, 0x7e, 0x15, 0x96, 0x93, 0x3f, 0xac, 0x69, 0x7d, 0x58, 0x0f,
-	0x50, 0x87, 0xdc, 0xc2, 0x30, 0xca, 0x90, 0x1b, 0x7c, 0xd8, 0xed, 0x54, 0x2e, 0xcd, 0x95, 0xf6,
-	0x7b, 0x18, 0x9e, 0x99, 0x43, 0xc6, 0xac, 0x2d, 0x8c, 0x70, 0xc2, 0xda, 0x3d, 0x74, 0x48, 0x04,
-	0xbf, 0xcf, 0xd5, 0x91, 0x09, 0x6b, 0xb5, 0x35, 0x9c, 0xb2, 0x76, 0x1b, 0xa8, 0xf3, 0x15, 0x00,
-	0x00, 0xff, 0xff, 0xe8, 0x52, 0x3e, 0xa6, 0xee, 0x02, 0x00, 0x00,
+	// 459 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x52, 0x4d, 0x6f, 0xd3, 0x40,
+	0x10, 0xc5, 0x4e, 0x1a, 0xa7, 0x53, 0x52, 0xa2, 0xa5, 0x1f, 0xae, 0xcb, 0x21, 0xf8, 0x42, 0x39,
+	0x90, 0x43, 0x25, 0x2e, 0x08, 0x09, 0xa1, 0x08, 0xb5, 0xa1, 0xc8, 0xad, 0x1c, 0x02, 0x37, 0xa2,
+	0x25, 0x9e, 0x26, 0x16, 0xee, 0x6e, 0xd8, 0x5d, 0x37, 0xff, 0x83, 0xdf, 0xc9, 0x8f, 0x40, 0xfb,
+	0x61, 0x90, 0x23, 0x47, 0xf4, 0xb6, 0xf3, 0xde, 0x7c, 0xbc, 0xd9, 0x79, 0x00, 0xa5, 0x44, 0x31,
+	0x5c, 0x09, 0xae, 0x38, 0x69, 0xeb, 0x77, 0xfc, 0x1c, 0x3a, 0x53, 0x89, 0x62, 0x9c, 0x91, 0x63,
+	0x08, 0x34, 0x32, 0xcb, 0xb3, 0xd0, 0x1b, 0xf8, 0x67, 0xed, 0xb4, 0x53, 0x1a, 0x22, 0xbe, 0x83,
+	0xe0, 0x46, 0xf0, 0xdb, 0xbc, 0xc0, 0xad, 0x39, 0x24, 0x82, 0xae, 0x7e, 0x31, 0x7a, 0x87, 0xa1,
+	0x3f, 0xf0, 0xcf, 0x76, 0xd3, 0xbf, 0x31, 0xe9, 0x43, 0xeb, 0x7b, 0xce, 0xc3, 0x96, 0x81, 0xf5,
+	0x93, 0x9c, 0xc2, 0x2e, 0xbd, 0xa7, 0x8a, 0x9a, 0x46, 0x6d, 0x9b, 0x6e, 0x81, 0x71, 0x16, 0x7f,
+	0x84, 0xfe, 0x27, 0xbe, 0xc8, 0xd9, 0x48, 0x60, 0x86, 0x4c, 0xe5, 0xb4, 0x90, 0xb5, 0xf6, 0xde,
+	0x46, 0xfb, 0x08, 0xba, 0x2b, 0x2a, 0xe5, 0x9a, 0x8b, 0xac, 0x1a, 0x5d, 0xc5, 0xf1, 0x37, 0x38,
+	0x98, 0xae, 0x32, 0xaa, 0xd0, 0x2d, 0x90, 0xe2, 0xcf, 0x12, 0xa5, 0xda, 0xbe, 0x87, 0xd3, 0xea,
+	0x0f, 0xbc, 0x46, 0xad, 0x2d, 0x83, 0xff, 0xd3, 0x7a, 0x0c, 0x87, 0x1b, 0xfd, 0xe5, 0x8a, 0x33,
+	0x89, 0xf1, 0x2d, 0x1c, 0x8e, 0x96, 0x94, 0x2d, 0xf0, 0xc6, 0x49, 0xf9, 0xef, 0xe4, 0x13, 0xe8,
+	0xf2, 0x22, 0x9b, 0x69, 0xe9, 0x6e, 0x8d, 0x80, 0x17, 0x99, 0x2e, 0xd7, 0x14, 0xc3, 0xb5, 0xa5,
+	0xec, 0x2f, 0x06, 0x0c, 0xd7, 0x9a, 0x8a, 0x43, 0x38, 0xda, 0x9c, 0xe3, 0x14, 0x1c, 0x00, 0xb9,
+	0x44, 0x5a, 0xa8, 0xe5, 0x68, 0x89, 0xf3, 0x1f, 0x6e, 0x7c, 0xfc, 0xcb, 0x83, 0xa7, 0x35, 0xd8,
+	0x66, 0x93, 0x77, 0xd0, 0x91, 0x8a, 0xaa, 0x52, 0x1a, 0x55, 0xfb, 0xe7, 0x2f, 0x86, 0xc6, 0x29,
+	0x0d, 0xa9, 0xc3, 0x09, 0x8a, 0xfb, 0x9c, 0x2d, 0x26, 0x26, 0x3d, 0x75, 0x65, 0xf1, 0x1b, 0xe8,
+	0xd5, 0x08, 0xb2, 0x07, 0xc1, 0x34, 0xb9, 0x4a, 0xae, 0xbf, 0x26, 0xfd, 0x47, 0x3a, 0x98, 0x7c,
+	0x48, 0xbf, 0x8c, 0x93, 0x8b, 0xbe, 0x47, 0x9e, 0xc0, 0x5e, 0x72, 0xfd, 0x79, 0x56, 0x01, 0xfe,
+	0xf9, 0x6f, 0x1f, 0xda, 0xda, 0x84, 0xe4, 0x25, 0xc0, 0x05, 0xaa, 0xca, 0x6c, 0x8f, 0xad, 0x06,
+	0x6b, 0xcf, 0xa8, 0x67, 0xa3, 0x8a, 0x7c, 0x05, 0x3b, 0xc6, 0x25, 0xe4, 0xc8, 0xe2, 0x9b, 0x96,
+	0x89, 0x6a, 0xd5, 0xe4, 0x35, 0xf4, 0x46, 0x02, 0xa9, 0xc2, 0xf7, 0xf3, 0x39, 0x2f, 0x99, 0x7a,
+	0x60, 0xd9, 0x25, 0xf4, 0x6a, 0xf7, 0x25, 0x91, 0xa3, 0x1b, 0x4c, 0x15, 0x9d, 0x36, 0x72, 0xee,
+	0x83, 0xaf, 0x60, 0xbf, 0x7e, 0x28, 0xe2, 0xd2, 0x1b, 0x6d, 0x12, 0x3d, 0x6b, 0x26, 0x5d, 0xb3,
+	0xb7, 0xb0, 0x63, 0x6e, 0x42, 0xc2, 0x86, 0x33, 0xd9, 0x06, 0x27, 0x5b, 0x0f, 0xf8, 0x27, 0x00,
+	0x00, 0xff, 0xff, 0x0f, 0x5e, 0x08, 0x9f, 0x05, 0x04, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -401,6 +523,7 @@ type UserClient interface {
 	CreateAccount(ctx context.Context, in *LoginCredentials, opts ...grpc.CallOption) (*UserId, error)
 	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error)
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
+	Check(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 }
 
 type userClient struct {
@@ -413,7 +536,7 @@ func NewUserClient(cc *grpc.ClientConn) UserClient {
 
 func (c *userClient) GetProfile(ctx context.Context, in *UserId, opts ...grpc.CallOption) (*Profile, error) {
 	out := new(Profile)
-	err := c.cc.Invoke(ctx, "/User/GetProfile", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/user.User/GetProfile", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -422,7 +545,7 @@ func (c *userClient) GetProfile(ctx context.Context, in *UserId, opts ...grpc.Ca
 
 func (c *userClient) Login(ctx context.Context, in *LoginCredentials, opts ...grpc.CallOption) (*UserId, error) {
 	out := new(UserId)
-	err := c.cc.Invoke(ctx, "/User/Login", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/user.User/Login", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -431,7 +554,7 @@ func (c *userClient) Login(ctx context.Context, in *LoginCredentials, opts ...gr
 
 func (c *userClient) CreateAccount(ctx context.Context, in *LoginCredentials, opts ...grpc.CallOption) (*UserId, error) {
 	out := new(UserId)
-	err := c.cc.Invoke(ctx, "/User/CreateAccount", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/user.User/CreateAccount", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +563,7 @@ func (c *userClient) CreateAccount(ctx context.Context, in *LoginCredentials, op
 
 func (c *userClient) UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error) {
 	out := new(UpdateProfileResponse)
-	err := c.cc.Invoke(ctx, "/User/UpdateProfile", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/user.User/UpdateProfile", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -449,7 +572,16 @@ func (c *userClient) UpdateProfile(ctx context.Context, in *UpdateProfileRequest
 
 func (c *userClient) ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error) {
 	out := new(ChangePasswordResponse)
-	err := c.cc.Invoke(ctx, "/User/ChangePassword", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/user.User/ChangePassword", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) Check(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
+	out := new(HealthCheckResponse)
+	err := c.cc.Invoke(ctx, "/user.User/Check", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -463,6 +595,7 @@ type UserServer interface {
 	CreateAccount(context.Context, *LoginCredentials) (*UserId, error)
 	UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
+	Check(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error)
 }
 
 // UnimplementedUserServer can be embedded to have forward compatible implementations.
@@ -484,6 +617,9 @@ func (*UnimplementedUserServer) UpdateProfile(ctx context.Context, req *UpdatePr
 func (*UnimplementedUserServer) ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
 }
+func (*UnimplementedUserServer) Check(ctx context.Context, req *HealthCheckRequest) (*HealthCheckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
+}
 
 func RegisterUserServer(s *grpc.Server, srv UserServer) {
 	s.RegisterService(&_User_serviceDesc, srv)
@@ -499,7 +635,7 @@ func _User_GetProfile_Handler(srv interface{}, ctx context.Context, dec func(int
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/User/GetProfile",
+		FullMethod: "/user.User/GetProfile",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServer).GetProfile(ctx, req.(*UserId))
@@ -517,7 +653,7 @@ func _User_Login_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/User/Login",
+		FullMethod: "/user.User/Login",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServer).Login(ctx, req.(*LoginCredentials))
@@ -535,7 +671,7 @@ func _User_CreateAccount_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/User/CreateAccount",
+		FullMethod: "/user.User/CreateAccount",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServer).CreateAccount(ctx, req.(*LoginCredentials))
@@ -553,7 +689,7 @@ func _User_UpdateProfile_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/User/UpdateProfile",
+		FullMethod: "/user.User/UpdateProfile",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServer).UpdateProfile(ctx, req.(*UpdateProfileRequest))
@@ -571,7 +707,7 @@ func _User_ChangePassword_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/User/ChangePassword",
+		FullMethod: "/user.User/ChangePassword",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServer).ChangePassword(ctx, req.(*ChangePasswordRequest))
@@ -579,8 +715,26 @@ func _User_ChangePassword_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _User_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthCheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).Check(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/user.User/Check",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).Check(ctx, req.(*HealthCheckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _User_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "User",
+	ServiceName: "user.User",
 	HandlerType: (*UserServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -602,6 +756,10 @@ var _User_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ChangePassword",
 			Handler:    _User_ChangePassword_Handler,
+		},
+		{
+			MethodName: "Check",
+			Handler:    _User_Check_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

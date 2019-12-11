@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/4726/discussion-board/services/likes/pb"
+	pb "github.com/4726/discussion-board/services/likes/pb"
 	_ "github.com/go-sql-driver/mysql"
+	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
 )
 
-type GRPCApi struct {
+type Api struct {
 	grpc     *grpc.Server
-	handlers *GRPCHandlers //for testing
+	handlers *Handlers //for testing
 }
 
-func NewGRPCApi(cfg Config) (*GRPCApi, error) {
+func NewApi(cfg Config) (*Api, error) {
 	s := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.Addr, cfg.DBName)
 
 	db, err := gorm.Open("mysql", s)
@@ -25,14 +26,14 @@ func NewGRPCApi(cfg Config) (*GRPCApi, error) {
 	// db.LogMode(true)
 	db.AutoMigrate(&CommentLike{}, &PostLike{})
 
-	server := grpc.NewServer()
-	handlers := &GRPCHandlers{db}
+	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
+	handlers := &Handlers{db}
 	pb.RegisterLikesServer(server, handlers)
 
-	return &GRPCApi{server, handlers}, err
+	return &Api{server, handlers}, err
 }
 
-func (a *GRPCApi) Run(addr string) error {
+func (a *Api) Run(addr string) error {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err

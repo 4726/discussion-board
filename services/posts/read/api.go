@@ -5,10 +5,11 @@ import (
 	"net"
 
 	"github.com/4726/discussion-board/services/posts/models"
-	"github.com/4726/discussion-board/services/posts/read/pb"
+	pb "github.com/4726/discussion-board/services/posts/read/pb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
+	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 )
 
 type Api struct {
@@ -26,7 +27,7 @@ func NewApi(cfg Config) (*Api, error) {
 	// db.LogMode(true)
 	db.AutoMigrate(&models.Comment{}, &models.Post{})
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
 	handlers := &Handlers{db}
 	pb.RegisterPostsReadServer(server, handlers)
 
@@ -41,3 +42,4 @@ func (a *Api) Run(addr string) error {
 
 	return a.grpc.Serve(lis)
 }
+

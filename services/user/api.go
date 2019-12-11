@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/4726/discussion-board/services/user/pb"
+	pb "github.com/4726/discussion-board/services/user/pb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
+	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 )
 
 type Api struct {
@@ -25,7 +26,7 @@ func NewApi(cfg Config) (*Api, error) {
 	// db.LogMode(true)
 	db.AutoMigrate(&Auth{}, &Profile{})
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
 	handlers := &Handlers{db}
 	pb.RegisterUserServer(server, handlers)
 

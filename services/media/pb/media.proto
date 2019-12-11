@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package pb;
+package media;
 
 service Media {
     rpc Upload(UploadRequest) returns (Name);

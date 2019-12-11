@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/4726/discussion-board/services/user/pb"
+	pb "github.com/4726/discussion-board/services/user/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"

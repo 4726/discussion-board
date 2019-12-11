@@ -6,10 +6,17 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	m.Run()
+	closer.Close()
+	os.Exit(1)
+}
 
 type statusCodeOpts struct {
 	WithoutJWTStatusCode   int
@@ -71,7 +78,6 @@ func testJWTStatusCode(t *testing.T, method, route string, opts statusCodeOpts) 
 func TestJWTNotRequired(t *testing.T) {
 	testJWTNotRequired(t, "GET", "/post/1")
 	testJWTNotRequired(t, "GET", "/posts?page=1")
-	testJWTNotRequired(t, "GET", "/posts?page=1&userid=1")
 	testJWTNotRequired(t, "GET", "/search?term=hello&page=1")
 	testJWTNotRequired(t, "GET", "/profile/1")
 

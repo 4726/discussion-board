@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package pb;
+package search;
 
 service Search {
     rpc Index(Post) returns (IndexResponse);

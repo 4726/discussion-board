@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/4726/discussion-board/services/media/pb"
+	pb "github.com/4726/discussion-board/services/media/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/minio/minio-go/v6"
 	"github.com/stretchr/testify/assert"

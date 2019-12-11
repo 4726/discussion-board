@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/4726/discussion-board/services/posts/models"
-	"github.com/4726/discussion-board/services/posts/write/pb"
+	pb "github.com/4726/discussion-board/services/posts/write/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc/codes"

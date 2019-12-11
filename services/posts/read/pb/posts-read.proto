@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package pb;
+package postsread;
 
 service PostsRead {
     rpc GetFullPost(Id) returns (Post);

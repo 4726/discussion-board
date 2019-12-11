@@ -3,8 +3,9 @@ package main
 import (
 	"net"
 
-	"github.com/4726/discussion-board/services/search/pb"
+	pb "github.com/4726/discussion-board/services/search/pb"
 	"google.golang.org/grpc"
+	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 )
 
 type Api struct {
@@ -18,7 +19,7 @@ func NewApi(cfg Config) (*Api, error) {
 		return nil, err
 	}
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
 	handlers := &Handlers{esc}
 	pb.RegisterSearchServer(server, handlers)
 

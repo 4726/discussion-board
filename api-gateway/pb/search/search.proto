@@ -1,11 +1,15 @@
 syntax = "proto2";
 
+package search;
+
 service Search {
-    rpc Index(Post) returns (IndexResponse) {}
-    rpc Search(SearchQuery) returns (SearchResult) {}
-    rpc SetLikes(Likes) returns (LikesResponse) {}
-    rpc DeletePost(Id) returns (DeletePostResponse) {}
-    rpc SetTimestamp(Timestamp) returns (SetTimestampResponse) {}
+    rpc Index(Post) returns (IndexResponse);
+    rpc Search(SearchQuery) returns (SearchResult);
+    rpc SetLikes(Likes) returns (LikesResponse);
+    rpc DeletePost(Id) returns (DeletePostResponse);
+    rpc SetTimestamp(Timestamp) returns (SetTimestampResponse);
+    rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+
 }
 
 message Post {
@@ -48,3 +52,14 @@ message Timestamp {
 }
 
 message SetTimestampResponse {}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+    enum ServingStatus {
+        UNKNOWN = 0;
+        SERVING = 1;
+        NOT_SERVING = 2;
+    }
+    required ServingStatus status = 1;
+}

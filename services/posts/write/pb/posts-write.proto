@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package pb;
+package postswrite;
 
 service PostsWrite {
     rpc CreatePost(PostRequest) returns (PostId);

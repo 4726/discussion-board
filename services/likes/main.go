@@ -19,7 +19,7 @@ func main() {
 		log.Entry().Fatal(err)
 	}
 
-	api, err := NewGRPCApi(cfg)
+	api, err := NewApi(cfg)
 	if err != nil {
 		log.Entry().Fatal(err)
 	}

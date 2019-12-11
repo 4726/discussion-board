@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package pb;
+package user;
 
 service User {
     rpc GetProfile(UserId) returns (Profile);

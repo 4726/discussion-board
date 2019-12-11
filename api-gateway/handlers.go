@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/4726/discussion-board/api-gateway/pb/likes"
+	likes "github.com/4726/discussion-board/api-gateway/pb/likes"
 	postsread "github.com/4726/discussion-board/api-gateway/pb/posts-read"
 	postswrite "github.com/4726/discussion-board/api-gateway/pb/posts-write"
-	"github.com/4726/discussion-board/api-gateway/pb/search"
-	"github.com/4726/discussion-board/api-gateway/pb/user"
+	search "github.com/4726/discussion-board/api-gateway/pb/search"
+	user "github.com/4726/discussion-board/api-gateway/pb/user"
 	"github.com/4726/discussion-board/services/common"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/fatih/structs"
@@ -110,6 +110,7 @@ func GetPosts(ctx *gin.Context, clients GRPCClients) {
 		UserId: proto.Uint64(query.UserID),
 		Sort:   proto.String(""),
 	}
+
 	grpcCtx, cancel := DefaultGRPCContext()
 	defer cancel()
 	posts, err := clients.PostsRead.GetPosts(grpcCtx, &req)

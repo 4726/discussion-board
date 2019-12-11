@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/4726/discussion-board/api-gateway/pb/likes"
+	likes "github.com/4726/discussion-board/api-gateway/pb/likes"
 	postsread "github.com/4726/discussion-board/api-gateway/pb/posts-read"
 	postswrite "github.com/4726/discussion-board/api-gateway/pb/posts-write"
-	"github.com/4726/discussion-board/api-gateway/pb/search"
-	"github.com/4726/discussion-board/api-gateway/pb/user"
+	search "github.com/4726/discussion-board/api-gateway/pb/search"
+	user "github.com/4726/discussion-board/api-gateway/pb/user"
 	"github.com/4726/discussion-board/services/common"
 	"github.com/gin-gonic/gin"
+	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"google.golang.org/grpc"
 )
 
@@ -24,7 +25,7 @@ func NewRestAPI(cfg Config) (*RestAPI, error) {
 	api.engine = engine
 	api.engine.Use(corsMiddleware())
 	api.engine.Use(gin.Recovery())
-	api.engine.Use(log.RequestMiddleware())
+	// api.engine.Use(log.RequestMiddleware())
 
 	api.setupGRPCClients(cfg)
 	api.setRoutes()
@@ -208,18 +209,39 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func (a *RestAPI) setupGRPCClients(cfg Config) {
-	userConn, _ := grpc.Dial(cfg.ServiceAddrs.User, grpc.WithInsecure())
+	userConn, _ := grpc.Dial(
+		cfg.ServiceAddrs.User,
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(otgrpc.UnaryClientInterceptor()),
+	)
 	userClient := user.NewUserClient(userConn)
 
-	searchConn, _ := grpc.Dial(cfg.ServiceAddrs.Search, grpc.WithInsecure())
+	searchConn, _ := grpc.Dial(
+		cfg.ServiceAddrs.Search,
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(otgrpc.UnaryClientInterceptor()),
+	)
 	searchClient := search.NewSearchClient(searchConn)
 
-	likesConn, _ := grpc.Dial(cfg.ServiceAddrs.Likes, grpc.WithInsecure())
+	likesConn, _ := grpc.Dial(
+		cfg.ServiceAddrs.Likes,
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(otgrpc.UnaryClientInterceptor()),
+	)
 	likesClient := likes.NewLikesClient(likesConn)
-	postreadConn, _ := grpc.Dial(cfg.ServiceAddrs.PostsRead, grpc.WithInsecure())
+
+	postreadConn, _ := grpc.Dial(
+		cfg.ServiceAddrs.PostsRead,
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(otgrpc.UnaryClientInterceptor()),
+	)
 	postsreadClient := postsread.NewPostsReadClient(postreadConn)
 
-	postWriteConn, _ := grpc.Dial(cfg.ServiceAddrs.PostsWrite, grpc.WithInsecure())
+	postWriteConn, _ := grpc.Dial(
+		cfg.ServiceAddrs.PostsWrite,
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(otgrpc.UnaryClientInterceptor()),
+	)
 	postswriteClient := postswrite.NewPostsWriteClient(postWriteConn)
 
 	a.grpcClients = GRPCClients{

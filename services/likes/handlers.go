@@ -4,18 +4,18 @@ import (
 	"context"
 	"time"
 
-	"github.com/4726/discussion-board/services/likes/pb"
+	pb "github.com/4726/discussion-board/services/likes/pb"
 	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type GRPCHandlers struct {
+type Handlers struct {
 	db *gorm.DB
 }
 
-func (h *GRPCHandlers) LikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+func (h *Handlers) LikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "client cancelled")
 	}
@@ -34,7 +34,7 @@ func (h *GRPCHandlers) LikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Tota
 	return &pb.Total{Total: proto.Uint64(count)}, nil
 }
 
-func (h *GRPCHandlers) UnlikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+func (h *Handlers) UnlikePost(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "client cancelled")
 	}
@@ -57,7 +57,7 @@ func (h *GRPCHandlers) UnlikePost(ctx context.Context, idu *pb.IDUserID) (*pb.To
 	return &pb.Total{Total: proto.Uint64(count)}, nil
 }
 
-func (h *GRPCHandlers) LikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+func (h *Handlers) LikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "client cancelled")
 	}
@@ -76,7 +76,7 @@ func (h *GRPCHandlers) LikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.T
 	return &pb.Total{Total: proto.Uint64(count)}, nil
 }
 
-func (h *GRPCHandlers) UnlikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
+func (h *Handlers) UnlikeComment(ctx context.Context, idu *pb.IDUserID) (*pb.Total, error) {
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "client cancelled")
 	}
@@ -99,7 +99,7 @@ func (h *GRPCHandlers) UnlikeComment(ctx context.Context, idu *pb.IDUserID) (*pb
 	return &pb.Total{Total: proto.Uint64(count)}, nil
 }
 
-func (h *GRPCHandlers) GetPostLikes(ctx context.Context, ids *pb.IDs) (*pb.TotalLikes, error) {
+func (h *Handlers) GetPostLikes(ctx context.Context, ids *pb.IDs) (*pb.TotalLikes, error) {
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "client cancelled")
 	}
@@ -122,7 +122,7 @@ func (h *GRPCHandlers) GetPostLikes(ctx context.Context, ids *pb.IDs) (*pb.Total
 	return &pb.TotalLikes{IdLikes: likes}, nil
 }
 
-func (h *GRPCHandlers) GetCommentLikes(ctx context.Context, ids *pb.IDs) (*pb.TotalLikes, error) {
+func (h *Handlers) GetCommentLikes(ctx context.Context, ids *pb.IDs) (*pb.TotalLikes, error) {
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "client cancelled")
 	}
@@ -145,7 +145,7 @@ func (h *GRPCHandlers) GetCommentLikes(ctx context.Context, ids *pb.IDs) (*pb.To
 	return &pb.TotalLikes{IdLikes: likes}, nil
 }
 
-func (h *GRPCHandlers) PostsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*pb.HaveLikes, error) {
+func (h *Handlers) PostsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*pb.HaveLikes, error) {
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "client cancelled")
 	}
@@ -168,7 +168,7 @@ func (h *GRPCHandlers) PostsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*p
 	return &pb.HaveLikes{HaveLikes: likes}, nil
 }
 
-func (h *GRPCHandlers) CommentsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*pb.HaveLikes, error) {
+func (h *Handlers) CommentsHaveLike(ctx context.Context, idu *pb.IDsUserID) (*pb.HaveLikes, error) {
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "client cancelled")
 	}
@@ -191,7 +191,7 @@ func (h *GRPCHandlers) CommentsHaveLike(ctx context.Context, idu *pb.IDsUserID) 
 	return &pb.HaveLikes{HaveLikes: likes}, nil
 }
 
-func (h *GRPCHandlers) DeletePost(ctx context.Context, in *pb.Id) (*pb.DeletePostResponse, error) {
+func (h *Handlers) DeletePost(ctx context.Context, in *pb.Id) (*pb.DeletePostResponse, error) {
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "client cancelled")
 	}
@@ -203,7 +203,7 @@ func (h *GRPCHandlers) DeletePost(ctx context.Context, in *pb.Id) (*pb.DeletePos
 	return &pb.DeletePostResponse{}, nil
 }
 
-func (h *GRPCHandlers) Check(ctx context.Context, in *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
+func (h *Handlers) Check(ctx context.Context, in *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "client cancelled")
 	}

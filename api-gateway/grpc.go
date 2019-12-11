@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/4726/discussion-board/api-gateway/pb/likes"
+	likes "github.com/4726/discussion-board/api-gateway/pb/likes"
 	postsread "github.com/4726/discussion-board/api-gateway/pb/posts-read"
 	postswrite "github.com/4726/discussion-board/api-gateway/pb/posts-write"
-	"github.com/4726/discussion-board/api-gateway/pb/search"
-	"github.com/4726/discussion-board/api-gateway/pb/user"
+	search "github.com/4726/discussion-board/api-gateway/pb/search"
+	user "github.com/4726/discussion-board/api-gateway/pb/user"
 )
 
 const defaultGRPCTimeout = 10
