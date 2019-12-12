@@ -10,3 +10,5 @@ require (
 	github.com/stretchr/testify v1.4.0
 	google.golang.org/grpc v1.25.1
 )
+
+replace github.com/4726/discussion-board/services/common => ../common

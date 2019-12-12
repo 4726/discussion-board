@@ -3,12 +3,15 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	pb "github.com/4726/discussion-board/services/user/pb"
 	_ "github.com/go-sql-driver/mysql"
+	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
-	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 )
 
 type Api struct {
@@ -39,5 +42,25 @@ func (a *Api) Run(addr string) error {
 		return err
 	}
 
-	return a.grpc.Serve(lis)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	shutdownCh := make(chan error, 1)
+	go func() {
+		sig := <-c
+		a.grpc.GracefulStop()
+		shutdownCh <- fmt.Errorf(sig.String())
+	}()
+
+	serveCh := make(chan error, 1)
+	go func() {
+		err := a.grpc.Serve(lis)
+		serveCh <- err
+	}()
+
+	select {
+	case err := <-serveCh:
+		return err
+	case err := <-shutdownCh:
+		return err
+	}
 }

@@ -1,6 +1,14 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	likes "github.com/4726/discussion-board/api-gateway/pb/likes"
 	postsread "github.com/4726/discussion-board/api-gateway/pb/posts-read"
 	postswrite "github.com/4726/discussion-board/api-gateway/pb/posts-write"
@@ -254,5 +262,36 @@ func (a *RestAPI) setupGRPCClients(cfg Config) {
 }
 
 func (a *RestAPI) Run(addr string) error {
-	return a.engine.Run(addr)
+	s := &http.Server{
+		Addr:    addr,
+		Handler: a.engine,
+	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	shutdownCh := make(chan error, 1)
+	go func() {
+		sig := <-c
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		if err := s.Shutdown(ctx); err != nil {
+			shutdownCh <- err
+		} else {
+			shutdownCh <- fmt.Errorf(sig.String())
+		}
+	}()
+
+	serveCh := make(chan error, 1)
+	go func() {
+		err := s.ListenAndServe()
+		serveCh <- err
+	}()
+
+	select {
+	case err := <-serveCh:
+		return err
+	case err := <-shutdownCh:
+		return err
+	}
+
 }
