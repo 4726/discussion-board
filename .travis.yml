@@ -11,11 +11,11 @@ matrix:
         - mysql
       env:
         global:
-        - GO111MODULE=on 
-        - DBOARD_LIKES_ADDR=127.0.0.1:3306
-        - DBOARD_LIKES_LISTENPORT=14000
-        - DBOARD_LIKES_USERNAME=root
-        - DBOARD_LIKES_DBNAME=likes_test
+          - GO111MODULE=on 
+          - DBOARD_LIKES_ADDR=127.0.0.1:3306
+          - DBOARD_LIKES_LISTENPORT=14000
+          - DBOARD_LIKES_USERNAME=root
+          - DBOARD_LIKES_DBNAME=likes_test
 
     - before_install:
         - cd services/posts/read
@@ -24,11 +24,11 @@ matrix:
         - mysql
       env:
         global:
-        - GO111MODULE=on 
-        - DBOARD_LIKES_ADDR=127.0.0.1:3306
-        - DBOARD_LIKES_LISTENPORT=14001
-        - DBOARD_LIKES_USERNAME=root
-        - DBOARD_LIKES_DBNAME=postsread_test
+          - GO111MODULE=on 
+          - DBOARD_POSTSREAD_ADDR=127.0.0.1:3306
+          - DBOARD_POSTSREAD_LISTENPORT=14001
+          - DBOARD_POSTSREAD_USERNAME=root
+          - DBOARD_POSTSREAD_DBNAME=postsread_test
 
     - before_install:
         - cd services/posts/write
@@ -37,11 +37,11 @@ matrix:
         - mysql
       env:
         global:
-        - GO111MODULE=on 
-        - DBOARD_LIKES_ADDR=127.0.0.1:3306
-        - DBOARD_LIKES_LISTENPORT=14002
-        - DBOARD_LIKES_USERNAME=root
-        - DBOARD_LIKES_DBNAME=postswrite_test
+          - GO111MODULE=on 
+          - DBOARD_POSTSWROTE_ADDR=127.0.0.1:3306
+          - DBOARD_POSTSWROTE_LISTENPORT=14002
+          - DBOARD_POSTSWROTE_USERNAME=root
+          - DBOARD_POSTSWROTE_DBNAME=postswrite_test
 
 go:
 - "1.13.1"
