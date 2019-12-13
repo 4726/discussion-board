@@ -1,0 +1,28 @@
+language: go
+
+sudo: enabled
+
+env: 
+  - GO111MODULE=on 
+  - DBOARD_LIKES_ADDR=127.0.0.1:3306
+  - DBOARD_LIKES_LISTENPORT=14000
+  - DBOARD_LIKES_USERNAME=root
+  - DBOARD_LIKES_DBNAME=likes_test
+
+before_install:
+  - sudo mysql -e 'CREATE DATABASE likes_test;'
+
+go:
+- "1.13.1"
+
+services:
+  - mysql
+
+git:
+  depth: 1
+
+notifications:
+  email: false
+
+script:
+  - go test -v -race ./...
