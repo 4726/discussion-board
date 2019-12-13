@@ -10,6 +10,7 @@ env:
   - DBOARD_LIKES_DBNAME=likes_test
 
 before_install:
+  - cd services/likes
   - sudo mysql -e 'CREATE DATABASE likes_test;'
 
 go:
