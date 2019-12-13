@@ -2,23 +2,49 @@ language: go
 
 sudo: enabled
 
-env: 
-  global:
-    - GO111MODULE=on 
-    - DBOARD_LIKES_ADDR=127.0.0.1:3306
-    - DBOARD_LIKES_LISTENPORT=14000
-    - DBOARD_LIKES_USERNAME=root
-    - DBOARD_LIKES_DBNAME=likes_test
+matrix:
+  include:
+    - before_install:
+        - cd services/likes
+        - sudo mysql -e 'CREATE DATABASE likes_test;'
+      services:
+        - mysql
+      env:
+        global:
+        - GO111MODULE=on 
+        - DBOARD_LIKES_ADDR=127.0.0.1:3306
+        - DBOARD_LIKES_LISTENPORT=14000
+        - DBOARD_LIKES_USERNAME=root
+        - DBOARD_LIKES_DBNAME=likes_test
 
-before_install:
-  - cd services/likes
-  - sudo mysql -e 'CREATE DATABASE likes_test;'
+    - before_install:
+        - cd services/posts/read
+        - sudo mysql -e 'CREATE DATABASE postsread_test;'
+      services:
+        - mysql
+      env:
+        global:
+        - GO111MODULE=on 
+        - DBOARD_LIKES_ADDR=127.0.0.1:3306
+        - DBOARD_LIKES_LISTENPORT=14001
+        - DBOARD_LIKES_USERNAME=root
+        - DBOARD_LIKES_DBNAME=postsread_test
+
+    - before_install:
+        - cd services/posts/write
+        - sudo mysql -e 'CREATE DATABASE postswrite_test;'
+      services:
+        - mysql
+      env:
+        global:
+        - GO111MODULE=on 
+        - DBOARD_LIKES_ADDR=127.0.0.1:3306
+        - DBOARD_LIKES_LISTENPORT=14002
+        - DBOARD_LIKES_USERNAME=root
+        - DBOARD_LIKES_DBNAME=postswrite_test
 
 go:
 - "1.13.1"
-
-services:
-  - mysql
 
 git:
   depth: 1
