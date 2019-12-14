@@ -58,7 +58,7 @@ matrix:
         - cd api-gateway
       env:
         global:
-          - GO111MODULE=on DBOARD_GATEQAY_LISTENPORT=14005
+          - GO111MODULE=on DBOARD_GATEWAY_LISTENPORT=14005
 go:
 - "1.13.1"
 
