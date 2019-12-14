@@ -28,6 +28,7 @@ func NewApi(cfg Config) (*Api, error) {
 	}
 	// db.LogMode(true)
 	db.AutoMigrate(&Auth{}, &Profile{})
+	db = db.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8 auto_increment=1")
 
 	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
 	handlers := &Handlers{db}
