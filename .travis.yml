@@ -53,6 +53,12 @@ matrix:
       env:
         global:
           - GO111MODULE=on DBOARD_USER_ADDR=127.0.0.1:3306 DBOARD_USER_LISTENPORT=14004 DBOARD_USER_USERNAME=root DBOARD_USER_DBNAME=user_test
+
+    - before_install:
+        - cd api-gateway
+      env:
+        global:
+          - GO111MODULE=on DBOARD_GATEQAY_LISTENPORT=14005
 go:
 - "1.13.1"
 

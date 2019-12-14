@@ -27,7 +27,7 @@ func NewApi(cfg Config) (*Api, error) {
 		return nil, err
 	}
 	// db.LogMode(true)
-	db = db.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8mb4 auto_increment=1")
+	db = db.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8mb4 auto_increment=1") //fixes unicode issues
 	db.AutoMigrate(&Auth{}, &Profile{})
 
 	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
