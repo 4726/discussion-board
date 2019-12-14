@@ -13,9 +13,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	m.Run()
+	i := m.Run()
 	closer.Close()
-	os.Exit(1)
+	os.Exit(i)
 }
 
 type statusCodeOpts struct {
