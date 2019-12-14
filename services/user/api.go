@@ -20,7 +20,7 @@ type Api struct {
 }
 
 func NewApi(cfg Config) (*Api, error) {
-	s := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.Addr, cfg.DBName)
+	s := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.Addr, cfg.DBName)
 
 	db, err := gorm.Open("mysql", s)
 	if err != nil {
