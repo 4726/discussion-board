@@ -30,6 +30,24 @@ matrix:
       env:
         global:
           - GO111MODULE=on DBOARD_POSTSWRITE_ADDR=127.0.0.1:3306 DBOARD_POSTSWRITE_LISTENPORT=14002 DBOARD_POSTSWRITE_USERNAME=root DBOARD_POSTSWRITE_DBNAME=postswrite_test
+
+    - before_install:
+        - cd services/search
+        - sleep 10 #wait for elasticsearch to start
+      services:
+        - elasticsearch
+      env:
+        global:
+          - GO111MODULE=on DBOARD_SEARCH_ESINDEX=posts DBOARD_SEARCH_ESADDR=http://127.0.0.1:9200 DBOARD_SEARCH_LISTENPORT=14003
+      
+    - before_install:
+        - cd services/user
+        - sudo mysql -e 'CREATE DATABASE user_test;'
+      services:
+        - mysql
+      env:
+        global:
+          - GO111MODULE=on DBOARD_USER_ADDR=127.0.0.1:3306 DBOARD_USER_LISTENPORT=14004 DBOARD_USER_USERNAME=root DBOARD_USER_DBNAME=user_test
 go:
 - "1.13.1"
 

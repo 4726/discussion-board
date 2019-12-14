@@ -32,6 +32,7 @@ func TestMain(m *testing.M) {
 	time.Sleep(time.Second * 3)
 
 	i := m.Run()
+	testApi.db.Close()
 	//close server
 	os.Exit(i)
 }
