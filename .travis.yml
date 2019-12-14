@@ -33,7 +33,7 @@ matrix:
 
     - before_install:
         - cd services/search
-        - sleep 10 #wait for elasticsearch to start
+        - sleep 20 #wait for elasticsearch to start
       services:
         - elasticsearch
       env:
