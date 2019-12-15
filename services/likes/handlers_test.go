@@ -11,10 +11,12 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 var testGRPCApi *Api
 var testAddr string
+var testCFG Config
 
 func TestMain(m *testing.M) {
 	cfg, err := ConfigFromFile("config_test.json")
@@ -25,6 +27,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
+	testCFG = cfg
 	testGRPCApi = api
 	addr := fmt.Sprintf(":%v", cfg.ListenPort)
 	testAddr = addr
@@ -38,7 +41,9 @@ func TestMain(m *testing.M) {
 }
 
 func testSetup(t testing.TB) (pb.LikesClient, []PostLike, []CommentLike) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	creds, err := credentials.NewClientTLSFromFile(testCFG.TLSCert, testCFG.TLSServerName)
+	assert.NoError(t, err)
+	conn, err := grpc.Dial(testAddr, grpc.WithTransportCredentials(creds))
 	assert.NoError(t, err)
 	// defer conn.Close()
 	c := pb.NewLikesClient(conn)

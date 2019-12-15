@@ -8,11 +8,14 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/4726/discussion-board/services/common"
 	pb "github.com/4726/discussion-board/services/likes/pb"
 	_ "github.com/go-sql-driver/mysql"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type Api struct {
@@ -30,7 +33,10 @@ func NewApi(cfg Config) (*Api, error) {
 	// db.LogMode(true)
 	db.AutoMigrate(&CommentLike{}, &PostLike{})
 
-	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
+	server, err := tlsGRPC(cfg)
+	if err != nil {
+		return nil, err
+	}
 	handlers := &Handlers{db}
 	pb.RegisterLikesServer(server, handlers)
 
@@ -64,4 +70,28 @@ func (a *Api) Run(addr string) error {
 	case err := <-shutdownCh:
 		return err
 	}
+}
+
+func tcpGRPC(cfg Config) (*grpc.Server, error) {
+	return grpc.NewServer(
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			common.IPWhiteListUnaryServerInterceptor(cfg.IPWhitelist),
+			otgrpc.UnaryServerInterceptor(),
+		)),
+	), nil
+}
+
+func tlsGRPC(cfg Config) (*grpc.Server, error) {
+	creds, err := credentials.NewServerTLSFromFile(cfg.TLSCert, cfg.TLSKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return grpc.NewServer(
+		grpc.Creds(creds),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			common.IPWhiteListUnaryServerInterceptor(cfg.IPWhitelist),
+			otgrpc.UnaryServerInterceptor(),
+		)),
+	), nil
 }
