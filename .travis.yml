@@ -7,11 +7,25 @@ matrix:
     - before_install:
         - cd services/likes
         - sudo mysql -e 'CREATE DATABASE likes_test;'
+        - git clone https://github.com/square/certstrap
+        - cd certstrap
+        - ./build
+        - ./bin/certstrap-dev-004e21be-linux-amd64 init --common-name "server" --passphrase ""
+        - cd ../
       services:
         - mysql
       env:
         global:
-          - GO111MODULE=on DBOARD_LIKES_ADDR=127.0.0.1:3306 DBOARD_LIKES_LISTENPORT=14000 DBOARD_LIKES_USERNAME=root DBOARD_LIKES_DBNAME=likes_test
+          - 
+            GO111MODULE=on 
+            DBOARD_LIKES_ADDR=127.0.0.1:3306 
+            DBOARD_LIKES_LISTENPORT=14000 
+            DBOARD_LIKES_USERNAME=root 
+            DBOARD_LIKES_DBNAME=likes_test 
+            DBOARD_LIKES_TLSCERT=certstrap/out/server.crt
+            DBOARD_LIKES_TLSKEY=certstrap/out/server.key
+            DBOARD_LIKES_TLSSERVERNAME=server
+            DBOARD_LIKES_IPWHITELIST="127.0.0.1 ::1"
 
     - before_install:
         - cd services/posts/read

@@ -32,7 +32,11 @@ func NewApi(cfg Config) (*Api, error) {
 		return nil, err
 	}
 
-	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
+	opts := common.GRPCOptions{cfg.IPWhiteList, cfg.TLSCert, cfg.TLSKey}
+server, err := common.DefaultGRPCServer(opts)
+if err != nil {
+	return nil, err
+}
 	handlers := &Handlers{mc}
 	pb.RegisterMediaServer(server, handlers)
 

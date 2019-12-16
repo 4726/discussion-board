@@ -6,9 +6,7 @@ import (
 
 type Config struct {
 	Username, Password, DBName, Addr string
-	ListenPort                       int
-	TLSCert, TLSKey, TLSServerName   string
-	IPWhitelist                      []string
+	common.DefaultConfig             `mapstructure:",squash"`
 }
 
 func ConfigFromFile(file string) (Config, error) {

@@ -9,7 +9,6 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/jinzhu/gorm v1.9.11
-	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	google.golang.org/grpc v1.21.0
 )

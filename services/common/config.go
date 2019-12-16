@@ -10,9 +10,19 @@ import (
 	"github.com/spf13/viper"
 )
 
+type DefaultConfig struct {
+	ListenPort                     int
+	TLSCert, TLSKey, TLSServerName string
+	IPWhitelist                    []string
+}
+
 func LoadConfig(filePath, appName string, obj interface{}) error {
 	ext := filepath.Ext(filePath)[1:]
 	viper.SetConfigType(ext)
+	//need this to work with space seperated strings in env
+	viper.SetTypeByDefaultValue(true)
+	viper.SetDefault("ipwhitelist", []string{"a", "b", "c"})
+
 	viper.SetEnvPrefix("dboard" + "_" + appName)
 	for _, v := range os.Environ() {
 		tokens := strings.Split(v, "=")

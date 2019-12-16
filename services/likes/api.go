@@ -15,7 +15,6 @@ import (
 	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 type Api struct {
@@ -82,16 +81,6 @@ func tcpGRPC(cfg Config) (*grpc.Server, error) {
 }
 
 func tlsGRPC(cfg Config) (*grpc.Server, error) {
-	creds, err := credentials.NewServerTLSFromFile(cfg.TLSCert, cfg.TLSKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return grpc.NewServer(
-		grpc.Creds(creds),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			common.IPWhiteListUnaryServerInterceptor(cfg.IPWhitelist),
-			otgrpc.UnaryServerInterceptor(),
-		)),
-	), nil
+	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey}
+	return common.DefaultGRPCServer(opts)
 }

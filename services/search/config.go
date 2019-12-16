@@ -6,7 +6,7 @@ import (
 
 type Config struct {
 	ESIndex, ESAddr string
-	ListenPort      int
+	common.DefaultConfig `mapstructure:",squash"`
 }
 
 func ConfigFromFile(file string) (Config, error) {

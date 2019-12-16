@@ -30,7 +30,11 @@ func NewApi(cfg Config) (*Api, error) {
 	db = db.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8mb4 auto_increment=1") //fixes unicode issues
 	db.AutoMigrate(&Auth{}, &Profile{})
 
-	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
+	opts := common.GRPCOptions{cfg.IPWhiteList, cfg.TLSCert, cfg.TLSKey}
+server, err := common.DefaultGRPCServer(opts)
+if err != nil {
+	return nil, err
+}
 	handlers := &Handlers{db}
 	pb.RegisterUserServer(server, handlers)
 

@@ -31,7 +31,11 @@ func NewApi(cfg Config) (*Api, error) {
 	// db.LogMode(true)
 	db.AutoMigrate(&models.Comment{}, &models.Post{})
 
-	server := grpc.NewServer(grpc.UnaryInterceptor(otgrpc.UnaryServerInterceptor()))
+	opts := common.GRPCOptions{cfg.IPWhiteList, cfg.TLSCert, cfg.TLSKey}
+server, err := common.DefaultGRPCServer(opts)
+if err != nil {
+	return nil, err
+}
 	handlers := &Handlers{db}
 	pb.RegisterPostsReadServer(server, handlers)
 

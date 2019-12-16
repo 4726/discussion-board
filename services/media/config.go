@@ -10,7 +10,7 @@ type Config struct {
 	SecretAccessKey string
 	UseSSL          bool
 	BucketName      string
-	ListenPort      int
+	common.DefaultConfig `mapstructure:",squash"`
 }
 
 func ConfigFromFile(file string) (Config, error) {

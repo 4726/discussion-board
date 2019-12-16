@@ -6,7 +6,7 @@ import (
 
 type Config struct {
 	Username, Password, DBName, Addr string
-	ListenPort                       int
+	common.DefaultConfig `mapstructure:",squash"`
 }
 
 func ConfigFromFile(file string) (Config, error) {
