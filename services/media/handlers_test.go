@@ -15,10 +15,12 @@ import (
 	"github.com/minio/minio-go/v6"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 var testApi *Api
 var testAddr string
+var testCFG Config
 
 func TestMain(m *testing.M) {
 	cfg, err := ConfigFromFile("config_test.json")
@@ -30,6 +32,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	testApi = api
+	testCFG = cfg
 	addr := fmt.Sprintf(":%v", cfg.ListenPort)
 	testAddr = addr
 	go api.Run(addr)
@@ -41,7 +44,9 @@ func TestMain(m *testing.M) {
 }
 
 func testSetup(t testing.TB) (pb.MediaClient, [][]byte) {
-	conn, err := grpc.Dial(testAddr, grpc.WithInsecure())
+	creds, err := credentials.NewClientTLSFromFile(testCFG.TLSCert, testCFG.TLSServerName)
+	assert.NoError(t, err)
+	conn, err := grpc.Dial(testAddr, grpc.WithTransportCredentials(creds))
 	assert.NoError(t, err)
 	// defer conn.Close()
 	c := pb.NewMediaClient(conn)

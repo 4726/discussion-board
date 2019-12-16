@@ -5,11 +5,11 @@ import (
 )
 
 type Config struct {
-	Endpoint        string
-	AccessKeyID     string
-	SecretAccessKey string
-	UseSSL          bool
-	BucketName      string
+	Endpoint             string
+	AccessKeyID          string
+	SecretAccessKey      string
+	UseSSL               bool
+	BucketName           string
 	common.DefaultConfig `mapstructure:",squash"`
 }
 

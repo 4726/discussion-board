@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/4726/discussion-board/services/common"
 	pb "github.com/4726/discussion-board/services/media/pb"
 	_ "github.com/go-sql-driver/mysql"
-	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/minio/minio-go/v6"
 	"google.golang.org/grpc"
 )
@@ -32,11 +32,11 @@ func NewApi(cfg Config) (*Api, error) {
 		return nil, err
 	}
 
-	opts := common.GRPCOptions{cfg.IPWhiteList, cfg.TLSCert, cfg.TLSKey}
-server, err := common.DefaultGRPCServer(opts)
-if err != nil {
-	return nil, err
-}
+	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey}
+	server, err := common.DefaultGRPCServer(opts)
+	if err != nil {
+		return nil, err
+	}
 	handlers := &Handlers{mc}
 	pb.RegisterMediaServer(server, handlers)
 

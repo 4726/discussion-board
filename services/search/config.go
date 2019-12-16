@@ -5,7 +5,7 @@ import (
 )
 
 type Config struct {
-	ESIndex, ESAddr string
+	ESIndex, ESAddr      string
 	common.DefaultConfig `mapstructure:",squash"`
 }
 

@@ -8,10 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/4726/discussion-board/services/common"
 	"github.com/4726/discussion-board/services/posts/models"
 	pb "github.com/4726/discussion-board/services/posts/read/pb"
 	_ "github.com/go-sql-driver/mysql"
-	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
 )
@@ -31,11 +31,11 @@ func NewApi(cfg Config) (*Api, error) {
 	// db.LogMode(true)
 	db.AutoMigrate(&models.Comment{}, &models.Post{})
 
-	opts := common.GRPCOptions{cfg.IPWhiteList, cfg.TLSCert, cfg.TLSKey}
-server, err := common.DefaultGRPCServer(opts)
-if err != nil {
-	return nil, err
-}
+	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey}
+	server, err := common.DefaultGRPCServer(opts)
+	if err != nil {
+		return nil, err
+	}
 	handlers := &Handlers{db}
 	pb.RegisterPostsReadServer(server, handlers)
 

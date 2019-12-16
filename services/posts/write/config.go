@@ -6,7 +6,7 @@ import (
 
 type Config struct {
 	Username, Password, DBName, Addr string
-	common.DefaultConfig `mapstructure:",squash"`
+	common.DefaultConfig             `mapstructure:",squash"`
 }
 
 func ConfigFromFile(file string) (Config, error) {

@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/4726/discussion-board/services/common"
 	"github.com/4726/discussion-board/services/posts/models"
 	pb "github.com/4726/discussion-board/services/posts/write/pb"
 	_ "github.com/go-sql-driver/mysql"
-	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
 )
@@ -32,11 +32,11 @@ func NewApi(cfg Config) (*Api, error) {
 	// deleting a post will also delete all of the post's comments
 	db.Model(&models.Comment{}).AddForeignKey("post_id", "posts(id)", "CASCADE", "CASCADE")
 
-	opts := common.GRPCOptions{cfg.IPWhiteList, cfg.TLSCert, cfg.TLSKey}
-server, err := common.DefaultGRPCServer(opts)
-if err != nil {
-	return nil, err
-}
+	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey}
+	server, err := common.DefaultGRPCServer(opts)
+	if err != nil {
+		return nil, err
+	}
 	handlers := &Handlers{db}
 	pb.RegisterPostsWriteServer(server, handlers)
 

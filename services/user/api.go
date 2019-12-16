@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/4726/discussion-board/services/common"
 	pb "github.com/4726/discussion-board/services/user/pb"
 	_ "github.com/go-sql-driver/mysql"
-	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
 )
@@ -30,11 +30,11 @@ func NewApi(cfg Config) (*Api, error) {
 	db = db.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8mb4 auto_increment=1") //fixes unicode issues
 	db.AutoMigrate(&Auth{}, &Profile{})
 
-	opts := common.GRPCOptions{cfg.IPWhiteList, cfg.TLSCert, cfg.TLSKey}
-server, err := common.DefaultGRPCServer(opts)
-if err != nil {
-	return nil, err
-}
+	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey}
+	server, err := common.DefaultGRPCServer(opts)
+	if err != nil {
+		return nil, err
+	}
 	handlers := &Handlers{db}
 	pb.RegisterUserServer(server, handlers)
 

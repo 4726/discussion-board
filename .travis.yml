@@ -30,20 +30,48 @@ matrix:
     - before_install:
         - cd services/posts/read
         - sudo mysql -e 'CREATE DATABASE postsread_test;'
+        - git clone https://github.com/square/certstrap
+        - cd certstrap
+        - ./build
+        - ./bin/certstrap-dev-004e21be-linux-amd64 init --common-name "server" --passphrase ""
+        - cd ../
       services:
         - mysql
       env:
         global:
-          - GO111MODULE=on DBOARD_POSTSREAD_ADDR=127.0.0.1:3306 DBOARD_POSTSREAD_LISTENPORT=14001 DBOARD_POSTSREAD_USERNAME=root DBOARD_POSTSREAD_DBNAME=postsread_test
+          - 
+            GO111MODULE=on 
+            DBOARD_POSTSREAD_ADDR=127.0.0.1:3306 
+            DBOARD_POSTSREAD_LISTENPORT=14001 
+            DBOARD_POSTSREAD_USERNAME=root 
+            DBOARD_POSTSREAD_DBNAME=postsread_test
+            DBOARD_POSTSREAD_TLSCERT=certstrap/out/server.crt
+            DBOARD_POSTSREAD_TLSKEY=certstrap/out/server.key
+            DBOARD_POSTSREAD_TLSSERVERNAME=server
+            DBOARD_POSTSREAD_IPWHITELIST="127.0.0.1 ::1"
 
     - before_install:
         - cd services/posts/write
         - sudo mysql -e 'CREATE DATABASE postswrite_test;'
+        - git clone https://github.com/square/certstrap
+        - cd certstrap
+        - ./build
+        - ./bin/certstrap-dev-004e21be-linux-amd64 init --common-name "server" --passphrase ""
+        - cd ../
       services:
         - mysql
       env:
         global:
-          - GO111MODULE=on DBOARD_POSTSWRITE_ADDR=127.0.0.1:3306 DBOARD_POSTSWRITE_LISTENPORT=14002 DBOARD_POSTSWRITE_USERNAME=root DBOARD_POSTSWRITE_DBNAME=postswrite_test
+          - 
+            GO111MODULE=on 
+            DBOARD_POSTSWRITE_ADDR=127.0.0.1:3306 
+            DBOARD_POSTSWRITE_LISTENPORT=14002 
+            DBOARD_POSTSWRITE_USERNAME=root 
+            DBOARD_POSTSWRITE_DBNAME=postswrite_test
+            DBOARD_POSTSWRITE_TLSCERT=certstrap/out/server.crt
+            DBOARD_POSTSWRITE_TLSKEY=certstrap/out/server.key
+            DBOARD_POSTSWRITE_TLSSERVERNAME=server
+            DBOARD_POSTSWRITE_IPWHITELIST="127.0.0.1 ::1"
 
     - before_install:
         - curl -s -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.5.0-amd64.deb
@@ -54,19 +82,46 @@ matrix:
         - sudo chown -R elasticsearch:elasticsearch /etc/default/elasticsearch
         - sudo systemctl start elasticsearch
         - cd services/search
-        - sleep 20 #wait for elasticsearch to start
+        - git clone https://github.com/square/certstrap
+        - cd certstrap
+        - ./build
+        - ./bin/certstrap-dev-004e21be-linux-amd64 init --common-name "server" --passphrase ""
+        - cd ../
+        - sleep 10 #wait for elasticsearch to start
       env:
         global:
-          - GO111MODULE=on DBOARD_SEARCH_ESINDEX=posts DBOARD_SEARCH_ESADDR=http://127.0.0.1:9200 DBOARD_SEARCH_LISTENPORT=14003
+          - 
+            GO111MODULE=on 
+            DBOARD_SEARCH_ESINDEX=posts 
+            DBOARD_SEARCH_ESADDR=http://127.0.0.1:9200 
+            DBOARD_SEARCH_LISTENPORT=14003
+            DBOARD_SEARCH_TLSCERT=certstrap/out/server.crt
+            DBOARD_SEARCH_TLSKEY=certstrap/out/server.key
+            DBOARD_SEARCH_TLSSERVERNAME=server
+            DBOARD_SEARCH_IPWHITELIST="127.0.0.1 ::1"
       
     - before_install:
         - cd services/user
         - sudo mysql -e 'CREATE DATABASE user_test;'
+        - git clone https://github.com/square/certstrap
+        - cd certstrap
+        - ./build
+        - ./bin/certstrap-dev-004e21be-linux-amd64 init --common-name "server" --passphrase ""
+        - cd ../
       services:
         - mysql
       env:
         global:
-          - GO111MODULE=on DBOARD_USER_ADDR=127.0.0.1:3306 DBOARD_USER_LISTENPORT=14004 DBOARD_USER_USERNAME=root DBOARD_USER_DBNAME=user_test
+          - 
+            GO111MODULE=on 
+            DBOARD_USER_ADDR=127.0.0.1:3306 
+            DBOARD_USER_LISTENPORT=14004 
+            DBOARD_USER_USERNAME=root 
+            DBOARD_USER_DBNAME=user_test
+            DBOARD_USER_TLSCERT=certstrap/out/server.crt
+            DBOARD_USER_TLSKEY=certstrap/out/server.key
+            DBOARD_USER_TLSSERVERNAME=server
+            DBOARD_USER_IPWHITELIST="127.0.0.1 ::1"
 
     - before_install:
         - cd api-gateway
