@@ -59,7 +59,7 @@ func main() {
 		log.Entry().Fatal(err)
 	}
 
-	err = api.Run(fmt.Sprintf(":%v", cfg.ListenPort))
+	err = api.Run(fmt.Sprintf(":%v", cfg.ListenPort), cfg.TLSCert, cfg.TLSKey)
 
 	log.Entry().Fatal(err)
 	defer closer.Close()

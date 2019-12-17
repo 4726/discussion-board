@@ -5,12 +5,18 @@ import (
 )
 
 type Config struct {
-	ListenPort   int
-	ServiceAddrs Addrs
+	ListenPort        int
+	TLSCert, TLSKey   string
+	LikesService      Service
+	MediaService      Service
+	PostsReadService  Service
+	PostsWriteService Service
+	SearchService     Service
+	UserService       Service
 }
 
-type Addrs struct {
-	Likes, Media, PostsRead, PostsWrite, Search, User string
+type Service struct {
+	Addr, TLSCert, TLSServerName string
 }
 
 func ConfigFromFile(file string) (Config, error) {

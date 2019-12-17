@@ -18,6 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type RestAPI struct {
@@ -217,37 +218,42 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func (a *RestAPI) setupGRPCClients(cfg Config) {
+	creds, _ := credentials.NewClientTLSFromFile(cfg.UserService.TLSCert, cfg.UserService.TLSServerName)
 	userConn, _ := grpc.Dial(
-		cfg.ServiceAddrs.User,
-		grpc.WithInsecure(),
+		cfg.UserService.Addr,
+		grpc.WithTransportCredentials(creds),
 		grpc.WithUnaryInterceptor(otgrpc.UnaryClientInterceptor()),
 	)
 	userClient := user.NewUserClient(userConn)
 
+	creds, _ = credentials.NewClientTLSFromFile(cfg.SearchService.TLSCert, cfg.SearchService.TLSServerName)
 	searchConn, _ := grpc.Dial(
-		cfg.ServiceAddrs.Search,
-		grpc.WithInsecure(),
+		cfg.SearchService.Addr,
+		grpc.WithTransportCredentials(creds),
 		grpc.WithUnaryInterceptor(otgrpc.UnaryClientInterceptor()),
 	)
 	searchClient := search.NewSearchClient(searchConn)
 
+	creds, _ = credentials.NewClientTLSFromFile(cfg.LikesService.TLSCert, cfg.LikesService.TLSServerName)
 	likesConn, _ := grpc.Dial(
-		cfg.ServiceAddrs.Likes,
-		grpc.WithInsecure(),
+		cfg.LikesService.Addr,
+		grpc.WithTransportCredentials(creds),
 		grpc.WithUnaryInterceptor(otgrpc.UnaryClientInterceptor()),
 	)
 	likesClient := likes.NewLikesClient(likesConn)
 
+	creds, _ = credentials.NewClientTLSFromFile(cfg.PostsReadService.TLSCert, cfg.PostsReadService.TLSServerName)
 	postreadConn, _ := grpc.Dial(
-		cfg.ServiceAddrs.PostsRead,
-		grpc.WithInsecure(),
+		cfg.PostsReadService.Addr,
+		grpc.WithTransportCredentials(creds),
 		grpc.WithUnaryInterceptor(otgrpc.UnaryClientInterceptor()),
 	)
 	postsreadClient := postsread.NewPostsReadClient(postreadConn)
 
+	creds, _ = credentials.NewClientTLSFromFile(cfg.PostsWriteService.TLSCert, cfg.PostsWriteService.TLSServerName)
 	postWriteConn, _ := grpc.Dial(
-		cfg.ServiceAddrs.PostsWrite,
-		grpc.WithInsecure(),
+		cfg.PostsWriteService.Addr,
+		grpc.WithTransportCredentials(creds),
 		grpc.WithUnaryInterceptor(otgrpc.UnaryClientInterceptor()),
 	)
 	postswriteClient := postswrite.NewPostsWriteClient(postWriteConn)
@@ -261,7 +267,7 @@ func (a *RestAPI) setupGRPCClients(cfg Config) {
 	}
 }
 
-func (a *RestAPI) Run(addr string) error {
+func (a *RestAPI) Run(addr, tlsCert, tlsKey string) error {
 	s := &http.Server{
 		Addr:    addr,
 		Handler: a.engine,
@@ -283,7 +289,7 @@ func (a *RestAPI) Run(addr string) error {
 
 	serveCh := make(chan error, 1)
 	go func() {
-		err := s.ListenAndServe()
+		err := s.ListenAndServeTLS(tlsCert, tlsKey)
 		serveCh <- err
 	}()
 
