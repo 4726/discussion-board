@@ -3,7 +3,7 @@ module github.com/4726/discussion-board/services/user
 go 1.13
 
 require (
-	github.com/4726/discussion-board/services/common v0.0.0-20191128014125-0a385bcc49c5
+	github.com/4726/discussion-board/services/common v0.0.0-20191217224528-69ffc1b47631
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2
@@ -16,5 +16,3 @@ require (
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/grpc v1.25.1
 )
-
-replace github.com/4726/discussion-board/services/common => ../common
