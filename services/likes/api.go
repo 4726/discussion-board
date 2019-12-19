@@ -6,6 +6,7 @@ import (
 
 	"github.com/4726/discussion-board/services/common"
 	pb "github.com/4726/discussion-board/services/likes/pb"
+	"github.com/cenkalti/backoff/v3"
 	_ "github.com/go-sql-driver/mysql"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
@@ -21,12 +22,22 @@ type Api struct {
 func NewApi(cfg Config) (*Api, error) {
 	s := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.Addr, cfg.DBName)
 
-	db, err := gorm.Open("mysql", s)
+	var db *gorm.DB
+	op := func() error {
+		var err error
+		db, err = gorm.Open("mysql", s)
+		if err != nil {
+			return err
+		}
+		// db.LogMode(true)
+		db.AutoMigrate(&CommentLike{}, &PostLike{})
+		return nil
+	}
+
+	err := backoff.Retry(op, backoff.NewExponentialBackOff())
 	if err != nil {
 		return nil, err
 	}
-	// db.LogMode(true)
-	db.AutoMigrate(&CommentLike{}, &PostLike{})
 
 	server, err := tlsGRPC(cfg)
 	if err != nil {
@@ -43,6 +54,8 @@ func (a *Api) Run(addr string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Entry().Infof("server running on addr: %s", addr)
 
 	return common.RunGRPCWithGracefulShutdown(a.grpc, lis)
 }

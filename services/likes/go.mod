@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/4726/discussion-board/services/common v0.0.0-20191217224528-69ffc1b47631
+	github.com/cenkalti/backoff/v3 v3.1.1
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
