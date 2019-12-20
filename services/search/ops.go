@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/cenkalti/backoff"
 	"github.com/olivere/elastic/v7"
 )
 
@@ -27,9 +28,14 @@ var (
 )
 
 func NewESClient(indexName, addr string) (*ESClient, error) {
-	client, err := elastic.NewClient(
-		elastic.SetURL(addr),
-	)
+	var client *elastic.Client
+	op := func() error {
+		var err error
+		client, err = elastic.NewClient(elastic.SetURL(addr))
+		return err
+	}
+
+	err := backoff.Retry(op, backoff.NewExponentialBackOff())
 	if err != nil {
 		return nil, err
 	}
