@@ -6,11 +6,9 @@ import (
 
 	"github.com/4726/discussion-board/services/common"
 	pb "github.com/4726/discussion-board/services/likes/pb"
-	"github.com/cenkalti/backoff/v3"
 	_ "github.com/go-sql-driver/mysql"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
-	"github.com/jinzhu/gorm"
 	"google.golang.org/grpc"
 )
 
@@ -22,22 +20,14 @@ type Api struct {
 func NewApi(cfg Config) (*Api, error) {
 	s := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.Addr, cfg.DBName)
 
-	var db *gorm.DB
-	op := func() error {
-		var err error
-		db, err = gorm.Open("mysql", s)
-		if err != nil {
-			return err
-		}
-		// db.LogMode(true)
-		db.AutoMigrate(&CommentLike{}, &PostLike{})
-		return nil
-	}
-
-	err := backoff.Retry(op, backoff.NewExponentialBackOff())
+	log.Entry().Infof("connecting to database: %s", s)
+	db, err := common.OpenDB("mysql", s)
 	if err != nil {
 		return nil, err
 	}
+	log.Entry().Infof("successfully connected to database: %s", s)
+	// db.LogMode(true)
+	db.AutoMigrate(&CommentLike{}, &PostLike{})
 
 	server, err := tlsGRPC(cfg)
 	if err != nil {

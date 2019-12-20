@@ -19,10 +19,12 @@ type Api struct {
 func NewApi(cfg Config) (*Api, error) {
 	s := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", cfg.Username, cfg.Password, cfg.Addr, cfg.DBName)
 
-	db, err := gorm.Open("mysql", s)
+	log.Entry().Infof("connecting to database: %s", s)
+	db, err := common.OpenDB("mysql", s)
 	if err != nil {
 		return nil, err
 	}
+	log.Entry().Infof("successfully connected to database: %s", s)
 	// db.LogMode(true)
 	db = db.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8mb4 auto_increment=1") //fixes unicode issues
 	db.AutoMigrate(&Auth{}, &Profile{})

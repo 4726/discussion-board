@@ -3,8 +3,11 @@ cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 cloud.google.com/go v0.37.4 h1:glPeL3BQJsbF6aIIYfZizMwc5LTYz250bDMjttbBGAU=
 cloud.google.com/go v0.37.4/go.mod h1:NHPJ89PdicEuT9hdPXMROBD91xc5uRDxsMtSB16k7hw=
 github.com/4726/discussion-board v0.0.0-20191217224528-69ffc1b47631 h1:aW3PubzTCEf850+L3e+jFIvhRhdWigDvhsrf/tsMbMM=
+github.com/4726/discussion-board v0.0.0-20191219232635-1e0960fca922 h1:9V3BaHSz5ijYlzfg4BHXxYvhQhYTG4aduPpwE85frJY=
 github.com/4726/discussion-board/services/common v0.0.0-20191217224528-69ffc1b47631 h1:uaWrhwjJRhwKZ5yH3tCftvxp8GBdWxblG/zA43M568I=
 github.com/4726/discussion-board/services/common v0.0.0-20191217224528-69ffc1b47631/go.mod h1:9zohb4Z+hLo3sPmusX/KP6bWaJRR2BdVgHeHA1ZUi5g=
+github.com/4726/discussion-board/services/common v0.0.0-20191219232635-1e0960fca922 h1:NZeVL1tLJfAaf3sJadM9hC7XNVg0+2u9tLukuIK4F4s=
+github.com/4726/discussion-board/services/common v0.0.0-20191219232635-1e0960fca922/go.mod h1:xOUcujfq7dLUn+PH6VKx+737zoAd/mM43YNvDmVUuxo=
 github.com/4726/discussion-board/services/posts/models v0.0.0-20191217224528-69ffc1b47631 h1:Yxj1NYvB6dvDQeTcvd22AonbEXEKqnfzcj85WPx6Ctk=
 github.com/4726/discussion-board/services/posts/models v0.0.0-20191217224528-69ffc1b47631/go.mod h1:8Q/c0jrbGs22mdElqne2hm9UPnHsQTfKUF6N68GSo14=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
@@ -22,6 +25,8 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
+github.com/cenkalti/backoff/v3 v3.1.1 h1:UBHElAnr3ODEbpqPzX8g5sBcASjoLFtt3L/xwJ01L6E=
+github.com/cenkalti/backoff/v3 v3.1.1/go.mod h1:cIeZDE3IrqwwJl6VUwCN6trj1oXrTS4rc0ij+ULvLYs=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/cespare/xxhash/v2 v2.1.0 h1:yTUvW7Vhb89inJ+8irsUqiWjh8iT6sQPZiQzI6ReGkA=
