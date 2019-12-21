@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports: 
+      - "14000:14000"
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    env_file:
+      - config.env
+    networks:
+      - backend
+
+  mysql:
+    image: mysql:latest
+    env_file:
+      - db.env
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    networks:
+      - backend
+
+networks:
+  backend:
+
