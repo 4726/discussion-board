@@ -31,7 +31,7 @@ func NewApi(cfg Config) (*Api, error) {
 	// deleting a post will also delete all of the post's comments
 	db.Model(&models.Comment{}).AddForeignKey("post_id", "posts(id)", "CASCADE", "CASCADE")
 
-	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey}
+	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey, log.Entry()}
 	server, err := common.DefaultGRPCServer(opts)
 	if err != nil {
 		return nil, err

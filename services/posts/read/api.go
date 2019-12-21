@@ -29,7 +29,7 @@ func NewApi(cfg Config) (*Api, error) {
 	// db.LogMode(true)
 	db.AutoMigrate(&models.Comment{}, &models.Post{})
 
-	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey}
+	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey, log.Entry()}
 	server, err := common.DefaultGRPCServer(opts)
 	if err != nil {
 		return nil, err

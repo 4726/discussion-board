@@ -7,8 +7,6 @@ import (
 	"github.com/4726/discussion-board/services/common"
 	pb "github.com/4726/discussion-board/services/likes/pb"
 	_ "github.com/go-sql-driver/mysql"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"google.golang.org/grpc"
 )
 
@@ -50,16 +48,7 @@ func (a *Api) Run(addr string) error {
 	return common.RunGRPCWithGracefulShutdown(a.grpc, lis)
 }
 
-func tcpGRPC(cfg Config) (*grpc.Server, error) {
-	return grpc.NewServer(
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			common.IPWhiteListUnaryServerInterceptor(cfg.IPWhitelist),
-			otgrpc.UnaryServerInterceptor(),
-		)),
-	), nil
-}
-
 func tlsGRPC(cfg Config) (*grpc.Server, error) {
-	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey}
+	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey, log.Entry()}
 	return common.DefaultGRPCServer(opts)
 }
