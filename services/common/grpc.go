@@ -8,7 +8,10 @@ import (
 	"syscall"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	otgrpc "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -16,6 +19,7 @@ import (
 type GRPCOptions struct {
 	IPWhitelist     []string
 	TLSCert, TLSKey string
+	LogEntry        *logrus.Entry
 }
 
 func DefaultGRPCServer(opts GRPCOptions) (*grpc.Server, error) {
@@ -26,10 +30,12 @@ func DefaultGRPCServer(opts GRPCOptions) (*grpc.Server, error) {
 
 	return grpc.NewServer(
 		grpc.Creds(creds),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+		grpc_middleware.WithUnaryServerChain(
+			grpc_ctxtags.UnaryServerInterceptor(),
 			IPWhiteListUnaryServerInterceptor(opts.IPWhitelist),
 			otgrpc.UnaryServerInterceptor(),
-		)),
+			grpc_logrus.UnaryServerInterceptor(opts.LogEntry),
+		),
 	), nil
 }
 
