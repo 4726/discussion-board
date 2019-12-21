@@ -45,6 +45,8 @@ func (a *Api) Run(addr string) error {
 		return err
 	}
 
+	log.Entry().Infof("server running on addr: %s", addr)
+
 	return common.RunGRPCWithGracefulShutdown(a.grpc, lis)
 }
 
