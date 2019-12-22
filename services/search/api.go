@@ -14,10 +14,12 @@ type Api struct {
 }
 
 func NewApi(cfg Config) (*Api, error) {
+	log.Entry().Infof("connecting to elasticsearch: %s", cfg.ESAddr)
 	esc, err := NewESClient(cfg.ESIndex, cfg.ESAddr)
 	if err != nil {
 		return nil, err
 	}
+	log.Entry().Infof("successfully connected to elasticsearch: %s", cfg.ESAddr)
 
 	opts := common.GRPCOptions{cfg.IPWhitelist, cfg.TLSCert, cfg.TLSKey, log.Entry()}
 	server, err := common.DefaultGRPCServer(opts)
@@ -35,6 +37,8 @@ func (a *Api) Run(addr string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Entry().Infof("server running on addr: %s", addr)
 
 	return common.RunGRPCWithGracefulShutdown(a.grpc, lis)
 }
