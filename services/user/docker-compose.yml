@@ -17,7 +17,11 @@ services:
       - backend
 
   mysql:
-    image: mysql:latest
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    env_file:
+      - ./db/db.env
     env_file:
       - db.env
     restart: unless-stopped

@@ -17,9 +17,11 @@ services:
       - backend
 
   mysql:
-    image: mysql:latest
+    build:
+      context: ./db
+      dockerfile: Dockerfile
     env_file:
-      - db.env
+      - ./db/db.env
     restart: unless-stopped
     ports:
       - "3306:3306"

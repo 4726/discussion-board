@@ -10,6 +10,5 @@ CMD ["likes"]
 
 EXPOSE 14000
 
-# build
 # docker build -t likes .
 # docker run --env-file=config.env --network likes_backend -it --rm --name likes-running likes

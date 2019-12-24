@@ -17,9 +17,11 @@ services:
       - backend
 
   minio:
-    image: minio/minio
+    build:
+      context: ./minio
+      dockerfile: Dockerfile
     env_file:
-      - minio.env
+      - ./minio/minio.env
     restart: unless-stopped
     ports:
       - "9000:9000"

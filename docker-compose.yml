@@ -1,0 +1,220 @@
+version: '3'
+
+services:
+
+  likes:
+    build:
+      context: ./services/likes
+      dockerfile: Dockerfile
+    ports: 
+      - "14000:14000"
+    restart: unless-stopped
+    depends_on:
+      - likes-mysql
+    environment:
+      - DBOARD_LIKES_ADDR=likes-mysql:3306
+      - DBOARD_LIKES_LISTENPORT=14000
+      - DBOARD_LIKES_USERNAME=root
+      - DBOARD_LIKES_PASSWORD=pass
+      - DBOARD_LIKES_DBNAME=likes
+      - DBOARD_LIKES_TLSCERT=certs/server.crt
+      - DBOARD_LIKES_TLSKEY=certs/server.key
+      - DBOARD_LIKES_TLSSERVERNAME=server
+      - DBOARD_LIKES_IPWHITELIST=127.0.0.1 ::1
+    networks:
+      - backend
+
+  likes-mysql:
+    build:
+      context: ./services/likes/db
+      dockerfile: Dockerfile
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=likes
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    networks:
+      - backend
+
+  media:
+    build:
+      context: ./services/media
+      dockerfile: Dockerfile
+    ports: 
+      - "14001:14001"
+    restart: unless-stopped
+    depends_on:
+      - media-minio
+    environment:
+      - DBOARD_MEDIA_ENDPOINT=media-minio:9000
+      - DBOARD_MEDIA_LISTENPORT=14001
+      - DBOARD_MEDIA_ACCESSKEYID=AKIAIOSFODNN7EXAMPLE
+      - DBOARD_MEDIA_SECRETACCESSKEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      - DBOARD_MEDIA_USESSL=false
+      - DBOARD_MEDIA_BUCKETNAME=media
+      - DBOARD_MEDIA_TLSCERT=certs/server.crt
+      - DBOARD_MEDIA_TLSKEY=certs/server.key
+      - DBOARD_MEDIA_TLSSERVERNAME=server
+      - DBOARD_MEDIA_IPWHITELIST=127.0.0.1 ::1
+    networks:
+      - backend
+
+  media-minio:
+    build:
+      context: ./services/media/minio
+      dockerfile: Dockerfile
+    environment:
+      - MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
+      - MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    networks:
+      - backend
+    volumes: 
+      - data:/data
+    command: server /export
+
+  postsread:
+    build:
+      context: ./services/posts/read
+      dockerfile: Dockerfile
+    ports: 
+      - "14002:14002"
+    restart: unless-stopped
+    depends_on:
+      - postsread-mysql
+    environment:
+      - DBOARD_POSTSREAD_ADDR=postsread-mysql:3307
+      - DBOARD_POSTSREAD_LISTENPORT=14002
+      - DBOARD_POSTSREAD_USERNAME=root
+      - DBOARD_POSTSREAD_PASSWORD=pass
+      - DBOARD_POSTSREAD_DBNAME=postsread
+      - DBOARD_POSTSREAD_TLSCERT=certs/server.crt
+      - DBOARD_POSTSREAD_TLSKEY=certs/server.key
+      - DBOARD_POSTSREAD_TLSSERVERNAME=server
+      - DBOARD_POSTSREAD_IPWHITELIST=127.0.0.1 ::1 
+    networks:
+      - backend
+
+  postsread-mysql:
+    build:
+      context: ./services/posts/read/db
+      dockerfile: Dockerfile
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=postsread
+    restart: unless-stopped
+    ports:
+      - "3307:3307"
+    networks:
+      - backend
+
+  postswrite:
+    build:
+      context: ./services/posts/write
+      dockerfile: Dockerfile
+    ports: 
+      - "14003:14003"
+    restart: unless-stopped
+    depends_on:
+      - postswrite-mysql
+    environment:
+      - DBOARD_POSTSWRITE_ADDR=postswrite-mysql:3306
+      - DBOARD_POSTSWRITE_LISTENPORT=14003
+      - DBOARD_POSTSWRITE_USERNAME=root
+      - DBOARD_POSTSWRITE_PASSWORD=pass
+      - DBOARD_POSTSWRITE_DBNAME=postswrite
+      - DBOARD_POSTSWRITE_TLSCERT=certs/server.crt
+      - DBOARD_POSTSWRITE_TLSKEY=certs/server.key
+      - DBOARD_POSTSWRITE_TLSSERVERNAME=server
+      - DBOARD_POSTSWRITE_IPWHITELIST=127.0.0.1 ::1      
+    networks:
+      - backend
+
+  postswrite-mysql:
+    build:
+      context: ./services/posts/write/db
+      dockerfile: Dockerfile
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=postswrite
+    restart: unless-stopped
+    ports:
+      - "3308:3308"
+    networks:
+      - backend
+
+  search:
+    build:
+      context: ./services/search
+      dockerfile: Dockerfile
+    ports: 
+      - "14004:14004"
+    restart: unless-stopped
+    depends_on:
+      - search-elasticsearch
+    environment:
+      - DBOARD_SEARCH_ESINDEX=posts
+      - DBOARD_SEARCH_ESADDR=http://search-elasticsearch:9200
+      - DBOARD_SEARCH_LISTENPORT=14004
+      - DBOARD_SEARCH_TLSCERT=certs/server.crt
+      - DBOARD_SEARCH_TLSKEY=certs/server.key
+      - DBOARD_SEARCH_TLSSERVERNAME=server
+      - DBOARD_SEARCH_IPWHITELIST="127.0.0.1 ::1"
+    networks:
+      - backend
+
+  search-elasticsearch:
+    build:
+      context: ./services/search/elasticsearch
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    networks:
+      - backend
+    environment:
+      - discovery.type=single-node
+
+  user:
+    build:
+      context: ./services/user
+      dockerfile: Dockerfile
+    ports: 
+      - "14005:14005"
+    restart: unless-stopped
+    depends_on:
+      - user-mysql
+    environment:
+      - DBOARD_USER_ADDR=user-mysql:3306
+      - DBOARD_USER_LISTENPORT=14005
+      - DBOARD_USER_USERNAME=root
+      - DBOARD_USER_PASSWORD=pass
+      - DBOARD_USER_DBNAME=user
+      - DBOARD_USER_TLSCERT=certs/server.crt
+      - DBOARD_USER_TLSKEY=certs/server.key
+      - DBOARD_USER_TLSSERVERNAME=server
+      - DBOARD_USER_IPWHITELIST=127.0.0.1 ::1
+    networks:
+      - backend
+
+  user-mysql:
+    build:
+      context: ./services/user/db
+      dockerfile: Dockerfile
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=user
+    restart: unless-stopped
+    ports:
+      - "3309:3309"
+    networks:
+      - backend
+
+networks:
+  backend:
+
+volumes:
+  data:
