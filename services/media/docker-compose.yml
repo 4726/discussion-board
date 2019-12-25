@@ -11,8 +11,17 @@ services:
     restart: unless-stopped
     depends_on:
       - minio
-    env_file:
-      - config.env
+    environment:
+      - DBOARD_MEDIA_ENDPOINT=minio:9000
+      - DBOARD_MEDIA_LISTENPORT=14000
+      - DBOARD_MEDIA_ACCESSKEYID=AKIAIOSFODNN7EXAMPLE
+      - DBOARD_MEDIA_SECRETACCESSKEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      - DBOARD_MEDIA_USESSL=false
+      - DBOARD_MEDIA_BUCKETNAME=media
+      - DBOARD_MEDIA_TLSCERT=certs/server.crt
+      - DBOARD_MEDIA_TLSKEY=certs/server.key
+      - DBOARD_MEDIA_TLSSERVERNAME=server
+      - DBOARD_MEDIA_IPWHITELIST=127.0.0.1 ::1
     networks:
       - backend
 
@@ -20,8 +29,9 @@ services:
     build:
       context: ./minio
       dockerfile: Dockerfile
-    env_file:
-      - ./minio/minio.env
+    environment:
+      - MINIO_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
+      - MINIO_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
     restart: unless-stopped
     ports:
       - "9000:9000"

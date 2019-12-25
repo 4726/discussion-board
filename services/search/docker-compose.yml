@@ -11,8 +11,14 @@ services:
     restart: unless-stopped
     depends_on:
       - elasticsearch
-    env_file:
-      - config.env
+    environment:
+      - DBOARD_SEARCH_ESINDEX=posts
+      - DBOARD_SEARCH_ESADDR=http://elasticsearch:9200
+      - DBOARD_SEARCH_LISTENPORT=14000
+      - DBOARD_SEARCH_TLSCERT=certs/server.crt
+      - DBOARD_SEARCH_TLSKEY=certs/server.key
+      - DBOARD_SEARCH_TLSSERVERNAME=server
+      - DBOARD_SEARCH_IPWHITELIST="127.0.0.1 ::1"
     networks:
       - backend
 

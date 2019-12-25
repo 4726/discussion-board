@@ -11,8 +11,16 @@ services:
     restart: unless-stopped
     depends_on:
       - mysql
-    env_file:
-      - config.env
+    environment:
+      - DBOARD_POSTSREAD_ADDR=mysql:3306
+      - DBOARD_POSTSREAD_LISTENPORT=14000
+      - DBOARD_POSTSREAD_USERNAME=root
+      - DBOARD_POSTSREAD_PASSWORD=pass
+      - DBOARD_POSTSREAD_DBNAME=postsread
+      - DBOARD_POSTSREAD_TLSCERT=certs/server.crt
+      - DBOARD_POSTSREAD_TLSKEY=certs/server.key
+      - DBOARD_POSTSREAD_TLSSERVERNAME=server
+      - DBOARD_POSTSREAD_IPWHITELIST=127.0.0.1 ::1      
     networks:
       - backend
 
@@ -20,8 +28,9 @@ services:
     build:
       context: ./db
       dockerfile: Dockerfile
-    env_file:
-      - ./db/db.env
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=postsread
     restart: unless-stopped
     ports:
       - "3306:3306"

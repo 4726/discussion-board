@@ -11,8 +11,16 @@ services:
     restart: unless-stopped
     depends_on:
       - mysql
-    env_file:
-      - config.env
+    environment:
+      - DBOARD_LIKES_ADDR=mysql:3306
+      - DBOARD_LIKES_LISTENPORT=14000
+      - DBOARD_LIKES_USERNAME=root
+      - DBOARD_LIKES_PASSWORD=pass
+      - DBOARD_LIKES_DBNAME=likes
+      - DBOARD_LIKES_TLSCERT=certs/server.crt
+      - DBOARD_LIKES_TLSKEY=certs/server.key
+      - DBOARD_LIKES_TLSSERVERNAME=server
+      - DBOARD_LIKES_IPWHITELIST=127.0.0.1 ::1
     networks:
       - backend
 
@@ -20,8 +28,9 @@ services:
     build:
       context: ./db
       dockerfile: Dockerfile
-    env_file:
-      - ./db/db.env
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=likes
     restart: unless-stopped
     ports:
       - "3306:3306"

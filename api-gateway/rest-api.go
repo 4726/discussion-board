@@ -273,6 +273,8 @@ func (a *RestAPI) Run(addr, tlsCert, tlsKey string) error {
 		Handler: a.engine,
 	}
 
+	log.Entry().Infof("server running on addr: %s", addr)
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	shutdownCh := make(chan error, 1)

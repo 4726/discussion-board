@@ -125,9 +125,18 @@ matrix:
 
     - before_install:
         - cd api-gateway
+        - git clone https://github.com/square/certstrap
+        - cd certstrap
+        - ./build
+        - ./bin/certstrap-dev-004e21be-linux-amd64 init --common-name "server" --passphrase ""
+        - cd ../
       env:
         global:
-          - GO111MODULE=on DBOARD_GATEWAY_LISTENPORT=14005
+          - 
+            GO111MODULE=on 
+            DBOARD_GATEWAY_LISTENPORT=14005
+            DBOARD_SEARCH_TLSCERT=certstrap/out/server.crt
+            DBOARD_SEARCH_TLSKEY=certstrap/out/server.key
 go:
 - "1.13.1"
 

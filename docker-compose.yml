@@ -86,7 +86,7 @@ services:
     depends_on:
       - postsread-mysql
     environment:
-      - DBOARD_POSTSREAD_ADDR=postsread-mysql:3307
+      - DBOARD_POSTSREAD_ADDR=postsread-mysql:3306
       - DBOARD_POSTSREAD_LISTENPORT=14002
       - DBOARD_POSTSREAD_USERNAME=root
       - DBOARD_POSTSREAD_PASSWORD=pass
@@ -107,7 +107,7 @@ services:
       - MYSQL_DATABASE=postsread
     restart: unless-stopped
     ports:
-      - "3307:3307"
+      - "3307:3306"
     networks:
       - backend
 
@@ -142,7 +142,7 @@ services:
       - MYSQL_DATABASE=postswrite
     restart: unless-stopped
     ports:
-      - "3308:3308"
+      - "3308:3306"
     networks:
       - backend
 
@@ -177,6 +177,7 @@ services:
       - backend
     environment:
       - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
 
   user:
     build:
@@ -209,7 +210,21 @@ services:
       - MYSQL_DATABASE=user
     restart: unless-stopped
     ports:
-      - "3309:3309"
+      - "3310:3306"
+    networks:
+      - backend
+
+  gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports: 
+      - "14006:14006"
+    restart: unless-stopped
+    environment:
+      - DBOARD_GATEWAY_LISTENPORT=14006
+      - DBOARD_GATEWAY_TLSCERT=certs/server.crt
+      - DBOARD_GATEWAY_TLSKEY=certs/server.key
     networks:
       - backend
 

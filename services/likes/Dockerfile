@@ -1,12 +1,15 @@
 FROM golang:1.13.1
 
 WORKDIR /go/src/github.com/4726/discussion-board/services/likes
+COPY go.mod go.sum ./
+
+RUN go mod download
+
 COPY . .
 
-RUN go get -d -v ./...
-RUN go install -v ./...
+RUN go build -o likes .
 
-CMD ["likes"]
+CMD ["./likes"]
 
 EXPOSE 14000
 
